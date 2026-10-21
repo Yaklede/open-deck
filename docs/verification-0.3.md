@@ -2,7 +2,7 @@
 
 Verified on 2026-10-21 using an Apple Silicon Mac and a physical Samsung Tab S7, Android 13, 2560 × 1600.
 
-- Host: 27 passing Node tests covering migration/backup, geometry validation, typed controls, persistent state, cooldown, HTTP scalar/size limits, non-polling POST, authenticated image access, SSE deltas, pairing/TLS/revocation, plugin process/protocol and lifecycle boundaries.
+- Host: 28 passing Node tests covering migration/backup, geometry validation, typed controls, persistent state, cooldown, HTTP scalar/size limits, non-polling POST, authenticated image access, SSE deltas, pairing/TLS/revocation, plugin process/protocol and lifecycle boundaries.
 - Native Android: signed release build and release lint pass; update installation preserves pairing; automatic mode periodically probes pinned Wi-Fi again after falling back to USB. Mac app builds with its embedded Node runtime and pinned `ws` dependency. Dependency audit reports no known advisories at this check.
 - Editor: resize through the inspector, undo and save were exercised; the restored independent grid persisted.
 - Physical tablet: pinned Wi-Fi connection; existing launcher layout retained; independent 4×3 Focus and 6×4 Monitor layouts; clock, native month calendar, graphs, page links, image decoding, Boolean toggle and numeric slider tested. Tablet slider changed the real host variable from 25 to 80. A todo entered through the native dialog reached the host and was then removed. Temporary verification controls were removed.

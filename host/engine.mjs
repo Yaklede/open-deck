@@ -223,6 +223,7 @@ export class Engine {
     for (const key of Object.keys(this.variables))
       if (!Object.hasOwn(config.variables || {}, key))
         delete this.variables[key];
+    this.onPersist?.();
   }
   setVariable(key, value) {
     if (!Object.hasOwn(this.config.variables || {}, key))

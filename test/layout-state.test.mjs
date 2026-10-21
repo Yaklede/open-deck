@@ -308,3 +308,31 @@ test("SSE sends configuration once, then state deltas; a save refreshes configur
     fs.rmSync(dir, { recursive: true, force: true });
   }
 });
+test("editing a variable default persists the new current value before host restart", async (t) => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), "od-default-"));
+  t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
+  writeJson(path.join(dir, "deck.json"), controls());
+  let h = createHost({ dir, metrics: false });
+  await new Promise((r) => h.server.listen(0, "127.0.0.1", r));
+  h.engine.control("slider", 33);
+  const c = controls();
+  c.variables.level = 42;
+  const res = await fetch(
+    "http://127.0.0.1:" + h.server.address().port + "/api/admin/config",
+    {
+      method: "PUT",
+      headers: {
+        "X-Open-Deck-Admin": h.adminKey,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(c),
+    },
+  );
+  assert.equal(res.status, 200);
+  assert.equal(h.engine.variables.level, 42);
+  await h.close();
+  h = createHost({ dir, metrics: false });
+  await new Promise((r) => h.server.listen(0, "127.0.0.1", r));
+  assert.equal(h.engine.variables.level, 42);
+  await h.close();
+});
