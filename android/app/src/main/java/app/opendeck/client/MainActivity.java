@@ -7,6 +7,7 @@ import android.os.*;
 import android.security.keystore.*;
 import android.text.InputType;
 import android.util.Base64;
+import android.util.LruCache;
 import android.view.*;
 import android.view.inputmethod.InputMethodManager;
 import android.widget.*;
@@ -17,6 +18,7 @@ import java.security.KeyStore;
 import java.text.SimpleDateFormat;
 import java.util.*;
 import java.util.concurrent.*;
+import java.util.regex.*;
 import javax.crypto.*;
 import javax.crypto.spec.GCMParameterSpec;
 import org.json.*;
@@ -44,6 +46,16 @@ public class MainActivity extends Activity {
   private String connectionError = "";
   private volatile JSONObject config = new JSONObject(), state = new JSONObject();
   private DeckView deck;
+  private final ExecutorService images = Executors.newFixedThreadPool(2);
+  private final Set<String> loadingImages = ConcurrentHashMap.newKeySet();
+  private final LruCache<String, Bitmap> bitmapCache =
+      new LruCache<String, Bitmap>(32 * 1024 * 1024) {
+        @Override
+        protected int sizeOf(String key, Bitmap value) {
+          return value.getAllocationByteCount();
+        }
+      };
+  private static final Pattern TEMPLATE = Pattern.compile("\\{\\{\\s*([a-zA-Z0-9_]+)\\s*\\}\\}");
   private Typeface font;
   private Thread events;
   private SharedPreferences prefs;
@@ -115,6 +127,7 @@ public class MainActivity extends Activity {
     disconnectEvents();
     if (events != null) events.interrupt();
     commands.shutdownNow();
+    images.shutdownNow();
     ui.removeCallbacks(tick);
     super.onDestroy();
   }
@@ -344,13 +357,13 @@ public class MainActivity extends Activity {
                   && base.startsWith("http:")) {
                 switchToWifi = true;
               }
-              JSONObject cfg = snapshot.getJSONObject("config"),
+              JSONObject cfg = snapshot.optJSONObject("config"),
                   st = snapshot.getJSONObject("state");
-              String configJson = cfg.toString();
+              String configJson = cfg == null ? null : cfg.toString();
               ui.post(
                   () -> {
-                    boolean changed = !renderedConfig.equals(configJson);
-                    config = cfg;
+                    boolean changed = cfg != null && !renderedConfig.equals(configJson);
+                    if (cfg != null) config = cfg;
                     state = st;
                     serverTime = st.optLong("at", System.currentTimeMillis());
                     receivedAt = SystemClock.elapsedRealtime();
@@ -533,6 +546,201 @@ public class MainActivity extends Activity {
     }
   }
 
+  private JSONObject activePage() {
+    JSONArray pages = config.optJSONArray("pages");
+    if (pages == null || pages.length() == 0) return new JSONObject();
+    for (int i = 0; i < pages.length(); i++)
+      if (pages.optJSONObject(i).optString("id").equals(pageId)) return pages.optJSONObject(i);
+    return pages.optJSONObject(0);
+  }
+
+  private Object variable(String key) {
+    JSONObject vars = state.optJSONObject("variables");
+    return vars != null && vars.has(key) ? vars.opt(key) : state.opt(key);
+  }
+
+  private String template(String text) {
+    Matcher m = TEMPLATE.matcher(text);
+    StringBuffer result = new StringBuffer();
+    while (m.find()) {
+      Object v = variable(m.group(1));
+      m.appendReplacement(result, Matcher.quoteReplacement(v == null ? "—" : String.valueOf(v)));
+    }
+    m.appendTail(result);
+    return result.toString();
+  }
+
+  private void navigate(String id) {
+    JSONArray pages = config.optJSONArray("pages");
+    if (pages == null) return;
+    for (int i = 0; i < pages.length(); i++)
+      if (pages.optJSONObject(i).optString("id").equals(id)) {
+        pageId = id;
+        prefs.edit().putString("page", id).apply();
+        deck.scroll = 0;
+        deck.rebuild();
+        deck.updateState();
+        return;
+      }
+  }
+
+  private Bitmap bitmap(String id, int target) {
+    if (!id.matches("[a-f0-9]{64}")) return null;
+    String key = id + "@" + target;
+    Bitmap cached = bitmapCache.get(key);
+    if (cached != null) return cached;
+    if (loadingImages.add(key) && !images.isShutdown())
+      images.execute(
+          () -> {
+            HttpURLConnection c = null;
+            try {
+              c = PinnedConnection.open(base + "/api/assets/" + id, wifiPin);
+              c.setConnectTimeout(2500);
+              c.setReadTimeout(5000);
+              c.setRequestProperty("Authorization", "Bearer " + token);
+              if (c.getResponseCode() != 200) return;
+              ByteArrayOutputStream out = new ByteArrayOutputStream();
+              byte[] buf = new byte[8192];
+              int read;
+              try (InputStream in = c.getInputStream()) {
+                while ((read = in.read(buf)) != -1) {
+                  if (out.size() + read > 2097152) throw new IOException("Image too large");
+                  out.write(buf, 0, read);
+                }
+              }
+              byte[] data = out.toByteArray();
+              BitmapFactory.Options o = new BitmapFactory.Options();
+              o.inJustDecodeBounds = true;
+              BitmapFactory.decodeByteArray(data, 0, data.length, o);
+              if (o.outWidth <= 0 || o.outHeight <= 0 || o.outWidth > 8192 || o.outHeight > 8192)
+                return;
+              int sample = 1;
+              while (o.outWidth / sample > target * 2 || o.outHeight / sample > target * 2)
+                sample *= 2;
+              o.inJustDecodeBounds = false;
+              o.inSampleSize = sample;
+              Bitmap b = BitmapFactory.decodeByteArray(data, 0, data.length, o);
+              if (b != null) bitmapCache.put(key, b);
+              ui.post(
+                  () -> {
+                    if (deck != null) {
+                      deck.invalidate();
+                      for (DeckView.Tile tile : deck.tiles)
+                        if (id.equals(tile.widget.optString("image"))) tile.invalidate();
+                    }
+                  });
+            } catch (Exception ignored) {
+            } finally {
+              if (c != null) c.disconnect();
+              loadingImages.remove(key);
+            }
+          });
+    return null;
+  }
+
+  private void todoDialog(JSONObject w) {
+    JSONArray all =
+        state.optJSONObject("todos") == null
+            ? new JSONArray()
+            : state.optJSONObject("todos").optJSONArray(w.optString("id"));
+    if (all == null) all = new JSONArray();
+    final JSONArray items = all;
+    String[] labels = new String[items.length() + 1];
+    labels[0] = "＋ 할 일 추가";
+    for (int i = 0; i < items.length(); i++) {
+      JSONObject item = items.optJSONObject(i);
+      labels[i + 1] = (item.optBoolean("done") ? "✓ " : "○ ") + item.optString("text");
+    }
+    new AlertDialog.Builder(this)
+        .setTitle(w.optString("label", "할 일"))
+        .setItems(
+            labels,
+            (d, index) -> {
+              if (index == 0) {
+                EditText input = new EditText(this);
+                input.setSingleLine(true);
+                input.setFilters(
+                    new android.text.InputFilter[] {
+                      new android.text.InputFilter.LengthFilter(160)
+                    });
+                new AlertDialog.Builder(this)
+                    .setTitle("새 할 일")
+                    .setView(input)
+                    .setNegativeButton("취소", null)
+                    .setPositiveButton(
+                        "추가",
+                        (x, y) -> {
+                          try {
+                            action(
+                                new JSONObject()
+                                    .put("kind", "todo")
+                                    .put("id", w.getString("id"))
+                                    .put("gesture", "add")
+                                    .put("value", input.getText().toString()));
+                          } catch (JSONException ignored) {
+                          }
+                        })
+                    .show();
+              } else {
+                JSONObject item = items.optJSONObject(index - 1);
+                new AlertDialog.Builder(this)
+                    .setTitle(item.optString("text"))
+                    .setItems(
+                        new String[] {item.optBoolean("done") ? "다시 진행" : "완료로 표시", "삭제"},
+                        (x, y) -> {
+                          try {
+                            action(
+                                new JSONObject()
+                                    .put("kind", "todo")
+                                    .put("id", w.getString("id"))
+                                    .put("gesture", y == 0 ? "toggle" : "delete")
+                                    .put("value", item.getString("id")));
+                          } catch (JSONException ignored) {
+                          }
+                        })
+                    .show();
+              }
+            })
+        .setNegativeButton("닫기", null)
+        .show();
+  }
+
+  private String lastButtonId = "";
+  private long lastButtonAt = 0;
+  private Runnable singleTap;
+
+  private void dispatchButton(JSONObject w, String gesture) throws JSONException {
+    JSONObject gestures = w.optJSONObject("gestures");
+    boolean hasDouble = gestures != null && gestures.optBoolean("double"),
+        hasLong = gestures != null && gestures.optBoolean("long");
+    String id = w.getString("id");
+    if (gesture.equals("long") && hasLong) {
+      action(new JSONObject().put("id", id).put("gesture", "long"));
+      return;
+    }
+    if (!hasDouble) {
+      action(new JSONObject().put("id", id));
+      return;
+    }
+    long now = SystemClock.elapsedRealtime();
+    if (id.equals(lastButtonId) && now - lastButtonAt < 260) {
+      if (singleTap != null) ui.removeCallbacks(singleTap);
+      lastButtonId = "";
+      action(new JSONObject().put("id", id).put("gesture", "double"));
+    } else {
+      lastButtonId = id;
+      lastButtonAt = now;
+      singleTap =
+          () -> {
+            try {
+              action(new JSONObject().put("id", id));
+            } catch (JSONException ignored) {
+            }
+          };
+      ui.postDelayed(singleTap, 260);
+    }
+  }
+
   private long hostNow() {
     return serverTime == 0
         ? System.currentTimeMillis()
@@ -651,6 +859,8 @@ public class MainActivity extends Activity {
     final SimpleDateFormat timeFormat = new SimpleDateFormat("HH:mm", Locale.KOREA);
     final SimpleDateFormat dateFormat = new SimpleDateFormat("M월 d일 EEEE", Locale.KOREA);
     final ArrayList<Tile> tiles = new ArrayList<>();
+    final Map<String, Tile> cachedTiles = new HashMap<>();
+    String cachedConfig = "";
     String headerStatus = "";
     ArrayList<RectF> rects = new ArrayList<>();
     ArrayList<JSONObject> widgets = new ArrayList<>();
@@ -695,8 +905,37 @@ public class MainActivity extends Activity {
       paint.setStyle(Paint.Style.FILL);
     }
 
+    String themeValue(String key) {
+      String theme = activePage().optString("theme", "midnight");
+      if (theme.equals("paper"))
+        return key.equals("background")
+            ? "#e9edf2"
+            : key.equals("surface") ? "#ffffff" : key.equals("text") ? "#233348" : "#4b6dba";
+      if (theme.equals("ocean"))
+        return key.equals("background")
+            ? "#091c28"
+            : key.equals("surface") ? "#123344" : key.equals("text") ? "#d9f4fa" : "#68c8d8";
+      if (theme.equals("graphite"))
+        return key.equals("background")
+            ? "#141517"
+            : key.equals("surface") ? "#232528" : key.equals("text") ? "#eef0f2" : "#b8c6da";
+      return key.equals("background")
+          ? "#0c1320"
+          : key.equals("surface") ? "#172436" : key.equals("text") ? "#e0e9fa" : "#a6acff";
+    }
+
     void rebuild() {
-      removeAllViews();
+      String nextConfig = config.toString();
+      int count =
+          activePage().optJSONArray("widgets") == null
+              ? 0
+              : activePage().optJSONArray("widgets").length();
+      if (!nextConfig.equals(cachedConfig) || cachedTiles.size() + count > 256) {
+        removeAllViews();
+        cachedTiles.clear();
+        cachedConfig = nextConfig;
+      }
+      for (Tile tile : cachedTiles.values()) tile.setVisibility(View.GONE);
       tiles.clear();
       widgets.clear();
       rects.clear();
@@ -714,11 +953,18 @@ public class MainActivity extends Activity {
             if (w == null) continue;
             widgets.add(w);
             rects.add(new RectF());
-            Tile tile = new Tile(w);
+            String id = w.optString("id");
+            Tile tile = cachedTiles.get(id);
+            if (tile == null) {
+              tile = new Tile(w);
+              cachedTiles.put(id, tile);
+              addView(tile);
+            }
+            tile.setVisibility(View.VISIBLE);
             tiles.add(tile);
-            addView(tile);
           }
       }
+      setBackgroundColor(color(activePage().optString("background", themeValue("background"))));
       requestLayout();
       invalidate();
     }
@@ -727,33 +973,71 @@ public class MainActivity extends Activity {
     protected void onMeasure(int widthSpec, int heightSpec) {
       int width = MeasureSpec.getSize(widthSpec), height = MeasureSpec.getSize(heightSpec);
       setMeasuredDimension(width, height);
-      float margin = dp(18), gap = dp(12), available = height - dp(132);
+      JSONObject p = activePage();
+      boolean portrait = width < height;
+      JSONObject portraitConfig = p.optJSONObject("portrait");
       int cols =
-          Math.max(
-              2,
-              Math.min(
-                  8,
-                  width < height
-                      ? Math.min(2, config.optInt("columns", 4))
-                      : config.optInt("columns", 4)));
-      int rows = Math.max(1, (tiles.size() + cols - 1) / cols);
-      int cellW = Math.round((width - margin * 2 - gap * (cols - 1)) / cols);
-      int cellH = Math.round(Math.max(dp(145), (available - gap * (rows - 1)) / rows));
+          portrait
+              ? (portraitConfig == null
+                  ? Math.min(2, p.optInt("columns", 4))
+                  : portraitConfig.optInt("columns", 2))
+              : p.optInt("columns", config.optInt("columns", 4));
+      cols = Math.max(2, Math.min(12, cols));
+      int rows = Math.max(1, p.optInt("rows", (tiles.size() + cols - 1) / cols));
+      int[][] boxes = new int[tiles.size()][4];
+      boolean[][] occupied = new boolean[1024][12];
+      int extent = 1;
+      for (int i = 0; i < tiles.size(); i++) {
+        JSONObject w = widgets.get(i);
+        int cw = Math.min(cols, Math.max(1, w.optInt("w", 1))), ch = Math.max(1, w.optInt("h", 1));
+        int x = w.optInt("x", i % cols), y = w.optInt("y", i / cols);
+        if (portrait) {
+          x = 0;
+          y = 0;
+          boolean found = false;
+          for (int yy = 0; yy < 1000 && !found; yy++)
+            for (int xx = 0; xx <= cols - cw; xx++) {
+              boolean free = true;
+              for (int gy = yy; gy < yy + ch; gy++)
+                for (int gx = xx; gx < xx + cw; gx++) if (occupied[gy][gx]) free = false;
+              if (free) {
+                x = xx;
+                y = yy;
+                found = true;
+                break;
+              }
+            }
+        }
+        for (int gy = y; gy < Math.min(1024, y + ch); gy++)
+          for (int gx = x; gx < Math.min(cols, x + cw); gx++) occupied[gy][gx] = true;
+        boxes[i] = new int[] {x, y, cw, ch};
+        extent = Math.max(extent, y + ch);
+      }
+      if (portrait)
+        rows = Math.max(extent, portraitConfig == null ? 1 : portraitConfig.optInt("rows", 1));
+      else rows = Math.max(rows, extent);
+      float margin = dp(18), gap = dp(p.optInt("gap", 12)), available = height - dp(132);
+      float cellW = (width - margin * 2 - gap * (cols - 1)) / cols;
+      float cellH = Math.max(dp(48), (available - gap * (rows - 1)) / rows);
       maxScroll = Math.max(0, rows * (cellH + gap) - gap - available);
       scroll = Math.min(scroll, maxScroll);
       for (int i = 0; i < tiles.size(); i++) {
-        float left = margin + (i % cols) * (cellW + gap),
-            top = dp(68) + (i / cols) * (cellH + gap) - scroll;
-        rects.get(i).set(left, top, left + cellW, top + cellH);
+        int[] box = boxes[i];
+        float left = margin + box[0] * (cellW + gap),
+            top = dp(68) + box[1] * (cellH + gap) - scroll;
+        int tw = Math.round(box[2] * cellW + (box[2] - 1) * gap),
+            th = Math.round(box[3] * cellH + (box[3] - 1) * gap);
+        rects.get(i).set(left, top, left + tw, top + th);
         tiles
             .get(i)
             .measure(
-                MeasureSpec.makeMeasureSpec(cellW, MeasureSpec.EXACTLY),
-                MeasureSpec.makeMeasureSpec(cellH, MeasureSpec.EXACTLY));
+                MeasureSpec.makeMeasureSpec(tw, MeasureSpec.EXACTLY),
+                MeasureSpec.makeMeasureSpec(th, MeasureSpec.EXACTLY));
       }
       pageRects.clear();
       JSONArray pages = config.optJSONArray("pages");
       int n = pages == null ? 0 : pages.length();
+      if (n > 6) n = 1;
       float pageWidth = Math.min(dp(140), width / (float) Math.max(1, n)),
           start = (width - n * pageWidth) / 2;
       for (int i = 0; i < n; i++)
@@ -765,13 +1049,14 @@ public class MainActivity extends Activity {
     protected void onLayout(boolean changed, int l, int t, int r, int b) {
       for (int i = 0; i < tiles.size(); i++) {
         RectF rect = rects.get(i);
-        tiles
-            .get(i)
-            .layout(
-                Math.round(rect.left),
-                Math.round(rect.top),
-                Math.round(rect.right),
-                Math.round(rect.bottom));
+        Tile tile = tiles.get(i);
+        tile.setVisibility(
+            rect.bottom > dp(68) && rect.top < b - dp(46) ? View.VISIBLE : View.INVISIBLE);
+        tile.layout(
+            Math.round(rect.left),
+            Math.round(rect.top),
+            Math.round(rect.right),
+            Math.round(rect.bottom));
       }
     }
 
@@ -804,12 +1089,20 @@ public class MainActivity extends Activity {
         else if (tile.type.equals("volume"))
           next = state.optInt("volume") + ":" + state.optBoolean("muted");
         else if (tile.type.equals("timer")) next = String.valueOf(state.optJSONObject("timers"));
+        else if (tile.type.equals("graph")) next = String.valueOf(state.optJSONObject("history"));
+        else if (tile.type.equals("todo")) next = String.valueOf(state.optJSONObject("todos"));
         else next = "static";
+        if (tile.widget.has("binding") || tile.widget.optString("label").contains("{{"))
+          next += String.valueOf(state.optJSONObject("variables"));
         if (!next.equals(tile.signature)) {
           tile.signature = next;
-          tile.invalidate();
+          if (tile.getVisibility() == View.VISIBLE) tile.invalidate();
         }
-        float alpha = connected ? 1f : .55f;
+        float alpha =
+            (connected ? 1f : .55f)
+                * (tile.widget.optJSONObject("style") == null
+                    ? 1f
+                    : tile.widget.optJSONObject("style").optInt("opacity", 100) / 100f);
         if (tile.getAlpha() != alpha) tile.setAlpha(alpha);
       }
     }
@@ -840,12 +1133,27 @@ public class MainActivity extends Activity {
         setContentDescription(w.optString("label"));
         setImportantForAccessibility(View.IMPORTANT_FOR_ACCESSIBILITY_YES);
         setFocusable(true);
-        if (type.equals("button") || type.equals("timer"))
+        if (type.equals("button")
+            || type.equals("timer")
+            || type.equals("page")
+            || type.equals("todo")
+            || type.equals("toggle"))
           setOnClickListener(
               v -> {
                 try {
                   JSONObject b = new JSONObject().put("id", id);
+                  if (type.equals("page")) {
+                    navigate(w.optString("targetPage"));
+                    return;
+                  }
+                  if (type.equals("todo")) {
+                    todoDialog(w);
+                    return;
+                  }
                   if (type.equals("timer")) b.put("kind", "timer").put("gesture", "tap");
+                  if (type.equals("toggle"))
+                    b.put("kind", "control")
+                        .put("value", !Boolean.TRUE.equals(variable(w.optString("binding"))));
                   action(b);
                 } catch (JSONException ignored) {
                 }
@@ -872,7 +1180,40 @@ public class MainActivity extends Activity {
     @Override
     protected void onDraw(Canvas c) {
       super.onDraw(c);
-      label(c, "◈  OPEN DECK", dp(18), dp(28), 12, color("#c4cfff"), Paint.Align.LEFT);
+      JSONObject themedPage = activePage();
+      if (themedPage.has("gradient")) {
+        paint.setShader(
+            new LinearGradient(
+                0,
+                0,
+                getWidth(),
+                getHeight(),
+                color(themedPage.optString("background", themeValue("background"))),
+                color(themedPage.optString("gradient")),
+                Shader.TileMode.CLAMP));
+        c.drawRect(0, 0, getWidth(), getHeight(), paint);
+        paint.setShader(null);
+      }
+      Bitmap background = bitmap(themedPage.optString("backgroundImage"), 2560);
+      if (background != null) {
+        paint.setColor(Color.WHITE);
+        paint.setFilterBitmap(true);
+        float scale =
+            Math.max(
+                getWidth() / (float) background.getWidth(),
+                getHeight() / (float) background.getHeight());
+        float bw = background.getWidth() * scale, bh = background.getHeight() * scale;
+        c.drawBitmap(
+            background,
+            null,
+            new RectF(
+                (getWidth() - bw) / 2,
+                (getHeight() - bh) / 2,
+                (getWidth() + bw) / 2,
+                (getHeight() + bh) / 2),
+            paint);
+      }
+      label(c, "◈  OPEN DECK", dp(18), dp(28), 12, color(themeValue("text")), Paint.Align.LEFT);
       label(
           c,
           connected
@@ -896,11 +1237,11 @@ public class MainActivity extends Activity {
       JSONArray pages = config.optJSONArray("pages");
       if (pages != null)
         for (int i = 0; i < pageRects.size(); i++) {
-          JSONObject p = pages.optJSONObject(i);
+          JSONObject p = pages.length() > 6 ? activePage() : pages.optJSONObject(i);
           RectF r = pageRects.get(i);
           label(
               c,
-              p.optString("name"),
+              p.optString("name") + (pages.length() > 6 ? " ▾" : ""),
               r.centerX(),
               getHeight() - dp(17),
               11,
@@ -912,29 +1253,47 @@ public class MainActivity extends Activity {
     void drawWidget(Canvas c, JSONObject w, RectF r) {
       String type = w.optString("type"), id = w.optString("id");
       int accent = color(w.optString("color", "#86b6ff"));
-      paint.setColor(color("#172436"));
+      JSONObject style = w.optJSONObject("style");
+      if (style == null) style = new JSONObject();
+      if (type.equals("spacer")) return;
+      float radius = dp(activePage().optInt("radius", 13));
+      paint.setColor(color(style.optString("background", themeValue("surface"))));
       paint.setStyle(Paint.Style.FILL);
-      c.drawRoundRect(r, dp(13), dp(13), paint);
-      if (type.equals("button")) {
+      c.drawRoundRect(r, radius, radius, paint);
+      if (type.equals("button") || type.equals("page") || style.optInt("borderWidth", 0) > 0) {
         paint.setStyle(Paint.Style.STROKE);
-        paint.setStrokeWidth(dp(1.3f));
-        paint.setColor(accent);
-        c.drawRoundRect(r, dp(13), dp(13), paint);
+        paint.setStrokeWidth(dp(style.optInt("borderWidth", 1)));
+        paint.setColor(
+            color(style.optString("borderColor", w.optString("color", themeValue("accent")))));
+        c.drawRoundRect(r, radius, radius, paint);
         paint.setStyle(Paint.Style.FILL);
       }
       float cx = r.centerX(), cy = r.centerY(), basis = Math.min(r.width(), r.height());
-      if (type.equals("button")) {
-        drawIcon(
-            c, w.optString("icon", "monitor"), cx, r.top + r.height() * .37f, basis * .32f, accent);
-        String[] lines = w.optString("label").split("\n");
-        float y = r.bottom - dp(lines.length > 1 ? 38 : 23);
-        for (String l : lines) {
-          float textSize =
-              Math.min(
-                  17, Math.max(10, (r.width() / dp(1) - 25) / (Math.max(1, l.length()) * .75f)));
-          label(c, l, cx, y, textSize, color("#e0e9fa"), Paint.Align.CENTER);
-          y += dp(21);
-        }
+      if (type.equals("button") || type.equals("page")) {
+        String position = style.optString("labelPosition", "bottom");
+        float imageY =
+            r.top
+                + r.height()
+                    * (position.equals("top") ? .63f : position.equals("hidden") ? .5f : .37f);
+        Bitmap image = bitmap(w.optString("image"), 512);
+        float size = basis * style.optInt("iconSize", 32) / 100f;
+        if (image != null) {
+          paint.setColor(Color.WHITE);
+          paint.setFilterBitmap(true);
+          c.drawBitmap(
+              image,
+              null,
+              new RectF(cx - size / 2, imageY - size / 2, cx + size / 2, imageY + size / 2),
+              paint);
+        } else
+          drawIcon(
+              c,
+              w.optString("icon", type.equals("page") ? "tasks" : "monitor"),
+              cx,
+              imageY,
+              size,
+              accent);
+        if (!position.equals("hidden")) drawLabel(c, w, r, style, position);
       } else if (type.equals("clock")) {
         label(
             c,
@@ -950,7 +1309,7 @@ public class MainActivity extends Activity {
             cx,
             r.top + r.height() * .60f,
             Math.min(48, basis / dp(1) * .24f),
-            color("#e5edff"),
+            color(themeValue("text")),
             Paint.Align.CENTER);
         label(
             c,
@@ -981,7 +1340,7 @@ public class MainActivity extends Activity {
               gx,
               r.top + r.height() * .80f,
               20,
-              color("#e3edff"),
+              color(themeValue("text")),
               Paint.Align.CENTER);
           label(
               c,
@@ -1012,7 +1371,7 @@ public class MainActivity extends Activity {
             cx,
             cy,
             Math.min(34, basis / dp(1) * .17f),
-            color("#ecf2ff"),
+            color(themeValue("text")),
             Paint.Align.CENTER);
         label(c, w.optString("label"), cx, cy + dp(23), 11, color("#a6b6d0"), Paint.Align.CENTER);
         label(
@@ -1023,39 +1382,229 @@ public class MainActivity extends Activity {
             8,
             color("#647d9f"),
             Paint.Align.CENTER);
-      } else if (type.equals("volume")) {
-        int value = dragVolume >= 0 ? (int) dragVolume : state.optInt("volume", 50);
+      } else if (type.equals("volume") || type.equals("slider")) {
+        double bound =
+            variable(w.optString("binding")) instanceof Number
+                ? ((Number) variable(w.optString("binding"))).doubleValue()
+                : w.optDouble("min", 0);
+        double min = type.equals("volume") ? 0 : w.optDouble("min", 0),
+            max = type.equals("volume") ? 100 : w.optDouble("max", 100);
+        double value =
+            dragVolume >= 0 && downIndex >= 0 && widgets.get(downIndex).optString("id").equals(id)
+                ? min + (max - min) * dragVolume / 100f
+                : type.equals("volume") ? state.optInt("volume", 50) : bound;
         label(
             c,
             w.optString("label"),
             r.left + dp(16),
             r.top + dp(29),
             14,
-            color("#dae5f8"),
+            color(themeValue("text")),
             Paint.Align.LEFT);
         label(
             c,
-            value + "%",
+            String.format(Locale.ROOT, "%.0f", value) + (type.equals("volume") ? "%" : ""),
             r.right - dp(16),
             r.top + dp(29),
             17,
-            color("#dae5f8"),
+            color(themeValue("text")),
             Paint.Align.RIGHT);
         float x1 = r.left + dp(25),
             x2 = r.right - dp(25),
             y = r.centerY() + dp(15),
-            x = x1 + (x2 - x1) * value / 100f;
+            x = x1 + (x2 - x1) * (float) ((value - min) / (max - min));
         line(c, x1, y, x2, y, color("#29334a"), 12);
         line(c, x1, y, x, y, accent, 12);
         paint.setColor(color("#e6efff"));
         c.drawCircle(x, y, dp(13), paint);
-      } else {
-        String[] lines = w.optString("label").split("\n");
-        float y = cy - (lines.length - 1) * dp(10);
-        for (String l : lines) {
-          label(c, l, cx, y, 16, color("#b9cbe4"), Paint.Align.CENTER);
-          y += dp(23);
+      } else if (type.equals("toggle")) {
+        boolean on = Boolean.TRUE.equals(variable(w.optString("binding")));
+        paint.setColor(on ? accent : color("#445268"));
+        float sw = Math.min(r.width() * .55f, dp(100)), sh = sw * .48f;
+        c.drawRoundRect(
+            new RectF(cx - sw / 2, cy - sh / 2, cx + sw / 2, cy + sh / 2), sh / 2, sh / 2, paint);
+        paint.setColor(Color.WHITE);
+        c.drawCircle(cx + (on ? 1 : -1) * (sw - sh) / 2, cy, sh * .38f, paint);
+        drawLabel(c, w, r, style, style.optString("labelPosition", "bottom"));
+      } else if (type.equals("calendar")) {
+        Calendar date = Calendar.getInstance();
+        date.setTimeInMillis(hostNow());
+        int day = date.get(Calendar.DAY_OF_MONTH),
+            days = date.getActualMaximum(Calendar.DAY_OF_MONTH);
+        date.set(Calendar.DAY_OF_MONTH, 1);
+        int offset = date.get(Calendar.DAY_OF_WEEK) - 1;
+        label(
+            c,
+            new SimpleDateFormat("yyyy년 M월", Locale.KOREA).format(new Date(hostNow())),
+            cx,
+            r.top + dp(28),
+            16,
+            accent,
+            Paint.Align.CENTER);
+        float cw = r.width() / 8, ch = (r.height() - dp(72)) / 7;
+        for (int i = 0; i < 7; i++)
+          label(
+              c,
+              new String[] {"일", "월", "화", "수", "목", "금", "토"}[i],
+              r.left + cw * (i + 1),
+              r.top + dp(48),
+              10,
+              color(themeValue("text")),
+              Paint.Align.CENTER);
+        for (int d = 1; d <= days; d++) {
+          int at = offset + d - 1;
+          float x = r.left + cw * (at % 7 + 1), y = r.top + dp(48) + ch * (at / 7 + 1);
+          if (d == day) {
+            paint.setColor(accent);
+            c.drawCircle(x, y - dp(4), dp(10), paint);
+          }
+          label(
+              c,
+              String.valueOf(d),
+              x,
+              y,
+              11,
+              color(d == day ? themeValue("background") : themeValue("text")),
+              Paint.Align.CENTER);
         }
+      } else if (type.equals("graph")) {
+        JSONObject histories = state.optJSONObject("history");
+        JSONArray values =
+            histories == null ? null : histories.optJSONArray(w.optString("binding", "cpu"));
+        if (values != null && values.length() > 1) {
+          Path path = iconPath;
+          path.rewind();
+          int start = Math.max(0, values.length() - 60), len = values.length() - start;
+          for (int i = 0; i < len; i++) {
+            float x = r.left + dp(15) + (r.width() - dp(30)) * i / (len - 1),
+                y =
+                    r.bottom
+                        - dp(40)
+                        - (r.height() - dp(65))
+                            * (float) Math.max(0, Math.min(1, values.optDouble(start + i) / 100));
+            if (i == 0) path.moveTo(x, y);
+            else path.lineTo(x, y);
+          }
+          paint.setStyle(Paint.Style.STROKE);
+          paint.setStrokeWidth(dp(2));
+          paint.setColor(accent);
+          c.drawPath(path, paint);
+          paint.setStyle(Paint.Style.FILL);
+        }
+        drawLabel(c, w, r, style, "bottom");
+      } else if (type.equals("todo")) {
+        JSONObject all = state.optJSONObject("todos");
+        JSONArray items = all == null ? null : all.optJSONArray(id);
+        label(
+            c,
+            template(w.optString("label")),
+            r.left + dp(18),
+            r.top + dp(30),
+            16,
+            accent,
+            Paint.Align.LEFT);
+        int count = items == null ? 0 : items.length(),
+            limit = Math.max(0, (int) ((r.height() - dp(75)) / dp(28)));
+        for (int i = 0; i < Math.min(count, limit); i++) {
+          JSONObject item = items.optJSONObject(i);
+          label(
+              c,
+              ellipsize(
+                  (item.optBoolean("done") ? "✓ " : "○ ") + item.optString("text"),
+                  r.width() - dp(36),
+                  13),
+              r.left + dp(18),
+              r.top + dp(62 + i * 28),
+              13,
+              color(themeValue("text")),
+              Paint.Align.LEFT);
+        }
+        label(
+            c,
+            count == 0 ? "탭해서 할 일 추가" : "탭해서 목록 편집",
+            cx,
+            r.bottom - dp(17),
+            10,
+            color(themeValue("text")),
+            Paint.Align.CENTER);
+      } else if (type.equals("image")) {
+        Bitmap image = bitmap(w.optString("image"), 1024);
+        if (image != null) {
+          int save = c.save();
+          Path clip = iconPath;
+          clip.rewind();
+          clip.addRoundRect(r, radius, radius, Path.Direction.CW);
+          c.clipPath(clip);
+          paint.setColor(Color.WHITE);
+          paint.setFilterBitmap(true);
+          float scale = Math.max(r.width() / image.getWidth(), r.height() / image.getHeight()),
+              iw = image.getWidth() * scale,
+              ih = image.getHeight() * scale;
+          c.drawBitmap(
+              image, null, new RectF(cx - iw / 2, cy - ih / 2, cx + iw / 2, cy + ih / 2), paint);
+          c.restoreToCount(save);
+        }
+        drawLabel(c, w, r, style, style.optString("labelPosition", "bottom"));
+      } else {
+        String text = template(w.optString("label"));
+        if (w.has("binding") && !text.contains("{{") && !w.optString("binding").isEmpty())
+          text += "\n" + String.valueOf(variable(w.optString("binding")));
+        drawLabel(c, w, r, style, style.optString("labelPosition", "center"), text);
+      }
+    }
+
+    String ellipsize(String text, float width, float size) {
+      paint.setTypeface(font);
+      paint.setTextSize(dp(size));
+      if (paint.measureText(text) <= width) return text;
+      int end = text.length();
+      while (end > 0 && paint.measureText(text.substring(0, end) + "…") > width) end--;
+      return text.substring(0, end) + "…";
+    }
+
+    void drawLabel(Canvas c, JSONObject w, RectF r, JSONObject style, String position) {
+      drawLabel(c, w, r, style, position, template(w.optString("label")));
+    }
+
+    void drawLabel(
+        Canvas c, JSONObject w, RectF r, JSONObject style, String position, String text) {
+      if (position.equals("hidden")) return;
+      float size = Math.min(style.optInt("textSize", 17), Math.max(9, r.height() / dp(1) * .22f));
+      String[] lines = text.split("\n");
+      float lineHeight = dp(size * 1.3f),
+          y =
+              position.equals("top")
+                  ? r.top + dp(size + 14)
+                  : position.equals("center")
+                      ? r.centerY() - lineHeight * (lines.length - 1) / 2 + dp(size * .35f)
+                      : r.bottom - dp(22) - lineHeight * (lines.length - 1);
+      Paint.Align align =
+          style.optString("align", "center").equals("left")
+              ? Paint.Align.LEFT
+              : style.optString("align", "center").equals("right")
+                  ? Paint.Align.RIGHT
+                  : Paint.Align.CENTER;
+      float x =
+          align == Paint.Align.LEFT
+              ? r.left + dp(16)
+              : align == Paint.Align.RIGHT ? r.right - dp(16) : r.centerX();
+      Typeface chosen =
+          style.optString("font").equals("mono")
+              ? Typeface.MONOSPACE
+              : style.optString("font").equals("serif") ? Typeface.SERIF : font;
+      for (String line : lines) {
+        paint.setTextSize(dp(size));
+        paint.setTypeface(chosen);
+        String fitting = line;
+        while (fitting.length() > 1 && paint.measureText(fitting) > r.width() - dp(30))
+          fitting = fitting.substring(0, fitting.length() - 1);
+        if (!fitting.equals(line) && fitting.length() > 1)
+          fitting = fitting.substring(0, fitting.length() - 1) + "…";
+        paint.setColor(color(style.optString("textColor", themeValue("text"))));
+        paint.setStyle(Paint.Style.FILL);
+        paint.setTextAlign(align);
+        c.drawText(fitting, x, y, paint);
+        y += lineHeight;
       }
     }
 
@@ -1193,7 +1742,9 @@ public class MainActivity extends Activity {
             tile.setScaleX(.985f);
             tile.setScaleY(.985f);
           }
-          if (downIndex >= 0 && widgets.get(downIndex).optString("type").equals("volume")) {
+          if (downIndex >= 0
+              && (widgets.get(downIndex).optString("type").equals("volume")
+                  || widgets.get(downIndex).optString("type").equals("slider"))) {
             dragVolume = volumeAt(x, rects.get(downIndex));
             tiles.get(downIndex).invalidate();
           }
@@ -1219,8 +1770,20 @@ public class MainActivity extends Activity {
             if (dragVolume >= 0) {
               int value = Math.round(dragVolume);
               dragVolume = -1;
-              state.put("volume", value);
-              action(new JSONObject().put("kind", "volume").put("value", value));
+              JSONObject w = widgets.get(downIndex);
+              if (w.optString("type").equals("volume")) {
+                state.put("volume", value);
+                action(new JSONObject().put("kind", "volume").put("value", value));
+              } else {
+                double actual =
+                    w.optDouble("min", 0)
+                        + (w.optDouble("max", 100) - w.optDouble("min", 0)) * value / 100.0;
+                action(
+                    new JSONObject()
+                        .put("kind", "control")
+                        .put("id", w.getString("id"))
+                        .put("value", actual));
+              }
               if (downIndex >= 0) tiles.get(downIndex).invalidate();
               return true;
             }
@@ -1233,17 +1796,33 @@ public class MainActivity extends Activity {
               JSONArray ps = config.optJSONArray("pages");
               for (int i = 0; i < pageRects.size(); i++)
                 if (pageRects.get(i).contains(x, y)) {
-                  pageId = ps.getJSONObject(i).getString("id");
-                  prefs.edit().putString("page", pageId).apply();
-                  scroll = 0;
-                  rebuild();
+                  if (ps.length() > 6) {
+                    String[] names = new String[ps.length()];
+                    for (int j = 0; j < ps.length(); j++)
+                      names[j] = ps.optJSONObject(j).optString("name");
+                    new AlertDialog.Builder(MainActivity.this)
+                        .setTitle("페이지 이동")
+                        .setItems(
+                            names, (d, index) -> navigate(ps.optJSONObject(index).optString("id")))
+                        .setNegativeButton("닫기", null)
+                        .show();
+                  } else navigate(ps.getJSONObject(i).getString("id"));
                 }
               return true;
             }
             if (downIndex < 0 || downIndex != hit(x, y)) return true;
             JSONObject w = widgets.get(downIndex);
             String type = w.optString("type");
-            if (type.equals("button")) action(new JSONObject().put("id", w.getString("id")));
+            if (type.equals("button"))
+              dispatchButton(w, System.currentTimeMillis() - downAt > 650 ? "long" : "tap");
+            else if (type.equals("page")) navigate(w.optString("targetPage"));
+            else if (type.equals("todo")) todoDialog(w);
+            else if (type.equals("toggle"))
+              action(
+                  new JSONObject()
+                      .put("kind", "control")
+                      .put("id", w.getString("id"))
+                      .put("value", !Boolean.TRUE.equals(variable(w.optString("binding")))));
             else if (type.equals("timer"))
               action(
                   new JSONObject()

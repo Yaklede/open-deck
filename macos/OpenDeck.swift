@@ -61,12 +61,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, WKUI
         }
     }
     @objc func show(){window.makeKeyAndOrderFront(nil);NSApp.activate(ignoringOtherApps:true)}
-    @objc func about(){showError("Open Deck 0.2.0\n맥 호스트 + 네이티브 Android 컨트롤 패널\nMIT 오픈소스 · 계정과 구독 없음\nhttps://github.com/Yaklede/open-deck")}
+    @objc func about(){showError("Open Deck 0.3.0\n맥 호스트 + 네이티브 Android 컨트롤 패널\nMIT 오픈소스 · 계정과 구독 없음\nhttps://github.com/Yaklede/open-deck")}
     @objc func quit(){NSApp.terminate(nil)}
     func userContentController(_ controller:WKUserContentController,didReceive message:WKScriptMessage){
-        guard message.name=="exportConfig",message.frameInfo.isMainFrame,message.frameInfo.request.url?.host=="127.0.0.1",let body=message.body as? String,body.utf8.count<262144 else{return}
+        guard message.name=="exportConfig",message.frameInfo.isMainFrame,message.frameInfo.request.url?.host=="127.0.0.1",let body=message.body as? String,body.utf8.count<16777216 else{return}
         let panel=NSSavePanel();panel.nameFieldStringValue="open-deck.json";panel.beginSheetModal(for:window){response in if response == .OK,let url=panel.url{do{try body.write(to:url,atomically:true,encoding:.utf8)}catch{self.showError(error.localizedDescription)}}}
     }
+    func webView(_ webView:WKWebView,runOpenPanelWith parameters:WKOpenPanelParameters,initiatedByFrame frame:WKFrameInfo,completionHandler:@escaping([URL]?)->Void){let p=NSOpenPanel();p.allowsMultipleSelection=false;p.canChooseDirectories=false;p.beginSheetModal(for:window){r in completionHandler(r == .OK ? p.urls:nil)}}
     func windowShouldClose(_ sender:NSWindow)->Bool{sender.orderOut(nil);return false}
     func applicationShouldTerminate(_ sender:NSApplication)->NSApplication.TerminateReply {poll?.invalidate();usbTimer?.invalidate();host?.terminate();return .terminateNow}
     func webView(_ webView:WKWebView,runJavaScriptAlertPanelWithMessage message:String,initiatedByFrame frame:WKFrameInfo,completionHandler:@escaping()->Void){showError(message);completionHandler()}

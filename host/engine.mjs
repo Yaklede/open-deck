@@ -1,5 +1,6 @@
 import { spawn } from "node:child_process";
 import os from "node:os";
+import crypto from "node:crypto";
 import { chrome } from "./chrome.mjs";
 export function command(executable, args, timeout = 3000) {
   return new Promise((resolve, reject) => {
@@ -48,6 +49,11 @@ export class Engine {
     this.cpu = 0;
     this.memory = 0;
     this.previous = os.cpus();
+    this.variables = structuredClone(config.variables || {});
+    this.todos = {};
+    this.history = { cpu: [], memory: [] };
+    this.integrations = {};
+    this.navigation = null;
     this.volumeWrite = Promise.resolve();
     this.volumeRevision = 0;
   }
@@ -64,6 +70,10 @@ export class Engine {
       running: [...this.running],
       timers: Object.fromEntries(this.timers),
       results: Object.fromEntries(this.results),
+      variables: { ...this.variables, ...this.pluginValues },
+      todos: this.todos,
+      history: this.history,
+      integrations: this.integrations,
     };
   }
   metrics() {
@@ -78,6 +88,27 @@ export class Engine {
       idle += Math.max(0, c.times.idle - prev.times.idle);
     });
     this.previous = now;
+    const historyKeys = new Set([
+      "cpu",
+      "memory",
+      ...this.config.pages
+        .flatMap((p) => p.widgets)
+        .filter((w) => w.type === "graph")
+        .map((w) => w.binding)
+        .filter(Boolean)
+        .slice(0, 32),
+    ]);
+    for (const key of Object.keys(this.history))
+      if (!historyKeys.has(key)) delete this.history[key];
+    for (const key of historyKeys) {
+      const value =
+        this.pluginValues?.[key] ?? this.variables[key] ?? this[key];
+      if (typeof value !== "number") continue;
+      this.history[key] ??= [];
+      this.history[key].push(value);
+      if (this.history[key].length > 120) this.history[key].shift();
+    }
+    this.connectors?.tick();
     this.cpu = total ? Math.round(100 * (1 - idle / total)) : 0;
     if (process.platform !== "darwin" || this.memory === 0)
       this.memory = Math.round(100 * (1 - os.freemem() / os.totalmem()));
@@ -180,9 +211,110 @@ export class Engine {
     this.onChange();
     return t;
   }
-  async run(id) {
+  configure(config) {
+    const previous = this.config;
+    this.config = config;
+    for (const [key, value] of Object.entries(config.variables || {}))
+      if (
+        !Object.hasOwn(this.variables, key) ||
+        previous.variables?.[key] !== value
+      )
+        this.variables[key] = value;
+    for (const key of Object.keys(this.variables))
+      if (!Object.hasOwn(config.variables || {}, key))
+        delete this.variables[key];
+  }
+  setVariable(key, value) {
+    if (!Object.hasOwn(this.config.variables || {}, key))
+      throw Error("등록된 변수가 아닙니다.");
+    if (
+      typeof value !== typeof this.config.variables[key] ||
+      (typeof value === "number" && !Number.isFinite(value)) ||
+      (typeof value === "string" && value.length > 2048)
+    )
+      throw Error("변수 형식이 다릅니다.");
+    const previous = this.variables[key];
+    this.variables[key] = value;
+    if (previous !== value) this.variableEvent(key, value);
+    this.onPersist?.();
+    this.onChange();
+    return value;
+  }
+  variableEvent(key, value) {
+    this.trigger(
+      (a) =>
+        a.trigger === "variable" &&
+        a.variable === key &&
+        (a.equals === undefined || a.equals === value),
+    );
+  }
+  pluginEvent(pluginId, eventId) {
+    this.trigger(
+      (a) =>
+        a.trigger === "plugin" &&
+        a.pluginId === pluginId &&
+        a.eventId === eventId,
+    );
+  }
+  trigger(match) {
+    this.eventTimes ??= new Map();
+    for (const a of this.config.automations || [])
+      if (a.enabled && match(a)) {
+        const now = Date.now();
+        if (
+          now - (this.eventTimes.get(a.id) || 0) <
+          Math.max(1000, (a.cooldownSeconds || 5) * 1000)
+        )
+          continue;
+        this.eventTimes.set(a.id, now);
+        Promise.resolve()
+          .then(() => this.run(a.widgetId))
+          .catch(() => {});
+      }
+  }
+  control(id, value) {
     const w = this.widget(id);
-    if (w?.type !== "button") throw Error("버튼을 찾을 수 없습니다.");
+    if (!w || !["slider", "toggle"].includes(w.type))
+      throw Error("제어 위젯이 아닙니다.");
+    if (
+      w.type === "slider" &&
+      (!Number.isFinite(value) || value < w.min || value > w.max)
+    )
+      throw Error("슬라이더 범위를 벗어났습니다.");
+    if (w.type === "toggle" && typeof value !== "boolean")
+      throw Error("토글 값이 잘못되었습니다.");
+    if (
+      typeof this.config.variables?.[w.binding] !==
+      (w.type === "toggle" ? "boolean" : "number")
+    )
+      throw Error("변수 형식을 확인하세요.");
+    return this.setVariable(w.binding, value);
+  }
+  todo(id, gesture, value) {
+    if (this.widget(id)?.type !== "todo") throw Error("할 일 위젯이 아닙니다.");
+    const items = (this.todos[id] ??= []);
+    if (gesture === "add") {
+      const text = String(value || "")
+        .trim()
+        .slice(0, 160);
+      if (!text || items.length >= 50)
+        throw Error("할 일은 1~160자, 최대 50개입니다.");
+      items.push({ id: crypto.randomUUID(), text, done: false });
+    } else {
+      const index = items.findIndex((x) => x.id === value);
+      if (index < 0) throw Error("할 일을 찾을 수 없습니다.");
+      if (gesture === "delete") items.splice(index, 1);
+      else if (gesture === "toggle") items[index].done = !items[index].done;
+      else throw Error("지원하지 않는 동작입니다.");
+    }
+    this.onPersist?.();
+    this.onChange();
+    return items;
+  }
+  async run(id, gesture = "tap") {
+    const w = this.widget(id);
+    if (!w || !["button", "toggle"].includes(w.type))
+      throw Error("버튼을 찾을 수 없습니다.");
     if (this.running.has(id) || Date.now() - (this.lastTap.get(id) || 0) < 350)
       return { status: "ignored" };
     const started = Date.now();
@@ -191,7 +323,15 @@ export class Engine {
     this.results.set(id, { status: "running", at: started });
     this.onChange();
     try {
-      await this.actions(w.actions || [], Date.now() + 30000);
+      const actions =
+        gesture === "long"
+          ? w.longActions
+          : gesture === "double"
+            ? w.doubleActions
+            : w.actions;
+      if (!["tap", "long", "double"].includes(gesture))
+        throw Error("잘못된 제스처입니다.");
+      await this.actions(actions || [], Date.now() + 30000);
       this.results.set(id, {
         status: "ok",
         at: Date.now(),
@@ -263,8 +403,29 @@ export class Engine {
           );
           this.muted = !this.muted;
           break;
+        case "setVariable":
+          this.setVariable(a.variable, a.value);
+          break;
+        case "increment":
+          this.setVariable(
+            a.variable,
+            Number(this.variables[a.variable]) + Number(a.value || 1),
+          );
+          break;
+        case "toggleVariable":
+          this.setVariable(a.variable, !this.variables[a.variable]);
+          break;
+        case "http":
+          if (!this.connectors) throw Error("연동이 준비되지 않았습니다.");
+          await this.connectors.run(a.integrationId);
+          break;
+        case "plugin":
+          if (!this.plugins) throw Error("플러그인이 연결되지 않았습니다.");
+          await this.plugins.invoke(a.pluginId, a.actionId, a.parameters || {});
+          break;
         case "if": {
-          const current = this.state()[a.variable];
+          const current =
+            this.variables[a.variable] ?? this.state()[a.variable];
           const match =
             a.operator === "gt"
               ? Number(current) > Number(a.value)

@@ -4,9 +4,9 @@ A local macro deck with a **macOS host and a native Android app**. Build your co
 
 **Free, MIT licensed, no account, trial, subscription, analytics, or license server.** Android renders directly with Canvas: it contains no WebView or JavaScript engine.
 
-![Open Deck running natively on an Android tablet](assets/screenshots/tablet.png)
+![Native monitor page on Android](assets/screenshots/monitor.png)
 
-> Version 0.2.0 is a working USB + encrypted Wi-Fi alpha for Apple Silicon Macs (macOS 13+) and Android 8+. It implements the core desk-control workflow; it does not claim full feature or plugin compatibility with Macro Deck or Touch Portal.
+> Version 0.3.0 is a working USB + encrypted Wi-Fi alpha for Apple Silicon Macs (macOS 13+) and Android 8+. It implements the core desk-control workflow; it does not claim full feature or plugin compatibility with Macro Deck or Touch Portal.
 
 ## Download
 
@@ -16,19 +16,21 @@ The macOS download is an ad-hoc signed developer build, not Apple notarized. You
 
 ## What works
 
-| Feature                              | Included                                                                           |
-| ------------------------------------ | ---------------------------------------------------------------------------------- |
-| Mac desktop app and menu bar control | App bundles the host runtime; no Node installation needed to run                   |
-| USB and Wi-Fi                        | USB registration, certificate-pinned HTTPS, auto/Wi-Fi/USB modes                   |
-| Touch and rendering                  | Immediate press animation, haptics, per-widget updates, bounded concurrent actions |
-| Native Android client                | Portrait/landscape, reconnect, multiple pages, encrypted saved token               |
-| Visual deck editor                   | Add, reorder, duplicate, remove, name, color and icon widgets                      |
-| App and URL launchers                | Native apps, browser URLs, existing Chrome tabs in a chosen profile                |
-| Routines                             | Multiple steps, waits, commands, volume, mute and conditional branches             |
-| Daily automations                    | Execute a configured button at a local time while the host runs                    |
-| Live widgets                         | CPU, memory, clock, 25-minute/custom countdown, Mac volume slider                  |
-| Pairing                              | Expiring single-use PIN, per-device scoped tokens, device revocation               |
-| Backup                               | Import and export deck JSON                                                        |
+| Feature                              | Included                                                                                          |
+| ------------------------------------ | ------------------------------------------------------------------------------------------------- |
+| Mac desktop app and menu bar control | App bundles the host runtime; no Node installation needed to run                                  |
+| USB and Wi-Fi                        | USB registration, certificate-pinned HTTPS, auto/Wi-Fi/USB modes                                  |
+| Touch and rendering                  | Immediate press animation, haptics, per-widget updates, bounded concurrent actions                |
+| Native Android client                | Portrait/landscape, reconnect, multiple pages, encrypted saved token                              |
+| Visual deck editor                   | Independent page grids, drag placement, resize/spans, duplication, undo/redo, themes and images   |
+| App and URL launchers                | Native apps, browser URLs, existing Chrome tabs in a chosen profile                               |
+| Routines                             | Multiple steps, waits, commands, volume, mute and conditional branches                            |
+| Automations                          | Weekday/time schedules, variable changes and experimental plugin events                           |
+| Live widgets                         | CPU/memory, clock, timer, volume, text, toggle, slider, graph, monthly calendar, todos and images |
+| Pairing                              | Expiring single-use PIN, per-device scoped tokens, device revocation                              |
+| Backup                               | Deck JSON with image assets; theme presets                                                        |
+| HTTP connectors                      | GET polling, manual webhooks, scalar JSON binding, Keychain Bearer tokens                         |
+| Plugins (experimental)               | Trusted local macOS arm64 plugins: actions, eager variable reads and events; capability reporting |
 
 ## 빠른 시작
 
@@ -48,9 +50,10 @@ Chrome 버튼의 `프로필`에는 이메일 주소가 아닌 `Default`, `Profil
 
 ## Build
 
-Host development needs Node.js 22+ and has no npm runtime dependencies:
+Host development needs Node.js 22+. Install the pinned WebSocket dependency first:
 
 ```sh
+npm ci
 npm test
 npm start
 ```
@@ -95,11 +98,15 @@ Settings are in `~/Library/Application Support/OpenDeck/`. They are private to t
 
 Shell actions execute as your logged-in Mac user. Only pair devices you control. Shell configuration belongs in the Mac editor, never in a tablet request.
 
-## Scope of 0.2
+## Editing and integrations
 
-USB and Wi-Fi transport; macOS host only; Android client only. No iOS app, Bluetooth, automatic LAN discovery, nested folders, plugin marketplace, microphone routing, OBS integration, account sync, notarization, full screen reader volume adjustment, or automatic login launch is implemented yet. The host must stay running. Daily schedules are not replayed after sleep or downtime.
+Each page has its own grid and design. Open **페이지 디자인 · 배치** for themes, gaps, backgrounds and portrait columns. Drag widgets to free cells or use the corner handle to resize; arrow keys move and Alt+arrow keys resize. Select a widget for its text, icon, image and appearance controls. **집중** and **모니터** templates provide larger native widgets. The preview is an editor approximation; the Android app draws the live clock, calendar, graphs and controls natively.
 
-See the [feature coverage table](docs/feature-coverage.md) for the implemented subset and missing integration/plugin support.
+Use **변수 · 연동** for typed values and HTTP endpoints. Labels accept `{{variableName}}`; toggles require Boolean and sliders require numeric user variables. Graphs retain up to 120 samples in memory. Todos and user values survive host restarts. The calendar shows the local month; it does not fetch online events. HTTP polling is GET-only; write methods execute manually. Bearer tokens are stored in this Mac's Keychain and excluded from backups. Do not put secrets in ordinary variables or URLs. OAuth and service-specific sign-in are not implemented.
+
+The same section registers unpacked **trusted, self-contained macOS arm64** Macro Deck 3 plugin folders. This is an experimental subset, not full compatibility or a store installer. The adapter supports action execution, eager variable reads and published-event triggers. Plugins needing configuration flows, custom UI or unsupported host APIs will require more work. See [coverage and exact limits](docs/feature-coverage.md) and [all 36 assessed plugins](docs/plugin-inventory.md).
+
+The host must stay running. No iOS client, Windows/Linux host, Bluetooth, automatic discovery, marketplace, notarization, dedicated keyboard/mouse editor or automatic login launch is implemented. Schedules missed during sleep or downtime are not replayed.
 
 Touch Portal and Macro Deck are separate products and are not modified by Open Deck. Their proprietary companion applications, artwork and licensing systems are not used.
 
@@ -109,4 +116,4 @@ Touch Portal and Macro Deck are separate products and are not modified by Open D
 
 ## Licensing
 
-Open Deck code: [MIT](LICENSE). The bundled Android font is Google's Noto Sans KR under [SIL OFL 1.1](assets/fonts/NotoSansKR-OFL.txt). The macOS app bundles Node.js with its distribution license and third-party notices. Gradle wrapper files retain their upstream license. No original product trademarks or icons are included.
+Open Deck code: [MIT](LICENSE). The bundled Android font is Google's Noto Sans KR under [SIL OFL 1.1](assets/fonts/NotoSansKR-OFL.txt). The macOS app bundles Node.js with its distribution license and third-party notices. The `ws` dependency is MIT licensed and its license is bundled with the desktop app. Public Macro Deck protocol descriptor metadata is attributed under [Apache 2.0](docs/licenses/MacroDeck-Protocol-LICENSE) with [notice](docs/licenses/MacroDeck-Protocol-NOTICE). Gradle wrapper files retain their upstream license. No original product trademarks or icons are included.

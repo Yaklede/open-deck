@@ -496,3 +496,327 @@ summary {
       border-color 0.15s;
   }
 }
+/* Per-page editor: live data updates retain existing cards and drag state. */
+body {
+  background: #0c111a;
+}
+main {
+  min-width: 700px;
+}
+.toolbar {
+  flex-wrap: wrap;
+  gap: 12px;
+}
+.tools {
+  flex-wrap: wrap;
+}
+#rows {
+  width: 60px;
+}
+#template {
+  margin-top: 8px;
+  width: 100%;
+}
+.page-design {
+  margin: 18px 0;
+  border-bottom: 1px solid #273449;
+  padding: 14px 0;
+}
+.page-design summary {
+  cursor: pointer;
+  color: #bac8df;
+}
+#pageSettings {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+  gap: 14px;
+  margin: 18px 0;
+}
+#pageSettings label {
+  margin: 0;
+}
+.preview-tools {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 16px 0;
+}
+.preview-tools span {
+  margin-left: auto;
+  color: #8394ad;
+  font-size: 12px;
+}
+.palette {
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.palette button {
+  font-size: 12px;
+  padding: 7px 9px;
+}
+#board {
+  display: grid;
+  width: 100%;
+  height: auto;
+  min-height: 0;
+  grid-auto-rows: unset;
+  align-content: stretch;
+  border: 1px solid #29354b;
+  border-radius: 18px;
+  overflow: hidden;
+  box-shadow: 0 12px 40px #0003;
+}
+#board .card {
+  height: 100%;
+  position: relative;
+  display: block;
+  min-height: 0;
+  min-width: 0;
+  padding: 0;
+  overflow: hidden;
+  outline: 0;
+  box-shadow: none;
+  transition: none;
+}
+#board .card.selected {
+  outline: 2px solid #c4ceff;
+  outline-offset: -3px;
+}
+#board .spacer {
+  background: transparent !important;
+  border: 1px dashed #70809d40 !important;
+}
+#board .spacer .label {
+  opacity: 0.35;
+}
+.tile-content {
+  position: absolute;
+  inset: 8% 10% 26%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  overflow: hidden;
+}
+.card .symbol {
+  width: var(--icon-size);
+  min-width: 28px;
+  height: auto;
+  aspect-ratio: 1;
+  margin: 0;
+  display: grid;
+  place-items: center;
+}
+.symbol svg {
+  width: 100%;
+  height: 100%;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.tile-content .clock {
+  font-size: clamp(18px, 3.2vw, 46px);
+  white-space: nowrap;
+}
+.tile-content .gauges {
+  font-size: clamp(16px, 2.5vw, 34px);
+}
+.card .label {
+  position: absolute;
+  left: 10%;
+  right: 10%;
+  bottom: 9%;
+  font-size: clamp(9px, var(--label-size), 28px);
+  color: var(--label-color);
+  text-align: center;
+  white-space: pre-line;
+  overflow-wrap: anywhere;
+  line-height: 1.35;
+}
+.card[data-align="left"] .label {
+  text-align: left;
+}
+.card[data-align="right"] .label {
+  text-align: right;
+}
+.card[data-position="top"] .label {
+  top: 9%;
+  bottom: auto;
+}
+.card[data-position="top"] .tile-content {
+  inset: 27% 10% 8%;
+}
+.card[data-position="center"] .label {
+  top: 50%;
+  bottom: auto;
+  transform: translateY(-50%);
+}
+.card[data-position="center"] .symbol {
+  opacity: 0.14;
+  width: 60%;
+}
+.card[data-position="hidden"] .label {
+  display: none;
+}
+.card[data-position="hidden"] .tile-content {
+  inset: 8%;
+}
+.card[data-font="mono"] .label {
+  font-family: ui-monospace, monospace;
+}
+.card[data-font="serif"] .label {
+  font-family: Georgia, serif;
+}
+.tile-image {
+  max-width: 100%;
+  max-height: 100%;
+  width: 100%;
+  height: 100%;
+}
+.card[data-type="image"] .tile-content {
+  inset: 0;
+}
+.card[data-type="image"] .label {
+  z-index: 1;
+  text-shadow: 0 1px 5px #0009;
+}
+.resize-handle {
+  position: absolute;
+  right: 1px;
+  bottom: 1px;
+  width: 20px;
+  height: 20px;
+  padding: 0;
+  border: 0;
+  border-radius: 3px;
+  color: #b9c7dc;
+  background: #182332aa;
+  opacity: 0;
+  cursor: nwse-resize;
+  z-index: 2;
+}
+.card:hover .resize-handle,
+.card.selected .resize-handle {
+  opacity: 1;
+}
+.card input[type="range"] {
+  width: 85%;
+  accent-color: currentColor;
+}
+.card[data-type="volume"] .tile-content,
+.card[data-type="slider"] .tile-content {
+  flex-direction: column;
+}
+.reading,
+.calendar-reading,
+.todo-reading {
+  color: var(--label-color);
+  text-align: center;
+  white-space: pre-line;
+  font-size: clamp(10px, 1.2vw, 18px);
+}
+.toggle-reading {
+  font-size: clamp(14px, 1.7vw, 24px);
+}
+.graph-bars {
+  height: 90%;
+  width: 95%;
+  display: flex;
+  align-items: flex-end;
+  gap: 2px;
+}
+.graph-bars i {
+  flex: 1;
+  min-height: 2px;
+  background: currentColor;
+  opacity: 0.75;
+}
+.variable-row {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  border-bottom: 1px solid #273449;
+  padding: 10px 0;
+}
+.variable-row label {
+  flex: 1;
+  margin: 0;
+}
+.variable-row code {
+  min-width: 130px;
+}
+.text-muted {
+  color: #899bb7;
+}
+#connectors details {
+  border: 1px solid #2b394d;
+  border-radius: 12px;
+  padding: 18px;
+  margin: 12px 0;
+}
+#connectors details label {
+  max-width: 680px;
+}
+#connectors summary {
+  cursor: pointer;
+}
+.days {
+  display: flex;
+  gap: 10px;
+}
+.days label {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 0;
+}
+.automation-row {
+  flex-wrap: wrap;
+  align-items: flex-end;
+}
+.automation-row label {
+  margin: 0;
+}
+#inspector {
+  width: 320px;
+  z-index: 5;
+}
+#inspector input[type="color"] {
+  height: 38px;
+  padding: 3px;
+}
+#inspector label {
+  margin: 12px 0;
+}
+#inspector details {
+  padding: 8px 0;
+}
+#inspector .two {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+input[type="checkbox"] {
+  width: 18px;
+  height: 18px;
+  accent-color: #a2adff;
+}
+#dataArea h2 {
+  margin-top: 28px;
+}
+#widgetFields > button {
+  margin: 6px 4px 6px 0;
+}
+#flowEditor .flow-heading select {
+  min-width: 0;
+  max-width: 175px;
+}
+.page-design input[type="checkbox"] {
+  display: block;
+}
+#undo:disabled,
+#redo:disabled {
+  opacity: 0.35;
+}

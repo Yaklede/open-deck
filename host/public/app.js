@@ -1,14 +1,21 @@
-const $ = (s) => document.querySelector(s);
+import { migrate, place, overlaps, themes } from "./layout.mjs";
+const $ = (s) => document.querySelector(s),
+  uid = () => crypto.randomUUID();
 let config,
   pageId,
   selected = null,
   dirty = false,
   info,
-  state = { cpu: 0, memory: 0, volume: 50 };
+  state = { cpu: 0, memory: 0, volume: 50 },
+  portrait = false,
+  pluginItems = [];
+const undo = [],
+  redo = [];
+let lastEdit = 0;
 const paths = {
   power: "M12 2v9 M6 5a9 9 0 1 0 12 0",
   globe:
-    "M3 12h18 M12 3a9 9 0 1 0 0 18a9 9 0 1 0 0-18 M12 3c-5 5-5 13 0 18c5-5 5-13 0-18",
+    "M3 12h18 M12 3a9 9 0 1 0 0 18a9 9 0 0 0 0-18 M12 3c-5 5-5 13 0 18c5-5 5-13 0-18",
   monitor: "M3 4h18v13H3z M8 21h8 M12 17v4",
   tasks: "M8 6h12 M8 12h12 M8 18h12 M2 5l2 2l2-3 M2 11l2 2l2-3 M2 17l2 2l2-3",
   mail: "M3 5h18v14H3z M3 5l9 8l9-8",
@@ -20,16 +27,48 @@ const paths = {
   music: "M9 18V5l11-2v13 M9 5v4l11-2 M9 18a3 3 0 1 1-3-3 M20 16a3 3 0 1 1-3-3",
   volume: "M3 9h4l5-5v16l-5-5H3z M16 8a6 6 0 0 1 0 8 M19 5a10 10 0 0 1 0 14",
 };
-const node = (tag, text, cls) => {
-  const n = document.createElement(tag);
-  if (text !== undefined) n.textContent = text;
-  if (cls) n.className = cls;
-  return n;
+const names = {
+  button: "동작 버튼",
+  clock: "시계",
+  gauges: "CPU · 메모리",
+  timer: "집중 타이머",
+  volume: "Mac 음량",
+  text: "텍스트",
+  toggle: "토글",
+  slider: "슬라이더",
+  graph: "기록 그래프",
+  calendar: "달력",
+  todo: "할 일",
+  image: "이미지",
+  spacer: "빈 공간",
+  page: "페이지 이동",
 };
-function icon(name) {
-  const box = node("div", undefined, "symbol");
-  box.innerHTML = `<svg viewBox="0 0 24 24"><path d="${paths[name] || paths.monitor}"/></svg>`;
-  return box;
+const kinds = {
+  openApp: "앱 실행",
+  openUrl: "웹 주소",
+  chrome: "Chrome 프로필 / 기존 탭",
+  command: "셸 명령",
+  wait: "기다리기 (ms)",
+  mute: "Mac 음소거",
+  volume: "Mac 음량",
+  setVariable: "변수 설정",
+  increment: "변수 증감",
+  toggleVariable: "변수 토글",
+  http: "HTTP 연동 실행",
+  plugin: "플러그인 동작",
+  if: "조건 분기 (JSON)",
+};
+const n = (tag, text, cls) => {
+  const e = document.createElement(tag);
+  if (text !== undefined) e.textContent = text;
+  if (cls) e.className = cls;
+  return e;
+};
+const page = () => config.pages.find((p) => p.id === pageId) || config.pages[0],
+  widget = () => page().widgets.find((w) => w.id === selected);
+function notice(t, error = false) {
+  $("#notice").textContent = t;
+  $("#notice").style.color = error ? "#ffa4a4" : "#8fd7b6";
 }
 async function api(url, method = "GET", body) {
   const r = await fetch(url, {
@@ -37,261 +76,1450 @@ async function api(url, method = "GET", body) {
     headers: body ? { "Content-Type": "application/json" } : {},
     body: body ? JSON.stringify(body) : undefined,
   });
-  const data = await r.json();
-  if (!r.ok) throw Error(data.error || r.statusText);
-  return data;
+  const d = await r.json();
+  if (!r.ok) throw Error(d.error || r.statusText);
+  return d;
 }
-const currentPage = () =>
-  config.pages.find((p) => p.id === pageId) || config.pages[0];
-const current = () =>
-  config.pages.flatMap((p) => p.widgets).find((w) => w.id === selected);
-function notice(t, error = false) {
-  $("#notice").textContent = t;
-  $("#notice").style.color = error ? "#ffa4a4" : "#8fd7b6";
+function checkpoint() {
+  if (Date.now() - lastEdit > 500) {
+    undo.push(JSON.stringify(config));
+    if (undo.length > 40) undo.shift();
+    redo.length = 0;
+  }
+  lastEdit = Date.now();
 }
 function changed() {
   dirty = true;
   $("#saved").textContent = "저장하지 않은 변경";
   $("#save").textContent = "변경 저장 ·";
+  $("#undo").disabled = !undo.length;
+  $("#redo").disabled = !redo.length;
+}
+function change(fn, full = false) {
+  checkpoint();
+  fn();
+  changed();
+  full ? render() : renderBoard();
+}
+function history(from, to) {
+  if (!from.length) return;
+  to.push(JSON.stringify(config));
+  config = JSON.parse(from.pop());
+  lastEdit = 0;
+  selected = null;
+  changed();
+  render();
+}
+function icon(name) {
+  const e = n("div", undefined, "symbol");
+  e.innerHTML = `<svg viewBox="0 0 24 24"><path d="${paths[name] || paths.monitor}"/></svg>`;
+  return e;
+}
+function labelText(t) {
+  return String(t || "").replace(/\{\{\s*([a-zA-Z0-9_]+)\s*\}\}/g, (_, k) =>
+    String(state.variables?.[k] ?? state[k] ?? "—"),
+  );
+}
+function field(
+  parent,
+  title,
+  value,
+  onchange,
+  { type = "text", min, max, choices, placeholder } = {},
+) {
+  const l = n("label", title),
+    e = n(choices ? "select" : "input");
+  if (choices)
+    for (const [v, t] of Object.entries(choices)) {
+      const o = n("option", t);
+      o.value = v;
+      e.append(o);
+    }
+  else e.type = type;
+  if (type === "checkbox") e.checked = !!value;
+  else e.value = value ?? "";
+  if (min !== undefined) e.min = min;
+  if (max !== undefined) e.max = max;
+  if (placeholder) e.placeholder = placeholder;
+  e.onchange = () =>
+    onchange(
+      type === "checkbox"
+        ? e.checked
+        : type === "number" || type === "range"
+          ? Number(e.value)
+          : e.value,
+    );
+  l.append(e);
+  parent.append(l);
+  return e;
+}
+function button(parent, title, fn, cls = "") {
+  const b = n("button", title, cls);
+  b.type = "button";
+  b.onclick = fn;
+  parent.append(b);
+  return b;
+}
+function ensurePlace() {
+  page().rows = place(page().widgets, page().columns, page().rows, true);
 }
 function render() {
   $("#pages").replaceChildren(
     ...config.pages.map((p) => {
-      const b = node(
+      const b = n(
         "button",
-        "▦  " + p.name,
+        (p.parentId ? "　" : "") + "▦ " + p.name,
         p.id === pageId ? "selected" : "",
       );
       b.onclick = () => {
         pageId = p.id;
         selected = null;
-        $("#inspector").hidden = true;
         render();
       };
       return b;
     }),
   );
-  $("#pageTitle").textContent = currentPage().name;
-  $("#columns").value = config.columns;
-  $("#board").style.gridTemplateColumns =
-    `repeat(${config.columns},minmax(0,1fr))`;
+  $("#pageTitle").textContent = page().name;
+  $("#columns").value = page().columns;
+  $("#rows").value = page().rows;
+  $("#inspector").hidden = !selected;
+  if (selected) inspect();
+  pageSettings();
   renderBoard();
+  automations();
+  variables();
+  connectors();
+  renderPlugins();
 }
 function renderBoard() {
-  $("#board").replaceChildren(
-    ...currentPage().widgets.map((w) => {
-      const c = node(
-        "div",
-        undefined,
-        "card" + (selected === w.id ? " selected" : ""),
-      );
-      c.style.borderColor = selected === w.id ? "#c3ccff" : w.color + "55";
-      c.style.color = w.color;
+  const p = page(),
+    theme = themes[p.theme] || themes.midnight,
+    b = $("#board");
+  let items = structuredClone(p.widgets),
+    cols = p.columns,
+    rows = p.rows;
+  if (portrait) {
+    cols = p.portrait?.columns || Math.min(2, cols);
+    rows = place(items, cols, p.portrait?.rows || 1, false);
+  }
+  b.style.gridTemplateColumns = `repeat(${cols},minmax(0,1fr))`;
+  b.style.gridTemplateRows = `repeat(${rows},minmax(0,1fr))`;
+  b.style.aspectRatio = portrait ? "9 / 14" : "16 / 9";
+  b.style.gap = p.gap + "px";
+  b.style.padding = p.gap + "px";
+  b.style.background = p.gradient
+    ? `linear-gradient(135deg,${p.background || theme.background},${p.gradient})`
+    : p.background || theme.background;
+  if (p.backgroundImage) {
+    b.style.backgroundImage = `url('/api/assets/${p.backgroundImage}')`;
+    b.style.backgroundSize = "cover";
+    b.style.backgroundPosition = "center";
+  }
+  b.replaceChildren(
+    ...items.map((w) => {
+      const s = w.style || {},
+        c = n(
+          "div",
+          undefined,
+          "card" +
+            (selected === w.id ? " selected" : "") +
+            (w.type === "spacer" ? " spacer" : ""),
+        );
+      c.tabIndex = 0;
+      c.setAttribute("role", "button");
+      c.setAttribute("aria-label", w.label + " 편집");
       c.dataset.widgetId = w.id;
-      c.draggable = true;
-      c.append(
-        node(
-          "span",
-          w.type === "button" ? "ACTION" : w.type.toUpperCase(),
-          "tag",
-        ),
-      );
-      if (w.type === "clock")
-        c.append(
-          node(
-            "div",
-            new Date().toLocaleTimeString("ko-KR", {
-              hour: "2-digit",
-              minute: "2-digit",
-              hour12: false,
-            }),
-            "clock",
-          ),
-        );
-      else if (w.type === "gauges")
-        c.append(node("div", `${state.cpu}%  /  ${state.memory}%`, "gauges"));
-      else if (w.type === "timer")
-        c.append(
-          node("div", `${String(w.minutes).padStart(2, "0")}:00`, "clock"),
-        );
-      else if (w.type === "volume") {
-        const r = node("input");
-        r.type = "range";
-        r.value = state.volume;
-        r.disabled = true;
-        c.append(r);
-      } else if (w.type !== "text") c.append(icon(w.icon));
-      c.append(node("div", w.label, "label"));
-      c.onclick = () => edit(w.id);
-      c.ondragstart = (e) => e.dataTransfer.setData("text/plain", w.id);
-      c.ondragover = (e) => e.preventDefault();
-      c.ondrop = (e) => {
-        e.preventDefault();
-        const widgets = currentPage().widgets,
-          from = widgets.findIndex(
-            (x) => x.id === e.dataTransfer.getData("text/plain"),
-          ),
-          to = widgets.indexOf(w);
-        if (from < 0) return;
-        widgets.splice(to, 0, widgets.splice(from, 1)[0]);
-        changed();
-        renderBoard();
+      c.dataset.type = w.type;
+      c.draggable = !portrait;
+      c.style.gridColumn = `${w.x + 1} / span ${w.w}`;
+      c.style.gridRow = `${w.y + 1} / span ${w.h}`;
+      c.style.background = s.background || theme.surface;
+      c.style.color = w.color || theme.accent;
+      c.style.border = `${s.borderWidth ?? (w.type === "button" || w.type === "page" ? 1 : 0)}px solid ${s.borderColor || w.color || theme.accent}`;
+      c.style.borderRadius = p.radius + "px";
+      c.style.opacity = (s.opacity ?? 100) / 100;
+      c.style.setProperty("--label-color", s.textColor || theme.text);
+      c.style.setProperty("--label-size", (s.textSize || 17) + "px");
+      c.style.setProperty("--icon-size", (s.iconSize || 32) + "%");
+      c.dataset.position = s.labelPosition || "bottom";
+      c.dataset.align = s.align || "center";
+      c.dataset.font = s.font || "sans";
+      const body = n("div", undefined, "tile-content");
+      if (w.image && ["button", "page", "image"].includes(w.type)) {
+        const img = n("img");
+        img.src = "/api/assets/" + w.image;
+        img.alt = "";
+        img.className = "tile-image";
+        img.style.objectFit = w.type === "image" ? "cover" : "contain";
+        body.append(img);
+      } else if (["button", "page"].includes(w.type)) body.append(icon(w.icon));
+      else if (w.type === "clock") body.append(n("div", "—", "clock"));
+      else if (w.type === "gauges") body.append(n("div", "—", "gauges"));
+      else if (w.type === "timer") body.append(n("div", "25:00", "clock"));
+      else if (w.type === "volume" || w.type === "slider") {
+        const bar = n("input");
+        bar.type = "range";
+        bar.disabled = true;
+        body.append(bar, n("div", "—", "reading"));
+      } else if (w.type === "toggle")
+        body.append(n("div", "○", "toggle-reading"));
+      else if (w.type === "calendar")
+        body.append(n("div", "—", "calendar-reading"));
+      else if (w.type === "todo")
+        body.append(n("div", "할 일을 태블릿에서 추가하세요.", "todo-reading"));
+      else if (w.type === "graph") {
+        const plot = n("div", undefined, "graph-bars");
+        for (let i = 0; i < 40; i++) plot.append(n("i"));
+        body.append(plot);
+      }
+      c.append(body, n("div", labelText(w.label), "label"));
+      const resize = n("button", "↘", "resize-handle");
+      resize.setAttribute("aria-label", "크기 조절");
+      if (!portrait) {
+        c.append(resize);
+        resize.onpointerdown = (e) => resizeStart(e, c, w);
+      }
+      c.onclick = (e) => {
+        if (e.target === resize) return;
+        selected = w.id;
+        $("#inspector").hidden = false;
+        inspect();
+        document
+          .querySelectorAll(".card.selected")
+          .forEach((e) => e.classList.remove("selected"));
+        c.classList.add("selected");
+      };
+      c.onkeydown = (e) => {
+        if (
+          ["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"].includes(e.key) &&
+          !portrait
+        ) {
+          e.preventDefault();
+          const real = page().widgets.find((x) => x.id === w.id),
+            next = { ...real };
+          if (e.altKey) {
+            next.w = Math.max(
+              1,
+              next.w +
+                (e.key === "ArrowRight" ? 1 : e.key === "ArrowLeft" ? -1 : 0),
+            );
+            next.h = Math.max(
+              1,
+              next.h +
+                (e.key === "ArrowDown" ? 1 : e.key === "ArrowUp" ? -1 : 0),
+            );
+          } else {
+            next.x +=
+              e.key === "ArrowRight" ? 1 : e.key === "ArrowLeft" ? -1 : 0;
+            next.y += e.key === "ArrowDown" ? 1 : e.key === "ArrowUp" ? -1 : 0;
+          }
+          move(real, next);
+        }
+      };
+      c.ondragstart = (e) => {
+        selected = w.id;
+        e.dataTransfer.setData("text/plain", w.id);
       };
       return c;
     }),
   );
   updateLive();
 }
+function move(w, next) {
+  const p = page();
+  if (
+    next.x < 0 ||
+    next.y < 0 ||
+    next.x + next.w > p.columns ||
+    next.y + next.h > p.rows ||
+    p.widgets.some((x) => x.id !== w.id && overlaps(x, next))
+  )
+    return notice("빈 공간에 배치하세요. 위젯은 서로 겹칠 수 없습니다.", true);
+  change(() => Object.assign(w, next));
+  if (selected) inspect();
+}
+function resizeStart(e, card, w) {
+  e.preventDefault();
+  e.stopPropagation();
+  const startX = e.clientX,
+    startY = e.clientY,
+    rect = $("#board").getBoundingClientRect(),
+    p = page(),
+    sx = (rect.width - p.gap) / p.columns,
+    sy = (rect.height - p.gap) / p.rows;
+  let next = { ...w };
+  const handle = e.target;
+  handle.setPointerCapture(e.pointerId);
+  handle.onpointermove = (v) => {
+    next = {
+      ...w,
+      w: Math.min(
+        p.columns - w.x,
+        Math.max(1, w.w + Math.round((v.clientX - startX) / sx)),
+      ),
+      h: Math.min(
+        p.rows - w.y,
+        Math.max(1, w.h + Math.round((v.clientY - startY) / sy)),
+      ),
+    };
+    card.style.gridColumn = `${next.x + 1} / span ${next.w}`;
+    card.style.gridRow = `${next.y + 1} / span ${next.h}`;
+  };
+  handle.onpointerup = () => {
+    handle.onpointermove = null;
+    handle.onpointerup = null;
+    move(
+      page().widgets.find((x) => x.id === w.id),
+      next,
+    );
+    renderBoard();
+  };
+}
+$("#board").ondragover = (e) => e.preventDefault();
+$("#board").ondrop = (e) => {
+  e.preventDefault();
+  if (portrait) return;
+  const p = page(),
+    id = e.dataTransfer.getData("text/plain"),
+    w = p.widgets.find((x) => x.id === id);
+  if (!w) return;
+  const r = $("#board").getBoundingClientRect();
+  move(w, {
+    ...w,
+    x: Math.min(
+      p.columns - w.w,
+      Math.max(0, Math.floor(((e.clientX - r.left) / r.width) * p.columns)),
+    ),
+    y: Math.min(
+      p.rows - w.h,
+      Math.max(0, Math.floor(((e.clientY - r.top) / r.height) * p.rows)),
+    ),
+  });
+};
 function updateLive() {
-  const widgets = new Map(currentPage().widgets.map((w) => [w.id, w]));
-  for (const card of $("#board").children) {
-    const w = widgets.get(card.dataset.widgetId);
+  if (!config) return;
+  const ws = new Map(page().widgets.map((w) => [w.id, w]));
+  for (const c of $("#board").children) {
+    const w = ws.get(c.dataset.widgetId);
     if (!w) continue;
-    if (w.type === "gauges")
-      card.querySelector(".gauges").textContent =
-        `${state.cpu ?? 0}%  /  ${state.memory ?? 0}%`;
-    else if (w.type === "clock")
-      card.querySelector(".clock").textContent = new Date().toLocaleTimeString(
+    const value = state.variables?.[w.binding] ?? state[w.binding] ?? 0;
+    c.querySelector(".label").textContent = labelText(w.label);
+    if (w.type === "clock")
+      c.querySelector(".clock").textContent = new Date().toLocaleTimeString(
         "ko-KR",
         { hour: "2-digit", minute: "2-digit", hour12: false },
       );
-    else if (w.type === "volume")
-      card.querySelector("input").value = state.volume ?? 50;
-    else if (w.type === "timer") {
-      const t = state.timers?.[w.id];
-      const remaining = t
-        ? t.running
-          ? Math.max(0, t.end - Date.now())
-          : t.remaining
-        : w.minutes * 60000;
-      const sec = Math.ceil(remaining / 1000);
-      card.querySelector(".clock").textContent =
+    if (w.type === "gauges")
+      c.querySelector(".gauges").textContent =
+        `${state.cpu ?? 0}% / ${state.memory ?? 0}%`;
+    if (w.type === "timer") {
+      const t = state.timers?.[w.id],
+        sec = Math.ceil(
+          (t
+            ? t.running
+              ? Math.max(0, t.end - Date.now())
+              : t.remaining
+            : w.minutes * 60000) / 1000,
+        );
+      c.querySelector(".clock").textContent =
         `${String(Math.floor(sec / 60)).padStart(2, "0")}:${String(sec % 60).padStart(2, "0")}`;
+    }
+    if (["volume", "slider"].includes(w.type)) {
+      const v = w.type === "volume" ? (state.volume ?? 50) : value;
+      const input = c.querySelector("input");
+      input.min = w.min ?? 0;
+      input.max = w.max ?? 100;
+      input.value = v;
+      c.querySelector(".reading").textContent = String(v);
+    }
+    if (w.type === "text" && w.binding)
+      c.querySelector(".label").textContent = String(value);
+    if (w.type === "toggle")
+      c.querySelector(".toggle-reading").textContent = value
+        ? "● 켜짐"
+        : "○ 꺼짐";
+    if (w.type === "calendar")
+      c.querySelector(".calendar-reading").textContent =
+        new Date().toLocaleDateString("ko-KR", {
+          month: "long",
+          day: "numeric",
+          weekday: "long",
+        });
+    if (w.type === "todo")
+      c.querySelector(".todo-reading").textContent =
+        (state.todos?.[w.id] || [])
+          .slice(0, 5)
+          .map((x) => (x.done ? "✓ " : "○ ") + x.text)
+          .join("\n") || "할 일을 태블릿에서 추가하세요.";
+    if (w.type === "graph") {
+      const h = (state.history?.[w.binding || "cpu"] || []).slice(-40),
+        bars = c.querySelectorAll("i");
+      bars.forEach(
+        (bar, i) => (bar.style.height = Math.max(2, h[i] || 0) + "%"),
+      );
     }
   }
 }
-function edit(id) {
-  selected = id;
-  const w = current();
-  $("#inspector").hidden = false;
-  $("#label").value = w.label;
-  $("#color").value = w.color || "#8bb8ff";
-  $("#icon").value = w.icon || "monitor";
-  $("#minutes").value = w.minutes || 25;
-  $("#minutesRow").hidden = w.type !== "timer";
-  $("#flowEditor").hidden = w.type !== "button";
-  $("#icon").parentElement.hidden = w.type !== "button";
-  renderActions();
-  renderBoard();
-}
-const kinds = {
-  openApp: "앱 실행",
-  openUrl: "웹 페이지 열기",
-  chrome: "Chrome 기존 탭 / 프로필",
-  command: "쉘 명령 실행",
-  wait: "기다리기 (ms)",
-  mute: "음소거 전환",
-  volume: "음량 설정 (0~100)",
-  if: "조건 분기 (고급 JSON)",
-};
-function renderActions() {
-  const w = current();
-  if (!w) return;
-  $("#actionsJson").value = JSON.stringify(w.actions || [], null, 2);
-  $("#actions").replaceChildren(
-    ...(w.actions || []).map((a, i) => {
-      const row = node("div", undefined, "action"),
-        head = node("div", undefined, "action-head"),
-        select = node("select");
-      for (const [value, label] of Object.entries(kinds)) {
-        const o = node("option", label);
-        o.value = value;
-        select.append(o);
-      }
-      select.value = a.type;
-      select.onchange = () => {
-        a.type = select.value;
-        changed();
-        renderActions();
-      };
-      head.append(select);
-      const up = node("button", "↑");
-      up.onclick = () => {
-        if (i) {
-          [w.actions[i - 1], w.actions[i]] = [w.actions[i], w.actions[i - 1]];
-          changed();
-          renderActions();
-        }
-      };
-      const del = node("button", "✕");
-      del.onclick = () => {
-        w.actions.splice(i, 1);
-        changed();
-        renderActions();
-      };
-      head.append(up, del);
-      row.append(head);
-      if (a.type === "chrome") {
-        const p = node("input");
-        p.value = a.profile || "Default";
-        p.placeholder = "Chrome 프로필 폴더 · 예: Profile 3";
-        p.oninput = () => {
-          a.profile = p.value;
-          changed();
-        };
-        row.append(p);
-      }
-      if (a.type !== "mute" && a.type !== "if") {
-        const input = node("input");
-        input.value = a.value ?? "";
-        input.placeholder =
-          a.type === "openApp"
-            ? "/Applications/앱 이름.app"
-            : a.type === "chrome"
-              ? "기존 탭으로 이동할 URL · 비우면 프로필만 열기"
-              : a.type === "command"
-                ? "이 맥에서 실행할 명령"
-                : a.type === "wait"
-                  ? "500"
-                  : "https://";
-        input.oninput = () => {
-          a.value = input.value;
-          changed();
-        };
-        row.append(input);
-      }
-      return row;
+function pageSettings() {
+  const p = page(),
+    box = $("#pageSettings");
+  box.replaceChildren();
+  field(box, "기본 테마", p.theme, (v) => change(() => (p.theme = v)), {
+    choices: Object.fromEntries(Object.keys(themes).map((k) => [k, k])),
+  });
+  field(
+    box,
+    "배경색",
+    p.background || themes[p.theme].background,
+    (v) => change(() => (p.background = v)),
+    { type: "color" },
+  );
+  field(
+    box,
+    "그라데이션",
+    !!p.gradient,
+    (v) =>
+      change(() => {
+        if (v) p.gradient = "#26345b";
+        else delete p.gradient;
+      }, true),
+    { type: "checkbox" },
+  );
+  if (p.gradient)
+    field(
+      box,
+      "두 번째 색",
+      p.gradient,
+      (v) => change(() => (p.gradient = v)),
+      { type: "color" },
+    );
+  field(box, "간격", p.gap, (v) => change(() => (p.gap = v)), {
+    type: "range",
+    min: 0,
+    max: 32,
+  });
+  field(box, "모서리", p.radius, (v) => change(() => (p.radius = v)), {
+    type: "range",
+    min: 0,
+    max: 40,
+  });
+  field(
+    box,
+    "세로 화면 열",
+    p.portrait?.columns || 2,
+    (v) =>
+      change(() => (p.portrait = { columns: v, rows: p.portrait?.rows || 1 })),
+    { type: "number", min: 2, max: 12 },
+  );
+  field(
+    box,
+    "상위 페이지",
+    p.parentId || "",
+    (v) =>
+      change(() => {
+        if (v) p.parentId = v;
+        else delete p.parentId;
+      }, true),
+    {
+      choices: {
+        "": "없음",
+        ...Object.fromEntries(
+          config.pages.filter((x) => x.id !== p.id).map((x) => [x.id, x.name]),
+        ),
+      },
+    },
+  );
+  button(box, "배경 이미지", () =>
+    upload((id) => change(() => (p.backgroundImage = id))),
+  );
+  if (p.backgroundImage)
+    button(box, "배경 이미지 제거", () =>
+      change(() => delete p.backgroundImage),
+    );
+  button(box, "테마 내보내기", () =>
+    exportFile({
+      kind: "open-deck-theme",
+      theme: p.theme,
+      background: p.background,
+      gradient: p.gradient,
+      gap: p.gap,
+      radius: p.radius,
     }),
   );
 }
-$("#label").oninput = () => {
-  current().label = $("#label").value;
-  changed();
+function inspect() {
+  const w = widget();
+  if (!w) {
+    $("#inspector").hidden = true;
+    return;
+  }
+  const box = $("#widgetFields");
+  box.replaceChildren();
+  $("#widgetTitle").textContent = names[w.type] || w.type;
+  field(box, "이름 / {{변수}}", w.label, (v) => change(() => (w.label = v)));
+  field(
+    box,
+    "강조색",
+    w.color || "#8bb8ff",
+    (v) => change(() => (w.color = v)),
+    { type: "color" },
+  );
+  const size = n("div", undefined, "two");
+  box.append(size);
+  for (const [key, title, max] of [
+    ["w", "너비", page().columns],
+    ["h", "높이", Math.min(12, page().rows)],
+  ])
+    field(size, title, w[key], (v) => move(w, { ...w, [key]: v }), {
+      type: "number",
+      min: 1,
+      max,
+    });
+  if (["button", "page"].includes(w.type))
+    field(
+      box,
+      "아이콘",
+      w.icon || "monitor",
+      (v) => change(() => (w.icon = v)),
+      { choices: Object.fromEntries(Object.keys(paths).map((k) => [k, k])) },
+    );
+  if (["button", "page", "image"].includes(w.type)) {
+    button(box, w.image ? "이미지 변경" : "이미지 선택", () =>
+      upload((id) => change(() => (w.image = id))),
+    );
+    if (w.image) button(box, "이미지 제거", () => change(() => delete w.image));
+  }
+  if (w.type === "timer")
+    field(box, "타이머 (분)", w.minutes, (v) => change(() => (w.minutes = v)), {
+      type: "number",
+      min: 1,
+      max: 1440,
+    });
+  if (w.type === "page")
+    field(
+      box,
+      "이동할 페이지",
+      w.targetPage,
+      (v) => change(() => (w.targetPage = v)),
+      { choices: Object.fromEntries(config.pages.map((p) => [p.id, p.name])) },
+    );
+  if (["text", "toggle", "slider", "graph"].includes(w.type))
+    field(
+      box,
+      "연결 변수",
+      w.binding || "",
+      (v) => change(() => (w.binding = v)),
+      {
+        choices: {
+          "": "선택 안 함",
+          ...Object.fromEntries(
+            Object.entries(config.variables)
+              .filter(([, v]) =>
+                w.type === "toggle"
+                  ? typeof v === "boolean"
+                  : ["slider", "graph"].includes(w.type)
+                    ? typeof v === "number"
+                    : true,
+              )
+              .map(([k]) => [k, k]),
+          ),
+          ...(w.type === "graph" ? { cpu: "CPU", memory: "메모리" } : {}),
+          ...(["text", "graph"].includes(w.type)
+            ? Object.fromEntries(
+                pluginItems.flatMap((p) =>
+                  (p.variables || []).map((v) => [
+                    v.alias,
+                    p.name + " · " + (v.name || v.id),
+                  ]),
+                ),
+              )
+            : {}),
+        },
+      },
+    );
+  if (w.type === "slider")
+    for (const k of ["min", "max"])
+      field(box, k, w[k], (v) => change(() => (w[k] = v)), { type: "number" });
+  const style = n("details"),
+    summary = n("summary", "글자 · 색상 · 모양");
+  style.append(summary);
+  box.append(style);
+  w.style ??= {};
+  const freeLabel = ["button", "page", "text", "image"].includes(w.type);
+  if (freeLabel)
+    for (const [key, title, choices] of [
+      [
+        "labelPosition",
+        "글자 위치",
+        { top: "위", center: "가운데", bottom: "아래", hidden: "숨김" },
+      ],
+      [
+        "align",
+        "글자 정렬",
+        { left: "왼쪽", center: "가운데", right: "오른쪽" },
+      ],
+      ["font", "글꼴", { sans: "기본", mono: "고정폭", serif: "세리프" }],
+    ])
+      field(
+        style,
+        title,
+        w.style[key] ||
+          Object.keys(choices)[
+            key === "labelPosition" ? 2 : key === "align" ? 1 : 0
+          ],
+        (v) => change(() => (w.style[key] = v)),
+        { choices },
+      );
+  for (const [key, title, value, min, max] of [
+    ["textSize", "글자 크기", 17, 9, 36],
+    ["iconSize", "아이콘 크기 (%)", 32, 10, 65],
+    ["borderWidth", "테두리", 1, 0, 5],
+    ["opacity", "불투명도 (%)", 100, 20, 100],
+  ].filter(([key]) =>
+    key === "textSize"
+      ? freeLabel
+      : key === "iconSize"
+        ? ["button", "page"].includes(w.type)
+        : true,
+  ))
+    field(
+      style,
+      title,
+      w.style[key] ?? value,
+      (v) => change(() => (w.style[key] = v)),
+      { type: "range", min, max },
+    );
+  for (const [key, title, value] of [
+    ["textColor", "글자색", themes[page().theme].text],
+    ["background", "버튼 배경", themes[page().theme].surface],
+    ["borderColor", "테두리색", w.color || "#8bb8ff"],
+  ].filter(([key]) => key !== "textColor" || freeLabel))
+    field(
+      style,
+      title,
+      w.style[key] || value,
+      (v) => change(() => (w.style[key] = v)),
+      { type: "color" },
+    );
+  button(style, "스타일 초기화", () => change(() => (w.style = {}), true));
+  const flow = $("#flowEditor");
+  flow.hidden = !["button", "toggle"].includes(w.type);
+  if (!flow.hidden) renderActions();
+}
+let gesture = "actions";
+function renderActions() {
+  const w = widget(),
+    key = gesture,
+    box = $("#actions");
+  box.replaceChildren();
+  $("#actionsJson").value = JSON.stringify(w[key] || [], null, 2);
+  for (const [i, a] of (w[key] || []).entries()) {
+    const row = n("div", undefined, "action");
+    box.append(row);
+    field(
+      row,
+      "동작",
+      a.type,
+      (v) => {
+        checkpoint();
+        a.type = v;
+        changed();
+        renderActions();
+      },
+      { choices: kinds },
+    );
+    if (a.type === "chrome")
+      field(row, "Chrome 프로필 폴더", a.profile || "Default", (v) => {
+        checkpoint();
+        a.profile = v;
+        changed();
+      });
+    if (["setVariable", "increment", "toggleVariable", "if"].includes(a.type))
+      field(
+        row,
+        "변수",
+        a.variable || "",
+        (v) => {
+          checkpoint();
+          a.variable = v;
+          changed();
+        },
+        {
+          choices: {
+            "": "변수 선택",
+            ...Object.fromEntries(
+              Object.keys(config.variables).map((k) => [k, k]),
+            ),
+          },
+        },
+      );
+    if (a.type === "http")
+      field(
+        row,
+        "연동",
+        a.integrationId || "",
+        (v) => {
+          checkpoint();
+          a.integrationId = v;
+          changed();
+        },
+        {
+          choices: {
+            "": "연동 선택",
+            ...Object.fromEntries(
+              config.integrations.map((x) => [x.id, x.name]),
+            ),
+          },
+        },
+      );
+    if (!["mute", "toggleVariable", "if", "http", "plugin"].includes(a.type))
+      field(
+        row,
+        "값",
+        typeof a.value === "object" ? JSON.stringify(a.value) : (a.value ?? ""),
+        (v) => {
+          checkpoint();
+          if (a.type === "setVariable") {
+            try {
+              a.value = JSON.parse(v);
+            } catch {
+              a.value = v;
+            }
+          } else a.value = v;
+          changed();
+        },
+        {
+          placeholder:
+            a.type === "openApp"
+              ? "/Applications/ChatGPT.app"
+              : a.type === "chrome" || a.type === "openUrl"
+                ? "https://"
+                : "값",
+        },
+      );
+    if (a.type === "plugin") {
+      field(row, "플러그인 ID", a.pluginId || "", (v) => {
+        checkpoint();
+        a.pluginId = v;
+        changed();
+      });
+      field(row, "동작 ID", a.actionId || "", (v) => {
+        checkpoint();
+        a.actionId = v;
+        changed();
+      });
+      field(row, "매개변수 (JSON)", JSON.stringify(a.parameters || {}), (v) => {
+        try {
+          const parsed = JSON.parse(v);
+          if (!parsed || Array.isArray(parsed) || typeof parsed !== "object")
+            throw Error();
+          checkpoint();
+          a.parameters = parsed;
+          changed();
+        } catch {
+          notice("JSON 객체를 입력하세요.", true);
+        }
+      });
+    }
+    const actions = n("div", undefined, "two");
+    row.append(actions);
+    button(actions, "↑", () => {
+      checkpoint();
+      if (i) [w[key][i - 1], w[key][i]] = [w[key][i], w[key][i - 1]];
+      changed();
+      renderActions();
+    });
+    button(actions, "삭제", () => {
+      checkpoint();
+      w[key].splice(i, 1);
+      changed();
+      renderActions();
+    });
+  }
+}
+function addWidget(type) {
+  change(() => {
+    const p = page(),
+      w = {
+        id: uid(),
+        type,
+        label: names[type],
+        color: themes[p.theme].accent,
+        icon: "monitor",
+        w: 1,
+        h: 1,
+        x: 0,
+        y: 0,
+        style: {},
+      };
+    if (type === "button") w.actions = [];
+    if (type === "timer") w.minutes = 25;
+    if (type === "page")
+      w.targetPage = config.pages.find((x) => x.id !== p.id)?.id || p.id;
+    if (type === "graph") w.binding = "cpu";
+    if (type === "toggle" || type === "slider") {
+      const key =
+        (type === "toggle" ? "toggle_" : "value_") + uid().slice(0, 6);
+      config.variables[key] = type === "toggle" ? false : 50;
+      w.binding = key;
+      if (type === "slider") {
+        w.min = 0;
+        w.max = 100;
+      }
+    }
+    p.widgets.push(w);
+    ensurePlace();
+    selected = w.id;
+  }, true);
+}
+function addPage(name = "새 페이지", template = "empty") {
+  change(() => {
+    const p = {
+      id: uid(),
+      name,
+      columns: 4,
+      rows: 3,
+      theme: "midnight",
+      gap: 12,
+      radius: 13,
+      widgets: [],
+    };
+    config.pages.push(p);
+    pageId = p.id;
+    selected = null;
+  }, true);
+  if (template !== "empty") {
+    const list =
+      template === "focus"
+        ? ["clock", "timer", "todo", "page"]
+        : ["gauges", "graph", "calendar", "page"];
+    for (const type of list) addWidget(type);
+    change(() => {
+      const p = page();
+      if (template === "focus") {
+        const boxes = [
+          [0, 0, 2, 1],
+          [2, 0, 2, 2],
+          [0, 1, 2, 2],
+          [2, 2, 2, 1],
+        ];
+        p.widgets.forEach((w, i) =>
+          Object.assign(w, {
+            x: boxes[i][0],
+            y: boxes[i][1],
+            w: boxes[i][2],
+            h: boxes[i][3],
+          }),
+        );
+      } else {
+        p.columns = 6;
+        p.rows = 4;
+        p.theme = "ocean";
+        const boxes = [
+          [0, 0, 3, 2],
+          [0, 2, 3, 2],
+          [3, 0, 3, 3],
+          [3, 3, 3, 1],
+        ];
+        p.widgets.forEach((w, i) =>
+          Object.assign(w, {
+            x: boxes[i][0],
+            y: boxes[i][1],
+            w: boxes[i][2],
+            h: boxes[i][3],
+          }),
+        );
+      }
+      const back = p.widgets.find((w) => w.type === "page");
+      back.label = "Workspace로";
+      back.icon = "tasks";
+      selected = null;
+    }, true);
+  }
+}
+async function save() {
+  const result = await api("/api/admin/config", "PUT", config);
+  config = result.config || config;
+  dirty = false;
+  $("#saved").textContent = "모든 변경 저장됨";
+  $("#save").textContent = "변경 저장";
+  notice("태블릿에 반영했습니다.");
+}
+async function upload(done) {
+  const input = $("#imageFile");
+  input.onchange = async () => {
+    try {
+      const file = input.files[0];
+      if (!file) return;
+      if (file.size > 2097152) throw Error("이미지는 2MB 이하여야 합니다.");
+      const data = await new Promise((r, j) => {
+        const f = new FileReader();
+        f.onload = () => r(f.result);
+        f.onerror = j;
+        f.readAsDataURL(file);
+      });
+      done((await api("/api/admin/assets", "POST", { data })).id);
+    } catch (e) {
+      notice(e.message, true);
+    }
+    input.value = "";
+  };
+  input.click();
+}
+async function exportFile(data) {
+  try {
+    const ids = new Set();
+    if (data.pages)
+      for (const p of data.pages) {
+        if (p.backgroundImage) ids.add(p.backgroundImage);
+        for (const w of p.widgets) if (w.image) ids.add(w.image);
+      }
+    if (ids.size) {
+      data = structuredClone(data);
+      data.assets = {};
+      for (const id of ids) {
+        const res = await fetch("/api/assets/" + id);
+        if (!res.ok) throw Error("이미지를 내보내지 못했습니다.");
+        const blob = await res.blob();
+        data.assets[id] = await new Promise((resolve) => {
+          const r = new FileReader();
+          r.onload = () => resolve(r.result);
+          r.readAsDataURL(blob);
+        });
+      }
+    }
+    const text = JSON.stringify(data, null, 2);
+    if (new TextEncoder().encode(text).length >= 16777216)
+      throw Error("이미지를 포함한 백업은 16MB 이하여야 합니다.");
+    if (window.webkit?.messageHandlers?.exportConfig) {
+      window.webkit.messageHandlers.exportConfig.postMessage(text);
+      return;
+    }
+    const a = n("a");
+    a.href = URL.createObjectURL(
+      new Blob([text], { type: "application/json" }),
+    );
+    a.download = data.kind ? "open-deck-theme.json" : "open-deck.json";
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+  } catch (e) {
+    notice(e.message, true);
+  }
+}
+function variables() {
+  const box = $("#variables");
+  box.replaceChildren();
+  for (const [key, value] of Object.entries(config.variables)) {
+    const row = n("div", undefined, "variable-row");
+    row.append(n("code", key));
+    field(row, "초깃값", JSON.stringify(value), (v) => {
+      try {
+        const parsed = JSON.parse(v);
+        if (!["number", "boolean", "string"].includes(typeof parsed))
+          throw Error();
+        checkpoint();
+        config.variables[key] = parsed;
+        changed();
+      } catch {
+        notice(
+          "숫자, true/false 또는 따옴표로 감싼 문자열을 입력하세요.",
+          true,
+        );
+      }
+    });
+    row.append(
+      n(
+        "span",
+        "현재: " + String(state.variables?.[key] ?? value),
+        "text-muted",
+      ),
+    );
+    button(row, "삭제", () => change(() => delete config.variables[key], true));
+    box.append(row);
+  }
+}
+function connectors() {
+  const box = $("#connectors");
+  box.replaceChildren();
+  for (const i of config.integrations) {
+    const row = n("details"),
+      summary = n("summary", i.name);
+    row.append(summary);
+    box.append(row);
+    const set = (k, v) => {
+      checkpoint();
+      i[k] = v;
+      changed();
+    };
+    field(row, "이름", i.name, (v) => {
+      set("name", v);
+      summary.textContent = v;
+    });
+    field(row, "URL", i.url, (v) => set("url", v), {
+      placeholder: "https://service.example/api/status",
+    });
+    field(row, "메서드", i.method || "GET", (v) => set("method", v), {
+      choices: Object.fromEntries(
+        ["GET", "POST", "PUT", "PATCH", "DELETE"].map((k) => [k, k]),
+      ),
+    });
+    field(row, "JSON 경로 (예: result.count)", i.path || "", (v) =>
+      set("path", v),
+    );
+    field(row, "저장 변수", i.variable || "", (v) => set("variable", v), {
+      choices: {
+        "": "저장 안 함",
+        ...Object.fromEntries(Object.keys(config.variables).map((k) => [k, k])),
+      },
+    });
+    field(
+      row,
+      "주기 (초)",
+      i.intervalSeconds || 60,
+      (v) => set("intervalSeconds", v),
+      { type: "number", min: 5, max: 86400 },
+    );
+    field(row, "자동 갱신 (GET만)", i.enabled, (v) => set("enabled", v), {
+      type: "checkbox",
+    });
+    field(row, "Bearer 토큰 사용", i.auth, (v) => set("auth", v), {
+      type: "checkbox",
+    });
+    field(row, "요청 본문 JSON", i.body || "", (v) => set("body", v));
+    field(
+      row,
+      "Bearer 토큰 · macOS 키체인에 저장",
+      "",
+      async (v) => {
+        try {
+          await api("/api/admin/secret", "POST", { id: i.id, value: v });
+          notice("인증 토큰을 키체인에 저장했습니다.");
+        } catch (e) {
+          notice(e.message, true);
+        }
+      },
+      { type: "password" },
+    );
+    button(row, "지금 갱신", async () => {
+      try {
+        await save();
+        const r = await api("/api/admin/refresh", "POST", { id: i.id });
+        notice("응답: " + String(r.value));
+      } catch (e) {
+        notice(e.message, true);
+      }
+    });
+    button(row, "삭제", () =>
+      change(
+        () =>
+          (config.integrations = config.integrations.filter(
+            (x) => x.id !== i.id,
+          )),
+        true,
+      ),
+    );
+    const st = state.integrations?.[i.id];
+    row.append(
+      n(
+        "p",
+        st?.state === "error" ? st.message : st?.state || "미연결",
+        "connector-status",
+      ),
+    );
+  }
+}
+
+async function refreshPlugins() {
+  pluginItems = (await api("/api/admin/plugins")).plugins;
+  renderPlugins();
+}
+function renderPlugins() {
+  const box = $("#pluginList");
+  box.replaceChildren();
+  const form = n("div", undefined, "variable-row");
+  let folder = "";
+  field(form, "플러그인 폴더", folder, (v) => (folder = v), {
+    placeholder: "/폴더/manifest.json이 들어 있는 경로",
+  });
+  button(form, "폴더 등록", async () => {
+    try {
+      await api("/api/admin/plugins", "POST", {
+        operation: "register",
+        folder,
+      });
+      await refreshPlugins();
+    } catch (e) {
+      notice(e.message, true);
+    }
+  });
+  box.append(form);
+  for (const p of pluginItems) {
+    const row = n("details"),
+      summary = n("summary", p.name + " · " + p.version + " · " + p.state);
+    row.append(summary);
+    box.append(row);
+    row.append(n("p", p.error || p.folder));
+    const accepted = (p.capabilities || [])
+        .filter((c) => c.accepted)
+        .map((c) => c.kind + " v" + c.negotiatedVersion),
+      rejected = [
+        ...new Set(
+          (p.capabilities || []).filter((c) => !c.accepted).map((c) => c.kind),
+        ),
+      ];
+    row.append(
+      n(
+        "p",
+        "지원: " +
+          (accepted.length
+            ? [...new Set(accepted)].join(", ")
+            : "연결 후 확인"),
+      ),
+    );
+    if (rejected.length) row.append(n("p", "미지원: " + rejected.join(", ")));
+    for (const op of [p.enabled ? "stop" : "start", "remove"])
+      button(
+        row,
+        op === "start" ? "실행" : op === "stop" ? "중지" : "등록 해제",
+        async () => {
+          try {
+            await api("/api/admin/plugins", "POST", {
+              operation: op,
+              id: p.id,
+            });
+            await refreshPlugins();
+          } catch (e) {
+            notice(e.message, true);
+          }
+        },
+      );
+    button(row, "상태 새로고침", () =>
+      refreshPlugins().catch((e) => notice(e.message, true)),
+    );
+    for (const a of p.actions || []) {
+      const action = n("div", undefined, "variable-row");
+      action.append(n("code", a.localId));
+      button(action, "동작 버튼 추가", () => {
+        pageId = config.pages[0].id;
+        const w = {
+          id: uid(),
+          type: "button",
+          label: a.localId,
+          icon: "spark",
+          color: "#91a8e9",
+          w: 1,
+          h: 1,
+          style: {},
+          actions: [
+            {
+              type: "plugin",
+              pluginId: p.id,
+              actionId: a.localId,
+              parameters: Object.fromEntries(
+                (a.parameters || [])
+                  .filter((x) => x.defaultValue !== undefined)
+                  .map((x) => [x.name, x.defaultValue]),
+              ),
+            },
+          ],
+        };
+        change(() => {
+          page().widgets.push(w);
+          ensurePlace();
+          selected = w.id;
+        }, true);
+        $("#editTab").click();
+      });
+      row.append(action);
+    }
+    for (const v of p.variables || []) {
+      const line = n("div", undefined, "variable-row");
+      line.append(n("code", v.alias));
+      button(line, "값 위젯 추가", () => {
+        const w = {
+          id: uid(),
+          type: "text",
+          label: v.name || v.id,
+          binding: v.alias,
+          color: "#91a8e9",
+          w: 1,
+          h: 1,
+          style: {},
+        };
+        change(() => {
+          page().widgets.push(w);
+          ensurePlace();
+        }, true);
+        $("#editTab").click();
+      });
+      row.append(line);
+    }
+  }
+}
+
+function automations() {
+  const box = $("#automations");
+  box.replaceChildren();
+  const buttons = config.pages
+    .flatMap((p) => p.widgets)
+    .filter((w) => w.type === "button");
+  for (const a of config.automations || []) {
+    const row = n("div", undefined, "automation-row");
+    box.append(row);
+    field(
+      row,
+      "사용",
+      a.enabled,
+      (v) => {
+        checkpoint();
+        a.enabled = v;
+        changed();
+      },
+      { type: "checkbox" },
+    );
+    field(
+      row,
+      "실행 조건",
+      a.trigger || "time",
+      (v) => {
+        checkpoint();
+        a.trigger = v;
+        a.time ??= "09:00";
+        a.variable ??= Object.keys(config.variables)[0];
+        changed();
+        automations();
+      },
+      {
+        choices: {
+          time: "요일 · 시간",
+          variable: "변수 변경",
+          plugin: "플러그인 이벤트",
+        },
+      },
+    );
+    if (a.trigger === "variable") {
+      field(
+        row,
+        "변수",
+        a.variable || "",
+        (v) => {
+          checkpoint();
+          a.variable = v;
+          changed();
+        },
+        {
+          choices: Object.fromEntries(
+            Object.keys(config.variables).map((k) => [k, k]),
+          ),
+        },
+      );
+      field(
+        row,
+        "값 조건 (JSON · 비우면 모든 변경)",
+        a.equals === undefined ? "" : JSON.stringify(a.equals),
+        (v) => {
+          try {
+            const parsed = v ? JSON.parse(v) : undefined;
+            checkpoint();
+            if (parsed === undefined) delete a.equals;
+            else a.equals = parsed;
+            changed();
+          } catch {
+            notice("JSON 값을 입력하세요.", true);
+          }
+        },
+      );
+    } else if (a.trigger === "plugin") {
+      field(row, "플러그인 ID", a.pluginId || "", (v) => {
+        checkpoint();
+        a.pluginId = v;
+        changed();
+      });
+      field(row, "이벤트 ID", a.eventId || "", (v) => {
+        checkpoint();
+        a.eventId = v;
+        changed();
+      });
+    }
+    if (a.trigger && a.trigger !== "time")
+      field(
+        row,
+        "최소 간격 (초)",
+        a.cooldownSeconds || 5,
+        (v) => {
+          checkpoint();
+          a.cooldownSeconds = v;
+          changed();
+        },
+        { type: "number", min: 1, max: 86400 },
+      );
+    if (!a.trigger || a.trigger === "time")
+      field(
+        row,
+        "시간",
+        a.time,
+        (v) => {
+          checkpoint();
+          a.time = v;
+          changed();
+        },
+        { type: "time" },
+      );
+    field(
+      row,
+      "버튼",
+      a.widgetId,
+      (v) => {
+        checkpoint();
+        a.widgetId = v;
+        changed();
+      },
+      { choices: Object.fromEntries(buttons.map((w) => [w.id, w.label])) },
+    );
+    const days = n("div", undefined, "days");
+    if (!a.trigger || a.trigger === "time") row.append(days);
+    ["일", "월", "화", "수", "목", "금", "토"].forEach((d, i) =>
+      field(
+        days,
+        d,
+        !a.days || a.days.includes(i),
+        (on) => {
+          checkpoint();
+          a.days ??= [0, 1, 2, 3, 4, 5, 6];
+          a.days = on
+            ? [...new Set([...a.days, i])]
+            : a.days.filter((x) => x !== i);
+          changed();
+        },
+        { type: "checkbox" },
+      ),
+    );
+    button(row, "삭제", () =>
+      change(
+        () =>
+          (config.automations = config.automations.filter(
+            (x) => x.id !== a.id,
+          )),
+        true,
+      ),
+    );
+  }
+}
+$("#save").onclick = () => save().catch((e) => notice(e.message, true));
+$("#undo").onclick = () => history(undo, redo);
+$("#redo").onclick = () => history(redo, undo);
+$("#columns").onchange = () =>
+  change(() => {
+    page().columns = Number($("#columns").value);
+    page().rows = place(page().widgets, page().columns, page().rows, false);
+  }, true);
+$("#rows").onchange = () => {
+  const rows = Number($("#rows").value);
+  if (page().widgets.some((w) => w.y + w.h > rows)) {
+    notice(
+      "위젯이 놓인 행은 제거할 수 없습니다. 먼저 이동하거나 자동 정렬하세요.",
+      true,
+    );
+    $("#rows").value = page().rows;
+    return;
+  }
+  change(() => (page().rows = rows));
+};
+$("#pack").onclick = () =>
+  change(
+    () => (page().rows = place(page().widgets, page().columns, 1, false)),
+    true,
+  );
+$("#orientation").onclick = () => {
+  portrait = !portrait;
+  $("#orientation").textContent = portrait ? "세로 미리보기" : "가로 미리보기";
+  $("#previewHint").textContent = portrait
+    ? "세로 배치는 자동으로 정렬됩니다. 가로 미리보기에서 위젯을 편집하세요."
+    : "드래그로 이동 · 오른쪽 아래 모서리로 크기 조절 · 방향키 이동 / Alt+방향키 크기 조절";
   renderBoard();
 };
-$("#color").oninput = () => {
-  current().color = $("#color").value;
-  changed();
-  renderBoard();
+for (const type of Object.keys(names))
+  button($("#palette"), "+ " + names[type], () => addWidget(type));
+$("#addPage").onclick = () => {
+  const name = prompt("페이지 이름", "새 페이지");
+  if (name) addPage(name);
 };
-$("#icon").onchange = () => {
-  current().icon = $("#icon").value;
-  changed();
-  renderBoard();
+$("#renamePage").onclick = () => {
+  const name = prompt("페이지 이름", page().name);
+  if (name) change(() => (page().name = name), true);
 };
-$("#minutes").oninput = () => {
-  current().minutes = Number($("#minutes").value);
-  changed();
-  renderBoard();
+$("#duplicatePage").onclick = () =>
+  change(() => {
+    const p = structuredClone(page());
+    p.id = uid();
+    p.name += " 복사";
+    for (const w of p.widgets) w.id = uid();
+    config.pages.push(p);
+    pageId = p.id;
+    selected = null;
+  }, true);
+$("#pageUp").onclick = () =>
+  change(() => {
+    const i = config.pages.findIndex((p) => p.id === pageId);
+    if (i)
+      [config.pages[i - 1], config.pages[i]] = [
+        config.pages[i],
+        config.pages[i - 1],
+      ];
+  }, true);
+$("#removePage").onclick = () => {
+  if (config.pages.length === 1)
+    return notice("페이지 하나는 남겨 두세요.", true);
+  if (!confirm("이 페이지를 삭제할까요? 실행 취소로 복구할 수 있습니다."))
+    return;
+  change(() => {
+    const id = pageId;
+    const removed = new Set(page().widgets.map((w) => w.id));
+    config.automations = (config.automations || []).filter(
+      (a) => !removed.has(a.widgetId),
+    );
+    config.pages = config.pages.filter((p) => p.id !== id);
+    for (const p of config.pages) {
+      if (p.parentId === id) delete p.parentId;
+      for (const w of p.widgets) if (w.targetPage === id) w.targetPage = p.id;
+    }
+    pageId = config.pages[0].id;
+    selected = null;
+  }, true);
+};
+$("#template").onchange = () => {
+  const v = $("#template").value;
+  if (v) addPage(v === "focus" ? "집중" : "모니터", v);
+  $("#template").value = "";
 };
 $("#closeInspector").onclick = () => {
-  $("#inspector").hidden = true;
   selected = null;
+  $("#inspector").hidden = true;
   renderBoard();
 };
+$("#duplicate").onclick = () =>
+  change(() => {
+    const w = structuredClone(widget());
+    w.id = uid();
+    w.label += " 복사";
+    page().widgets.push(w);
+    ensurePlace();
+    selected = w.id;
+  }, true);
+$("#removeWidget").onclick = () =>
+  change(() => {
+    const id = selected;
+    page().widgets = page().widgets.filter((w) => w.id !== id);
+    config.automations = config.automations.filter((a) => a.widgetId !== id);
+    selected = null;
+  }, true);
+$("#gesture").onchange = () => {
+  gesture = $("#gesture").value;
+  renderActions();
+};
 $("#addAction").onclick = () => {
-  const w = current();
-  (w.actions ??= []).push({ type: "openApp", value: "" });
+  checkpoint();
+  (widget()[gesture] ??= []).push({ type: "openApp", value: "" });
   changed();
   renderActions();
 };
@@ -299,135 +1527,105 @@ $("#applyJson").onclick = () => {
   try {
     const a = JSON.parse($("#actionsJson").value);
     if (!Array.isArray(a)) throw Error("배열이 필요합니다.");
-    current().actions = a;
+    checkpoint();
+    widget()[gesture] = a;
     changed();
     renderActions();
-    notice("동작을 적용했습니다. 저장하면 반영됩니다.");
   } catch (e) {
     notice(e.message, true);
   }
 };
-async function save() {
-  await api("/api/admin/config", "PUT", config);
-  dirty = false;
-  $("#saved").textContent = "모든 변경 저장됨";
-  $("#save").textContent = "변경 저장";
-  notice("태블릿에 반영했습니다.");
-}
-$("#save").onclick = () => save().catch((e) => notice(e.message, true));
 $("#testAction").onclick = async () => {
   try {
     await save();
-    notice("실행 중…");
-    await api("/api/action", "POST", { id: current().id });
-    notice("실행 완료");
+    await api("/api/action", "POST", {
+      id: widget().id,
+      gesture:
+        gesture === "longActions"
+          ? "long"
+          : gesture === "doubleActions"
+            ? "double"
+            : "tap",
+    });
+    notice("실행했습니다.");
   } catch (e) {
     notice(e.message, true);
   }
 };
-$("#columns").onchange = () => {
-  config.columns = Number($("#columns").value);
-  changed();
-  render();
+$("#addVariable").onclick = () => {
+  const key = prompt("변수 이름 (영문·숫자·밑줄)", "counter");
+  if (!key) return;
+  if (
+    !/^[A-Za-z][A-Za-z0-9_]{0,63}$/.test(key) ||
+    Object.hasOwn(config.variables, key)
+  )
+    return notice("중복되지 않는 영문 변수 이름을 입력하세요.", true);
+  change(() => (config.variables[key] = 0), true);
 };
-document.querySelectorAll("[data-add]").forEach(
-  (b) =>
-    (b.onclick = () => {
-      const type = b.dataset.add,
-        w = {
-          id: crypto.randomUUID(),
-          type,
-          label: {
-            button: "새 버튼",
-            clock: "WORKSPACE",
-            gauges: "Mac · LIVE",
-            timer: "집중 · 25분",
-            volume: "Mac 음량",
-            text: "메모",
-          }[type],
-          color: "#8bb8ff",
-          icon: "monitor",
-        };
-      if (type === "button") w.actions = [];
-      if (type === "timer") w.minutes = 25;
-      currentPage().widgets.push(w);
-      changed();
-      render();
-      edit(w.id);
-    }),
-);
-$("#duplicate").onclick = () => {
-  const w = structuredClone(current());
-  w.id = crypto.randomUUID();
-  w.label += " 복사";
-  currentPage().widgets.push(w);
-  changed();
-  render();
-  edit(w.id);
-};
-$("#removeWidget").onclick = () => {
-  currentPage().widgets = currentPage().widgets.filter(
-    (w) => w.id !== selected,
+$("#addConnector").onclick = () =>
+  change(
+    () =>
+      config.integrations.push({
+        id: uid().replaceAll("-", ""),
+        type: "http",
+        name: "새 HTTP 연동",
+        url: "https://",
+        method: "GET",
+        path: "",
+        intervalSeconds: 60,
+        enabled: false,
+      }),
+    true,
   );
-  selected = null;
-  $("#inspector").hidden = true;
-  changed();
-  render();
-};
-$("#addPage").onclick = () => {
-  const name = prompt("페이지 이름", "새 페이지");
-  if (!name) return;
-  const p = { id: crypto.randomUUID(), name, widgets: [] };
-  config.pages.push(p);
-  pageId = p.id;
-  changed();
-  render();
-};
-$("#renamePage").onclick = () => {
-  const n = prompt("페이지 이름", currentPage().name);
-  if (n) {
-    currentPage().name = n;
-    changed();
-    render();
-  }
-};
-$("#removePage").onclick = () => {
-  if (config.pages.length === 1)
-    return notice("페이지 하나는 남겨 두세요.", true);
-  if (!confirm("이 페이지와 위젯을 제거할까요? 저장 전까지 원본은 유지됩니다."))
-    return;
-  config.pages = config.pages.filter((p) => p.id !== pageId);
-  pageId = config.pages[0].id;
-  changed();
-  render();
-};
-$("#export").onclick = () => {
-  if (window.webkit?.messageHandlers?.exportConfig) {
-    window.webkit.messageHandlers.exportConfig.postMessage(
-      JSON.stringify(config, null, 2),
+$("#addAutomation").onclick = () => {
+  const first = config.pages
+    .flatMap((p) => p.widgets)
+    .find((w) => w.type === "button");
+  if (first)
+    change(
+      () =>
+        (config.automations ??= []).push({
+          id: uid(),
+          enabled: false,
+          time: "09:00",
+          widgetId: first.id,
+        }),
+      true,
     );
-    return;
-  }
-  const a = node("a");
-  a.href = URL.createObjectURL(
-    new Blob([JSON.stringify(config, null, 2)], { type: "application/json" }),
-  );
-  a.download = "open-deck.json";
-  a.click();
-  setTimeout(() => URL.revokeObjectURL(a.href), 1000);
 };
+$("#export").onclick = () => exportFile(config);
 $("#import").onclick = () => $("#file").click();
 $("#file").onchange = async () => {
   try {
-    const file = $("#file").files[0];
-    if (file.size > 262144) throw Error("파일은 256KB 이하여야 합니다.");
-    const c = JSON.parse(await file.text());
-    if (c.version !== 1 || !c.pages?.length)
-      throw Error("Open Deck 설정 파일이 아닙니다.");
+    const f = $("#file").files[0];
+    if (!f) return;
+    if (f.size > 16777216) throw Error("백업 파일은 16MB 이하여야 합니다.");
+    const raw = JSON.parse(await f.text());
+    if (raw.kind === "open-deck-theme") {
+      change(
+        () =>
+          Object.assign(
+            page(),
+            Object.fromEntries(
+              ["theme", "background", "gradient", "gap", "radius"]
+                .filter((k) => raw[k] !== undefined)
+                .map((k) => [k, raw[k]]),
+            ),
+          ),
+        true,
+      );
+      return;
+    }
+    for (const [id, data] of Object.entries(raw.assets || {})) {
+      if ((await api("/api/admin/assets", "POST", { data })).id !== id)
+        throw Error("이미지 파일 검증에 실패했습니다.");
+    }
+    delete raw.assets;
+    const c = migrate(raw);
+    checkpoint();
     config = c;
     pageId = c.pages[0].id;
     selected = null;
-    $("#inspector").hidden = true;
     changed();
     render();
   } catch (e) {
@@ -435,101 +1633,31 @@ $("#file").onchange = async () => {
   }
   $("#file").value = "";
 };
-function automations() {
-  const buttons = config.pages
-    .flatMap((p) => p.widgets)
-    .filter((w) => w.type === "button");
-  $("#automations").replaceChildren(
-    ...(config.automations || []).map((a) => {
-      const r = node("div", undefined, "automation-row"),
-        check = node("input");
-      check.type = "checkbox";
-      check.checked = a.enabled;
-      check.onchange = () => {
-        a.enabled = check.checked;
-        changed();
-      };
-      const time = node("input");
-      time.type = "time";
-      time.value = a.time;
-      time.onchange = () => {
-        a.time = time.value;
-        changed();
-      };
-      const sel = node("select");
-      for (const w of buttons) {
-        const o = node("option", w.label);
-        o.value = w.id;
-        sel.append(o);
-      }
-      sel.value = a.widgetId;
-      sel.onchange = () => {
-        a.widgetId = sel.value;
-        changed();
-      };
-      const del = node("button", "삭제");
-      del.onclick = () => {
-        config.automations = config.automations.filter((x) => x.id !== a.id);
-        changed();
-        automations();
-      };
-      r.append(check, time, sel, del);
-      return r;
-    }),
-  );
-}
-$("#addAutomation").onclick = () => {
-  const first = config.pages
-    .flatMap((p) => p.widgets)
-    .find((w) => w.type === "button");
-  if (!first) return notice("먼저 동작 버튼을 만드세요.", true);
-  (config.automations ??= []).push({
-    id: crypto.randomUUID(),
-    enabled: false,
-    time: "09:00",
-    widgetId: first.id,
-  });
-  changed();
-  automations();
-};
-$("#editTab").onclick = () => {
-  $("#deckArea").hidden = false;
-  $("#automationArea").hidden = true;
-  $("#editTab").classList.add("active");
-  $("#automationTab").classList.remove("active");
-};
-$("#automationTab").onclick = () => {
-  $("#deckArea").hidden = true;
-  $("#automationArea").hidden = false;
-  $("#editTab").classList.remove("active");
-  $("#automationTab").classList.add("active");
-  automations();
-};
-function pin(p) {
-  $("#pin").textContent = p.slice(0, 3) + " " + p.slice(3);
-}
 $("#newPin").onclick = async () => {
   try {
-    const r = await api("/api/admin/pin", "POST", {});
-    pin(r.pin);
+    pin((await api("/api/admin/pin", "POST", {})).pin);
   } catch (e) {
     notice(e.message, true);
   }
 };
+function pin(p) {
+  $("#pin").textContent = p.slice(0, 3) + " " + p.slice(3);
+}
 $("#devicesToggle").onclick = async () => {
   try {
     const r = await api("/api/admin/info");
     $("#devices").hidden = !$("#devices").hidden;
+    $("#wifiInfo").textContent = (r.network?.urls || []).join(" · ");
     $("#deviceList").replaceChildren(
       ...r.devices.map((d) => {
-        const row = node("div", undefined, "device");
-        row.append(node("span", d.name));
-        const b = node("button", "연결 해제");
-        b.onclick = async () => {
-          await api("/api/admin/revoke", "POST", { id: d.id });
-          row.remove();
-        };
-        row.append(b);
+        const row = n("div", undefined, "device-row");
+        row.append(n("span", d.name));
+        button(row, "연결 해제", async () => {
+          if (confirm("이 기기의 연결을 해제할까요?")) {
+            await api("/api/admin/revoke", "POST", { id: d.id });
+            row.remove();
+          }
+        });
         return row;
       }),
     );
@@ -537,6 +1665,31 @@ $("#devicesToggle").onclick = async () => {
     notice(e.message, true);
   }
 };
+for (const [id, target] of [
+  ["editTab", "deckArea"],
+  ["automationTab", "automationArea"],
+  ["dataTab", "dataArea"],
+])
+  $("#" + id).onclick = () => {
+    for (const x of ["deckArea", "automationArea", "dataArea"])
+      $("#" + x).hidden = x !== target;
+    for (const x of ["editTab", "automationTab", "dataTab"])
+      $("#" + x).classList.toggle("active", x === id);
+  };
+document.addEventListener("keydown", (e) => {
+  if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "s") {
+    e.preventDefault();
+    save().catch((e) => notice(e.message, true));
+  }
+  if (
+    (e.metaKey || e.ctrlKey) &&
+    e.key.toLowerCase() === "z" &&
+    !["INPUT", "TEXTAREA"].includes(document.activeElement.tagName)
+  ) {
+    e.preventDefault();
+    e.shiftKey ? history(redo, undo) : history(undo, redo);
+  }
+});
 window.onbeforeunload = (e) => {
   if (dirty) {
     e.preventDefault();
@@ -545,19 +1698,31 @@ window.onbeforeunload = (e) => {
 };
 try {
   info = await api("/api/admin/info");
-  config = info.config;
+  config = migrate(info.config);
   pageId = config.pages[0].id;
   pin(info.pin);
-  $("#wifiInfo").textContent = info.network?.urls?.length
-    ? "Wi-Fi 주소: " +
-      info.network.urls.join(" · ") +
-      " — 최초 USB 등록 후 태블릿에서 자동 연결됩니다."
-    : "Wi-Fi: " +
-      (info.network?.error || "맥을 사설 Wi-Fi 네트워크에 연결하세요.");
+  await refreshPlugins();
   render();
   const events = new EventSource("/api/events");
   events.addEventListener("snapshot", (e) => {
-    state = JSON.parse(e.data).state;
+    const snapshot = JSON.parse(e.data);
+    state = snapshot.state;
+    if (
+      snapshot.config &&
+      !dirty &&
+      JSON.stringify(snapshot.config.pages) !== JSON.stringify(config.pages)
+    ) {
+      // Tablet snapshots omit executable actions; fetch the full admin configuration.
+      api("/api/admin/info")
+        .then((r) => {
+          if (!dirty) {
+            config = migrate(r.config);
+            selected = null;
+            render();
+          }
+        })
+        .catch(() => {});
+    }
     updateLive();
   });
   events.onerror = () => notice("맥 호스트 연결을 기다리는 중입니다.", true);

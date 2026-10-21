@@ -15,6 +15,11 @@
       <div class="eyebrow">WORKSPACE</div>
       <nav id="pages"></nav>
       <button id="addPage" class="subtle">＋ 새 페이지</button>
+      <select id="template" aria-label="페이지 템플릿">
+        <option value="">템플릿에서 추가</option>
+        <option value="focus">집중</option>
+        <option value="monitor">모니터</option>
+      </select>
       <div class="aside-bottom">
         <span class="dot"></span>USB + Wi-Fi · 로컬 연결<small
           >개인 설정은 이 맥에만 저장됩니다.</small
@@ -36,7 +41,8 @@
       <div class="toolbar">
         <div class="segmented">
           <button id="editTab" class="active">덱 편집</button
-          ><button id="automationTab">자동화</button>
+          ><button id="automationTab">자동화</button
+          ><button id="dataTab">변수 · 연동</button>
         </div>
         <div class="tools">
           <label
@@ -47,9 +53,21 @@
               <option>4</option>
               <option>5</option>
               <option>6</option>
+              <option>7</option>
               <option>8</option>
+              <option>9</option>
+              <option>10</option>
+              <option>11</option>
+              <option>12</option>
             </select></label
+          ><label
+            >행<input id="rows" type="number" min="1" max="64" value="3"
+          /></label>
+          <button id="undo" disabled>실행 취소</button
+          ><button id="redo" disabled>다시 실행</button
           ><button id="renamePage">이름 변경</button
+          ><button id="duplicatePage">페이지 복제</button
+          ><button id="pageUp">페이지 위로</button
           ><button id="removePage">페이지 삭제</button
           ><button id="import">가져오기</button
           ><button id="export">내보내기</button
@@ -58,18 +76,19 @@
       </div>
       <div id="notice" role="status"></div>
       <section id="deckArea">
-        <div class="palette">
-          <span>위젯 추가</span><button data-add="button">＋ 동작 버튼</button
-          ><button data-add="clock">시계</button
-          ><button data-add="gauges">CPU · 메모리</button
-          ><button data-add="timer">집중 타이머</button
-          ><button data-add="volume">음량 슬라이더</button
-          ><button data-add="text">텍스트</button>
+        <details class="page-design">
+          <summary>페이지 디자인 · 배치</summary>
+          <div id="pageSettings"></div>
+        </details>
+        <div class="preview-tools">
+          <button id="orientation">가로 미리보기</button
+          ><button id="pack">자동 정렬</button><span>태블릿 미리보기</span>
         </div>
+        <div class="palette" id="palette"></div>
         <div id="board"></div>
-        <div class="hint">
-          드래그해서 순서를 바꾸고, 위젯을 눌러 동작을 편집하세요. 저장하면
-          태블릿에 바로 반영됩니다.
+        <div class="hint" id="previewHint">
+          드래그로 이동 · 오른쪽 아래 모서리로 크기 조절 · 방향키 이동 /
+          Alt+방향키 크기 조절
         </div>
       </section>
       <section id="automationArea" hidden>
@@ -78,49 +97,52 @@
         <div id="automations"></div>
         <button id="addAutomation">＋ 시간 자동화 추가</button>
       </section>
+      <section id="dataArea" hidden>
+        <h2>변수</h2>
+        <p>위젯에서 {{변수명}}으로 표시하거나 토글·슬라이더에 연결하세요.</p>
+        <div id="variables"></div>
+        <button id="addVariable">＋ 변수</button>
+        <h2>HTTP · Webhook 연동</h2>
+        <p>
+          JSON 응답을 변수에 저장합니다. 인증 토큰은 이 맥의 키체인에 저장되며
+          백업에 포함되지 않습니다.
+        </p>
+        <div id="connectors"></div>
+        <button id="addConnector">＋ HTTP 연동</button>
+        <h2>플러그인</h2>
+        <p>
+          Macro Deck 3 호환 실험 기능입니다. 신뢰하는 macOS arm64 플러그인을
+          압축 해제한 폴더로 등록하세요. 액션·일반 변수 읽기·이벤트를 지원하며
+          전용 화면·설정 마법사·스토어 설치는 아직 지원하지 않습니다. 플러그인은
+          내 계정 권한으로 실행됩니다.
+        </p>
+        <div id="pluginList"></div>
+      </section>
       <section id="devices" hidden>
         <h2>연결된 태블릿</h2>
         <p id="wifiInfo"></p>
         <div id="deviceList"></div>
       </section>
       <footer>
-        <span id="saved">Ready</span><span>OPEN DECK · 0.2.0</span>
+        <span id="saved">Ready</span><span>OPEN DECK · 0.3.0</span>
       </footer>
     </main>
     <section id="inspector" hidden>
       <div class="inspector-head">
         <div>
           <div class="eyebrow">WIDGET</div>
-          <h2>위젯 편집</h2>
+          <h2 id="widgetTitle">위젯 편집</h2>
         </div>
         <button id="closeInspector">✕</button>
       </div>
-      <label>이름<input id="label" maxlength="120" /></label>
-      <div class="two">
-        <label>강조 색<input type="color" id="color" /></label
-        ><label
-          >아이콘<select id="icon">
-            <option value="power">시작</option>
-            <option value="globe">브라우저</option>
-            <option value="monitor">앱</option>
-            <option value="tasks">일감</option>
-            <option value="mail">메일</option>
-            <option value="chat">채팅</option>
-            <option value="spark">AI</option>
-            <option value="link">링크</option>
-            <option value="code">개발</option>
-            <option value="note">메모</option>
-            <option value="music">음악</option>
-            <option value="volume">음량</option>
-          </select></label
-        >
-      </div>
-      <label id="minutesRow"
-        >분<input type="number" id="minutes" min="1" max="1440"
-      /></label>
+      <div id="widgetFields"></div>
       <div id="flowEditor">
         <div class="flow-heading">
-          <h3>누르면 실행</h3>
+          <select id="gesture">
+            <option value="actions">누르면 실행</option>
+            <option value="longActions">길게 누르면</option>
+            <option value="doubleActions">두 번 누르면</option>
+          </select>
           <button id="addAction">＋ 단계</button>
         </div>
         <div id="actions"></div>
@@ -136,6 +158,12 @@
         ><button id="removeWidget" class="danger">위젯 삭제</button>
       </div>
     </section>
+    <input
+      type="file"
+      id="imageFile"
+      accept="image/png,image/jpeg,image/webp"
+      hidden
+    />
     <input type="file" id="file" accept="application/json" hidden />
     <script type="module" src="/app.js"></script>
   </body>

@@ -1,0 +1,4 @@
+Public protocol descriptor metadata in host/plugin-protocol.json is derived from Macro Deck v3.0.0-beta.18 (7089154cde506c0884bb39c4712863e0fef83d84).
+Source: https://github.com/Macro-Deck-App/Macro-Deck
+Copyright Macro Deck contributors. Apache License 2.0.
+Open Deck implements a limited independent adapter; it is not endorsed by Macro Deck.

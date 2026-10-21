@@ -1,4 +1,7 @@
 import http from "node:http";
+import { Plugins } from "./plugins.mjs";
+import { saveAsset, readAsset } from "./assets.mjs";
+import { Connectors, setSecret } from "./connectors.mjs";
 import https from "node:https";
 import { loadIdentity, localAddresses } from "./network.mjs";
 import fs from "node:fs";
@@ -18,9 +21,16 @@ const equal = (a, b) =>
 export const deviceConfig = (c) => ({
   ...c,
   automations: undefined,
+  integrations: undefined,
   pages: c.pages.map((p) => ({
     ...p,
-    widgets: p.widgets.map(({ actions, ...w }) => w),
+    widgets: p.widgets.map(({ actions, longActions, doubleActions, ...w }) => ({
+      ...w,
+      gestures: {
+        long: !!longActions?.length,
+        double: !!doubleActions?.length,
+      },
+    })),
   })),
 });
 export function createHost({
@@ -31,6 +41,7 @@ export function createHost({
   wifiPort = 8841,
 } = {}) {
   let config = loadConfig(dir);
+  let configRevision = 1;
   const adminKey = crypto.randomBytes(32).toString("hex");
   const devicesFile = path.join(dir, "devices.json");
   let devices = fs.existsSync(devicesFile)
@@ -58,17 +69,55 @@ export function createHost({
   const streams = new Set(),
     attempts = new Map();
   const broadcast = () => {
-    const data = JSON.stringify(snapshot());
+    const common = { state: engine.state(), network: network() };
+    let full = null,
+      delta = null;
     for (const s of streams) {
       if (s.writableLength > 256000) {
         s.destroy();
         streams.delete(s);
         continue;
       }
+      let data;
+      if (s.openDeckRevision !== configRevision) {
+        full ??= JSON.stringify({ ...common, config: deviceConfig(config) });
+        data = full;
+        s.openDeckRevision = configRevision;
+      } else {
+        delta ??= JSON.stringify(common);
+        data = delta;
+      }
       s.write(`event: snapshot\ndata: ${data}\n\n`);
     }
   };
   const engine = new Engine(config, broadcast, runner);
+  const connectors = new Connectors(
+    () => config,
+    (k, v) => engine.setVariable(k, v),
+    () => {
+      engine.integrations = connectors.status;
+      broadcast();
+    },
+  );
+  engine.connectors = connectors;
+  const plugins = new Plugins(
+    dir,
+    () => {
+      engine.pluginValues = plugins.values();
+      broadcast();
+    },
+    (pluginId, eventId) => engine.pluginEvent(pluginId, eventId),
+  );
+  engine.plugins = plugins;
+  const stateFile = path.join(dir, "state.json");
+  try {
+    const saved = JSON.parse(fs.readFileSync(stateFile, "utf8"));
+    for (const [k, v] of Object.entries(saved.variables || {}))
+      if (typeof config.variables[k] === typeof v) engine.variables[k] = v;
+    engine.todos = saved.todos || {};
+  } catch {}
+  engine.onPersist = () =>
+    writeJson(stateFile, { variables: engine.variables, todos: engine.todos });
   const send = (res, status, data) => {
     res.writeHead(status, {
       "Content-Type": "application/json",
@@ -83,7 +132,7 @@ export function createHost({
       text = "";
     for await (const b of req) {
       size += b.length;
-      if (size > 262144)
+      if (size > 3000000)
         throw Object.assign(Error("요청이 너무 큽니다."), { status: 413 });
       text += b;
     }
@@ -133,13 +182,14 @@ export function createHost({
             "/api/snapshot",
             "/api/events",
             "/api/action",
-          ].includes(u.pathname)
+          ].includes(u.pathname) &&
+          !/^\/api\/assets\/[a-f0-9]{64}$/.test(u.pathname)
         )
           return send(res, 403, {
             error: "Wi-Fi에서는 태블릿 연결만 허용됩니다.",
           });
         if (req.method === "GET" && u.pathname === "/health")
-          return send(res, 200, { name: "Open Deck", version: "0.2.0" });
+          return send(res, 200, { name: "Open Deck", version: "0.3.0" });
         if (req.method === "POST" && u.pathname === "/api/pair") {
           const now = Date.now(),
             key = req.socket.remoteAddress,
@@ -204,11 +254,46 @@ export function createHost({
           const candidate = validateConfig(await body(req));
           writeJson(path.join(dir, "deck.json"), candidate);
           config = candidate;
-          engine.config = config;
+          configRevision++;
+          engine.configure(config);
           for (const id of engine.timers.keys())
             if (!engine.widget(id)) engine.timers.delete(id);
           broadcast();
+          return send(res, 200, { ok: true, config });
+        }
+        if (req.method === "GET" && u.pathname === "/api/admin/plugins")
+          return send(res, 200, { plugins: plugins.list() });
+        if (req.method === "POST" && u.pathname === "/api/admin/plugins") {
+          const b = await body(req);
+          if (b.operation === "register") plugins.register(b.folder);
+          else if (b.operation === "start") await plugins.start(b.id);
+          else if (b.operation === "stop") plugins.stop(b.id);
+          else if (b.operation === "remove") plugins.remove(b.id);
+          else throw Error("잘못된 플러그인 요청입니다.");
+          return send(res, 200, { plugins: plugins.list() });
+        }
+        if (req.method === "POST" && u.pathname === "/api/admin/assets")
+          return send(res, 200, saveAsset(dir, (await body(req)).data));
+        if (req.method === "POST" && u.pathname === "/api/admin/secret") {
+          const b = await body(req);
+          await setSecret(b.id, b.value);
           return send(res, 200, { ok: true });
+        }
+        if (req.method === "POST" && u.pathname === "/api/admin/refresh") {
+          const b = await body(req);
+          return send(res, 200, { value: await connectors.run(b.id) });
+        }
+        if (
+          req.method === "GET" &&
+          /^\/api\/assets\/[a-f0-9]{64}$/.test(u.pathname)
+        ) {
+          const asset = readAsset(dir, u.pathname.split("/").pop());
+          res.writeHead(200, {
+            "Content-Type": asset.mime,
+            "Cache-Control": "private, max-age=86400",
+          });
+          res.end(asset.bytes);
+          return;
         }
         if (req.method === "GET" && u.pathname === "/api/snapshot")
           return send(res, 200, snapshot());
@@ -226,17 +311,30 @@ export function createHost({
         }
         if (req.method === "POST" && u.pathname === "/api/action") {
           const b = await body(req);
+          if (b.kind === "control") {
+            const value = engine.control(b.id, b.value);
+            if (
+              engine.widget(b.id)?.type === "toggle" &&
+              engine.widget(b.id).actions?.length
+            )
+              await engine.run(b.id);
+            return send(res, 200, { value });
+          }
+          if (b.kind === "todo")
+            return send(res, 200, {
+              items: engine.todo(b.id, b.gesture, b.value),
+            });
           if (b.kind === "volume") {
             await engine.setVolume(b.value);
             return send(res, 200, { ok: true });
           }
           if (b.kind === "timer")
             return send(res, 200, engine.timer(b.id, b.gesture));
-          return send(res, 200, await engine.run(b.id));
+          return send(res, 200, await engine.run(b.id, b.gesture || "tap"));
         }
         if (
           req.method === "GET" &&
-          ["/", "/app.js", "/app.css"].includes(u.pathname)
+          ["/", "/app.js", "/app.css", "/layout.mjs"].includes(u.pathname)
         ) {
           if (!admin)
             return send(res, 401, {
@@ -250,7 +348,7 @@ export function createHost({
           const file = u.pathname === "/" ? "index.html" : u.pathname.slice(1);
           res.setHeader(
             "Content-Type",
-            file.endsWith(".js")
+            file.endsWith(".js") || file.endsWith(".mjs")
               ? "text/javascript"
               : file.endsWith(".css")
                 ? "text/css"
@@ -292,6 +390,8 @@ export function createHost({
   server.on("close", () => {
     clearInterval(interval);
     clearInterval(schedule);
+    connectors.close();
+    plugins.close();
     for (const s of streams) s.end();
   });
   return {
@@ -307,6 +407,7 @@ export function createHost({
       new Promise((resolve) => {
         for (const s of streams) s.end();
         streams.clear();
+        plugins.close();
         const listeners = [server, lanServer].filter(Boolean);
         Promise.all(
           listeners.map(

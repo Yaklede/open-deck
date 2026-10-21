@@ -13,7 +13,12 @@ export class Scheduler {
     }
     const time = now.toTimeString().slice(0, 5);
     for (const a of this.getConfig().automations || []) {
-      if (a.enabled && a.time === time && !this.executed.has(a.id)) {
+      if (
+        a.enabled &&
+        a.time === time &&
+        (!a.days || a.days.includes(now.getDay())) &&
+        !this.executed.has(a.id)
+      ) {
         this.executed.add(a.id);
         Promise.resolve()
           .then(() => this.run(a.widgetId))
