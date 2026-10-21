@@ -87,6 +87,7 @@ function renderBoard() {
       );
       c.style.borderColor = selected === w.id ? "#c3ccff" : w.color + "55";
       c.style.color = w.color;
+      c.dataset.widgetId = w.id;
       c.draggable = true;
       c.append(
         node(
@@ -139,6 +140,35 @@ function renderBoard() {
       return c;
     }),
   );
+  updateLive();
+}
+function updateLive() {
+  const widgets = new Map(currentPage().widgets.map((w) => [w.id, w]));
+  for (const card of $("#board").children) {
+    const w = widgets.get(card.dataset.widgetId);
+    if (!w) continue;
+    if (w.type === "gauges")
+      card.querySelector(".gauges").textContent =
+        `${state.cpu ?? 0}%  /  ${state.memory ?? 0}%`;
+    else if (w.type === "clock")
+      card.querySelector(".clock").textContent = new Date().toLocaleTimeString(
+        "ko-KR",
+        { hour: "2-digit", minute: "2-digit", hour12: false },
+      );
+    else if (w.type === "volume")
+      card.querySelector("input").value = state.volume ?? 50;
+    else if (w.type === "timer") {
+      const t = state.timers?.[w.id];
+      const remaining = t
+        ? t.running
+          ? Math.max(0, t.end - Date.now())
+          : t.remaining
+        : w.minutes * 60000;
+      const sec = Math.ceil(remaining / 1000);
+      card.querySelector(".clock").textContent =
+        `${String(Math.floor(sec / 60)).padStart(2, "0")}:${String(sec % 60).padStart(2, "0")}`;
+    }
+  }
 }
 function edit(id) {
   selected = id;
@@ -518,11 +548,17 @@ try {
   config = info.config;
   pageId = config.pages[0].id;
   pin(info.pin);
+  $("#wifiInfo").textContent = info.network?.urls?.length
+    ? "Wi-Fi 주소: " +
+      info.network.urls.join(" · ") +
+      " — 최초 USB 등록 후 태블릿에서 자동 연결됩니다."
+    : "Wi-Fi: " +
+      (info.network?.error || "맥을 사설 Wi-Fi 네트워크에 연결하세요.");
   render();
   const events = new EventSource("/api/events");
   events.addEventListener("snapshot", (e) => {
     state = JSON.parse(e.data).state;
-    if (!dirty && !selected) renderBoard();
+    updateLive();
   });
   events.onerror = () => notice("맥 호스트 연결을 기다리는 중입니다.", true);
 } catch (e) {

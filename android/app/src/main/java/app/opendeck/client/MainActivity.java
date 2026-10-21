@@ -26,10 +26,22 @@ import org.json.*;
  */
 public class MainActivity extends Activity {
   private final Handler ui = new Handler(Looper.getMainLooper());
-  private final ExecutorService commands = Executors.newFixedThreadPool(3);
+  private final ExecutorService commands =
+      new ThreadPoolExecutor(0, 4, 15, TimeUnit.SECONDS, new SynchronousQueue<>());
+  private final Map<String, Long> pending = new HashMap<>();
+  private final Map<String, Integer> colors = new HashMap<>();
+  private long serverTime = 0, receivedAt = 0;
+  private String renderedConfig = "";
+  private final Set<String> runningIds = new HashSet<>();
   private volatile boolean stopped = false, connected = false;
+  private boolean foreground = false;
   private volatile HttpURLConnection eventConnection;
-  private String token = "", base = "http://127.0.0.1:8840", pageId = "";
+  private volatile String token = "", base = "http://127.0.0.1:8840";
+  private String pageId = "";
+  private volatile String wifiPin = "", transport = "auto";
+  private volatile List<String> wifiUrls = new ArrayList<>();
+  private volatile int connectionRevision = 0;
+  private String connectionError = "";
   private volatile JSONObject config = new JSONObject(), state = new JSONObject();
   private DeckView deck;
   private Typeface font;
@@ -39,7 +51,7 @@ public class MainActivity extends Activity {
   private final Runnable tick =
       new Runnable() {
         public void run() {
-          if (deck != null) deck.invalidate();
+          if (deck != null && hasWindowFocus()) deck.tick();
           ui.postDelayed(this, 1000);
         }
       };
@@ -53,7 +65,13 @@ public class MainActivity extends Activity {
             .build();
     prefs = getSharedPreferences("open-deck", MODE_PRIVATE);
     pageId = prefs.getString("page", "");
-    base = prefs.getString("host", base);
+    transport = prefs.getString("transport", "auto");
+    wifiPin = prefs.getString("wifiPin", "");
+    try {
+      JSONArray urls = new JSONArray(prefs.getString("wifiUrls", "[]"));
+      for (int i = 0; i < urls.length(); i++) wifiUrls.add(urls.getString(i));
+    } catch (Exception ignored) {
+    }
     token = readToken();
     immersive();
     if (prefs.getBoolean("awake", true))
@@ -61,6 +79,27 @@ public class MainActivity extends Activity {
     if (token.isEmpty()) pairScreen();
     else showDeck();
     ui.post(tick);
+  }
+
+  @Override
+  public void onResume() {
+    super.onResume();
+    foreground = true;
+    if (deck != null) {
+      deck.rebuild();
+      deck.updateState();
+    }
+  }
+
+  @Override
+  public void onPause() {
+    foreground = false;
+    super.onPause();
+  }
+
+  private void disconnectEvents() {
+    HttpURLConnection previous = eventConnection;
+    if (previous != null) new Thread(previous::disconnect, "open-deck-disconnect").start();
   }
 
   @Override
@@ -73,7 +112,7 @@ public class MainActivity extends Activity {
   public void onDestroy() {
     stopped = true;
     connected = false;
-    if (eventConnection != null) eventConnection.disconnect();
+    disconnectEvents();
     if (events != null) events.interrupt();
     commands.shutdownNow();
     ui.removeCallbacks(tick);
@@ -83,7 +122,7 @@ public class MainActivity extends Activity {
   @Override
   public void onConfigurationChanged(android.content.res.Configuration c) {
     super.onConfigurationChanged(c);
-    if (deck != null) deck.invalidate();
+    if (deck != null) deck.requestLayout();
   }
 
   private void immersive() {
@@ -106,7 +145,11 @@ public class MainActivity extends Activity {
 
   private int color(String s) {
     try {
-      return Color.parseColor(s);
+      Integer cached = colors.get(s);
+      if (cached != null) return cached;
+      int parsed = Color.parseColor(s);
+      colors.put(s, parsed);
+      return parsed;
     } catch (Exception e) {
       return Color.rgb(136, 182, 255);
     }
@@ -123,6 +166,7 @@ public class MainActivity extends Activity {
 
   private void pairScreen() {
     deck = null;
+    base = "http://127.0.0.1:8840";
     LinearLayout wrap = new LinearLayout(this);
     wrap.setOrientation(LinearLayout.VERTICAL);
     wrap.setPadding((int) dp(40), (int) dp(35), (int) dp(40), (int) dp(30));
@@ -143,7 +187,7 @@ public class MainActivity extends Activity {
     card.addView(title);
     TextView help =
         text(
-            "태블릿을 USB로 맥에 연결하고 Open Deck 앱을 실행하세요.\n맥 편집기에 표시되는 6자리 코드를 입력하면 됩니다.",
+            "최초 등록은 USB로 맥에 연결하고 Open Deck 앱을 실행하세요.\n6자리 코드로 등록하면 같은 Wi-Fi에서 무선으로 사용할 수 있습니다.",
             14,
             color("#9caec9"));
     help.setLineSpacing(dp(5), 1);
@@ -210,6 +254,7 @@ public class MainActivity extends Activity {
 
   private void showDeck() {
     deck = new DeckView();
+    deck.rebuild();
     setContentView(deck);
     connected = false;
     if (events == null || !events.isAlive()) {
@@ -221,7 +266,7 @@ public class MainActivity extends Activity {
 
   private JSONObject request(String route, String method, JSONObject body, boolean auth)
       throws Exception {
-    HttpURLConnection c = (HttpURLConnection) new URL(base + route).openConnection();
+    HttpURLConnection c = PinnedConnection.open(base + route, wifiPin);
     c.setConnectTimeout(2200);
     c.setReadTimeout(12000);
     c.setRequestMethod(method);
@@ -257,14 +302,22 @@ public class MainActivity extends Activity {
   }
 
   private void listen() {
-    int delay = 1000;
+    int delay = 1000, endpoint = 0, revision = connectionRevision;
     while (!stopped && !token.isEmpty()) {
+      if (revision != connectionRevision) {
+        endpoint = 0;
+        revision = connectionRevision;
+        delay = 1000;
+      }
+      List<String> candidates = endpoints();
+      base = candidates.get(endpoint % candidates.size());
+      boolean switchToWifi = false;
       HttpURLConnection c = null;
       try {
-        c = (HttpURLConnection) new URL(base + "/api/events").openConnection();
+        c = PinnedConnection.open(base + "/api/events", wifiPin);
         eventConnection = c;
         c.setConnectTimeout(2500);
-        c.setReadTimeout(15000);
+        c.setReadTimeout(6000);
         c.setRequestProperty("Authorization", "Bearer " + token);
         if (c.getResponseCode() == 401) {
           token = "";
@@ -274,6 +327,7 @@ public class MainActivity extends Activity {
         }
         if (c.getResponseCode() != 200) throw new IOException("Host unavailable");
         connected = true;
+        connectionError = "";
         delay = 1000;
         ui.post(
             () -> {
@@ -285,19 +339,41 @@ public class MainActivity extends Activity {
           while (!stopped && (line = reader.readLine()) != null) {
             if (line.startsWith("data: ")) {
               JSONObject snapshot = new JSONObject(line.substring(6));
+              if (learnNetwork(snapshot.optJSONObject("network"))
+                  && "auto".equals(transport)
+                  && base.startsWith("http:")) {
+                switchToWifi = true;
+              }
               JSONObject cfg = snapshot.getJSONObject("config"),
                   st = snapshot.getJSONObject("state");
+              String configJson = cfg.toString();
               ui.post(
                   () -> {
+                    boolean changed = !renderedConfig.equals(configJson);
                     config = cfg;
                     state = st;
+                    serverTime = st.optLong("at", System.currentTimeMillis());
+                    receivedAt = SystemClock.elapsedRealtime();
+                    runningIds.clear();
+                    JSONArray running = st.optJSONArray("running");
+                    if (running != null)
+                      for (int i = 0; i < running.length(); i++)
+                        runningIds.add(running.optString(i));
                     showErrors();
-                    if (deck != null) deck.invalidate();
+                    if (deck != null && foreground) {
+                      if (changed) {
+                        renderedConfig = configJson;
+                        deck.rebuild();
+                      }
+                      deck.updateState();
+                    }
                   });
+              if (switchToWifi) break;
             }
           }
         }
       } catch (Exception e) {
+        connectionError = e.getMessage() == null ? "연결할 수 없습니다." : e.getMessage();
         if (!stopped) {
           connected = false;
           ui.post(
@@ -310,14 +386,135 @@ public class MainActivity extends Activity {
         eventConnection = null;
         connected = false;
       }
-      if (!stopped)
+      if (switchToWifi) {
+        endpoint = 0;
+        continue;
+      }
+      endpoint++;
+      if (!stopped && revision == connectionRevision)
         try {
           Thread.sleep(delay);
         } catch (InterruptedException e) {
           return;
         }
-      delay = Math.min(15000, delay * 2);
+      delay = Math.min(5000, delay * 2);
     }
+  }
+
+  private List<String> endpoints() {
+    List<String> urls = new ArrayList<>();
+    if (!"usb".equals(transport) && !wifiPin.isEmpty()) urls.addAll(wifiUrls);
+    if (!"wifi".equals(transport) || urls.isEmpty()) urls.add("http://127.0.0.1:8840");
+    return urls;
+  }
+
+  private boolean learnNetwork(JSONObject network) {
+    if (network == null) return false;
+    String pin = network.optString("fingerprint");
+    JSONArray urls = network.optJSONArray("urls");
+    if (!pin.matches("[0-9a-f]{64}") || urls == null || urls.length() == 0) return false;
+    // A changed identity may be learned only through the authenticated USB tunnel.
+    if (!base.startsWith("http://127.0.0.1:") && !pin.equals(wifiPin)) return false;
+    List<String> valid = new ArrayList<>();
+    for (int i = 0; i < urls.length(); i++) {
+      String value = urls.optString(i);
+      if (validWifiUrl(value)) valid.add(value);
+    }
+    if (valid.isEmpty()) return false;
+    boolean changed = !pin.equals(wifiPin) || !valid.equals(wifiUrls);
+    wifiPin = pin;
+    wifiUrls = valid;
+    prefs
+        .edit()
+        .putString("wifiPin", wifiPin)
+        .putString("wifiUrls", new JSONArray(valid).toString())
+        .apply();
+    return changed;
+  }
+
+  private boolean validWifiUrl(String value) {
+    try {
+      URI u = new URI(value);
+      return "https".equals(u.getScheme())
+          && u.getUserInfo() == null
+          && u.getQuery() == null
+          && u.getFragment() == null
+          && (u.getPath() == null || u.getPath().isEmpty())
+          && u.getPort() == 8841
+          && u.getHost() != null
+          && u.getHost().matches("(?:10\\.|192\\.168\\.|172\\.(?:1[6-9]|2[0-9]|3[01])\\.)[0-9.]+");
+    } catch (Exception e) {
+      return false;
+    }
+  }
+
+  private void reconnect(String mode) {
+    transport = mode;
+    prefs.edit().putString("transport", mode).apply();
+    connectionRevision++;
+    connected = false;
+    disconnectEvents();
+    if (deck != null) deck.invalidate();
+  }
+
+  private void connectionSettings() {
+    String mode =
+        "wifi".equals(transport) ? "Wi-Fi" : "usb".equals(transport) ? "USB" : "자동 (Wi-Fi 우선)";
+    new AlertDialog.Builder(this)
+        .setTitle("연결: " + mode)
+        .setItems(
+            new String[] {
+              "자동: Wi-Fi 우선 · USB 대체", "Wi-Fi로만 연결", "USB로만 연결", "맥 Wi-Fi 주소 변경", "현재 연결 정보"
+            },
+            (d, index) -> {
+              if (index < 3) {
+                if (index == 1 && wifiPin.isEmpty()) {
+                  Toast.makeText(this, "USB로 한 번 연결해 Wi-Fi 인증서를 등록하세요.", Toast.LENGTH_LONG).show();
+                  return;
+                }
+                reconnect(new String[] {"auto", "wifi", "usb"}[index]);
+              } else if (index == 3) {
+                EditText input = new EditText(this);
+                input.setSingleLine(true);
+                input.setInputType(InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_VARIATION_URI);
+                input.setText(wifiUrls.isEmpty() ? "https://192.168.0.1:8841" : wifiUrls.get(0));
+                new AlertDialog.Builder(this)
+                    .setTitle("맥 편집기에 표시된 HTTPS 주소")
+                    .setView(input)
+                    .setNegativeButton("취소", null)
+                    .setPositiveButton(
+                        "저장",
+                        (x, y) -> {
+                          String address = input.getText().toString().trim();
+                          if (!validWifiUrl(address)) {
+                            Toast.makeText(
+                                    this, "사설 IP의 https://주소:8841 형식으로 입력하세요.", Toast.LENGTH_LONG)
+                                .show();
+                            return;
+                          }
+                          wifiUrls = new ArrayList<>(Collections.singletonList(address));
+                          prefs
+                              .edit()
+                              .putString("wifiUrls", new JSONArray(wifiUrls).toString())
+                              .apply();
+                          reconnect(transport);
+                        })
+                    .show();
+              } else {
+                new AlertDialog.Builder(this)
+                    .setTitle("연결 정보")
+                    .setMessage(
+                        (connected ? "연결됨: " : "재연결 중: ")
+                            + base
+                            + "\n\n인증서: "
+                            + (wifiPin.isEmpty() ? "미등록 · USB로 먼저 연결하세요" : wifiPin)
+                            + (connectionError.isEmpty() ? "" : "\n\n" + connectionError))
+                    .setPositiveButton("확인", null)
+                    .show();
+              }
+            })
+        .setNegativeButton("닫기", null)
+        .show();
   }
 
   private void showErrors() {
@@ -336,19 +533,36 @@ public class MainActivity extends Activity {
     }
   }
 
+  private long hostNow() {
+    return serverTime == 0
+        ? System.currentTimeMillis()
+        : serverTime + SystemClock.elapsedRealtime() - receivedAt;
+  }
+
   private void action(JSONObject body) {
     if (!connected) {
       Toast.makeText(this, "맥 연결을 기다리는 중입니다.", Toast.LENGTH_SHORT).show();
       return;
     }
-    commands.execute(
-        () -> {
-          try {
-            request("/api/action", "POST", body, true);
-          } catch (Exception e) {
-            ui.post(() -> Toast.makeText(this, e.getMessage(), Toast.LENGTH_SHORT).show());
-          }
-        });
+    String id = body.optString("id", "volume");
+    if (pending.containsKey(id) || runningIds.contains(id)) return;
+    pending.put(id, SystemClock.elapsedRealtime());
+    if (deck != null) deck.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP);
+    try {
+      commands.execute(
+          () -> {
+            try {
+              request("/api/action", "POST", body, true);
+            } catch (Exception e) {
+              ui.post(() -> Toast.makeText(this, e.getMessage(), Toast.LENGTH_SHORT).show());
+            } finally {
+              ui.post(() -> pending.remove(id));
+            }
+          });
+    } catch (RejectedExecutionException e) {
+      pending.remove(id);
+      Toast.makeText(this, "다른 동작이 진행 중입니다. 잠시 후 다시 눌러 주세요.", Toast.LENGTH_SHORT).show();
+    }
   }
 
   private javax.crypto.SecretKey key() throws Exception {
@@ -396,8 +610,9 @@ public class MainActivity extends Activity {
   private void settings() {
     String[] options = {
       "화면 켜짐 유지: " + (prefs.getBoolean("awake", true) ? "켜짐" : "꺼짐"),
+      "연결 방식 · Wi-Fi / USB",
       "연결 초기화",
-      "Open Deck 0.1.0 · MIT · 무료"
+      "Open Deck 0.2.0 · MIT · 무료"
     };
     new AlertDialog.Builder(this)
         .setTitle("Open Deck")
@@ -410,7 +625,8 @@ public class MainActivity extends Activity {
                 if (awake) getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
                 else getWindow().clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
               }
-              if (index == 1)
+              if (index == 1) connectionSettings();
+              if (index == 2)
                 new AlertDialog.Builder(this)
                     .setMessage("저장된 맥 연결을 초기화할까요?")
                     .setNegativeButton("취소", null)
@@ -419,7 +635,7 @@ public class MainActivity extends Activity {
                         (x, y) -> {
                           token = "";
                           prefs.edit().remove("token").apply();
-                          if (eventConnection != null) eventConnection.disconnect();
+                          disconnectEvents();
                           pairScreen();
                         })
                     .show();
@@ -428,8 +644,14 @@ public class MainActivity extends Activity {
         .show();
   }
 
-  private class DeckView extends View {
-    Paint paint = new Paint(Paint.ANTI_ALIAS_FLAG);
+  private class DeckView extends ViewGroup {
+    final Paint paint = new Paint(Paint.ANTI_ALIAS_FLAG);
+    final Path iconPath = new Path();
+    final RectF arcBounds = new RectF();
+    final SimpleDateFormat timeFormat = new SimpleDateFormat("HH:mm", Locale.KOREA);
+    final SimpleDateFormat dateFormat = new SimpleDateFormat("M월 d일 EEEE", Locale.KOREA);
+    final ArrayList<Tile> tiles = new ArrayList<>();
+    String headerStatus = "";
     ArrayList<RectF> rects = new ArrayList<>();
     ArrayList<JSONObject> widgets = new ArrayList<>();
     ArrayList<RectF> pageRects = new ArrayList<>();
@@ -440,7 +662,8 @@ public class MainActivity extends Activity {
 
     DeckView() {
       super(MainActivity.this);
-      setLayerType(View.LAYER_TYPE_HARDWARE, null);
+      setWillNotDraw(false);
+      setClipChildren(true);
       setBackgroundColor(color("#0c1320"));
       setContentDescription("Open Deck 태블릿 컨트롤 패널");
     }
@@ -472,79 +695,218 @@ public class MainActivity extends Activity {
       paint.setStyle(Paint.Style.FILL);
     }
 
+    void rebuild() {
+      removeAllViews();
+      tiles.clear();
+      widgets.clear();
+      rects.clear();
+      pageRects.clear();
+      JSONArray pages = config.optJSONArray("pages");
+      if (pages != null && pages.length() > 0) {
+        JSONObject page = pages.optJSONObject(0);
+        for (int i = 0; i < pages.length(); i++)
+          if (pages.optJSONObject(i).optString("id").equals(pageId)) page = pages.optJSONObject(i);
+        pageId = page.optString("id");
+        JSONArray items = page.optJSONArray("widgets");
+        if (items != null)
+          for (int i = 0; i < items.length(); i++) {
+            JSONObject w = items.optJSONObject(i);
+            if (w == null) continue;
+            widgets.add(w);
+            rects.add(new RectF());
+            Tile tile = new Tile(w);
+            tiles.add(tile);
+            addView(tile);
+          }
+      }
+      requestLayout();
+      invalidate();
+    }
+
+    @Override
+    protected void onMeasure(int widthSpec, int heightSpec) {
+      int width = MeasureSpec.getSize(widthSpec), height = MeasureSpec.getSize(heightSpec);
+      setMeasuredDimension(width, height);
+      float margin = dp(18), gap = dp(12), available = height - dp(132);
+      int cols =
+          Math.max(
+              2,
+              Math.min(
+                  8,
+                  width < height
+                      ? Math.min(2, config.optInt("columns", 4))
+                      : config.optInt("columns", 4)));
+      int rows = Math.max(1, (tiles.size() + cols - 1) / cols);
+      int cellW = Math.round((width - margin * 2 - gap * (cols - 1)) / cols);
+      int cellH = Math.round(Math.max(dp(145), (available - gap * (rows - 1)) / rows));
+      maxScroll = Math.max(0, rows * (cellH + gap) - gap - available);
+      scroll = Math.min(scroll, maxScroll);
+      for (int i = 0; i < tiles.size(); i++) {
+        float left = margin + (i % cols) * (cellW + gap),
+            top = dp(68) + (i / cols) * (cellH + gap) - scroll;
+        rects.get(i).set(left, top, left + cellW, top + cellH);
+        tiles
+            .get(i)
+            .measure(
+                MeasureSpec.makeMeasureSpec(cellW, MeasureSpec.EXACTLY),
+                MeasureSpec.makeMeasureSpec(cellH, MeasureSpec.EXACTLY));
+      }
+      pageRects.clear();
+      JSONArray pages = config.optJSONArray("pages");
+      int n = pages == null ? 0 : pages.length();
+      float pageWidth = Math.min(dp(140), width / (float) Math.max(1, n)),
+          start = (width - n * pageWidth) / 2;
+      for (int i = 0; i < n; i++)
+        pageRects.add(
+            new RectF(start + i * pageWidth, height - dp(46), start + (i + 1) * pageWidth, height));
+    }
+
+    @Override
+    protected void onLayout(boolean changed, int l, int t, int r, int b) {
+      for (int i = 0; i < tiles.size(); i++) {
+        RectF rect = rects.get(i);
+        tiles
+            .get(i)
+            .layout(
+                Math.round(rect.left),
+                Math.round(rect.top),
+                Math.round(rect.right),
+                Math.round(rect.bottom));
+      }
+    }
+
+    @Override
+    protected void dispatchDraw(Canvas c) {
+      c.save();
+      c.clipRect(0, dp(68), getWidth(), getHeight() - dp(46));
+      super.dispatchDraw(c);
+      c.restore();
+    }
+
+    @Override
+    public boolean onInterceptTouchEvent(MotionEvent e) {
+      return true;
+    }
+
+    void refresh(String id) {
+      for (Tile tile : tiles) if (tile.id.equals(id)) tile.invalidate();
+    }
+
+    void updateState() {
+      String status = connected + base;
+      if (!status.equals(headerStatus)) {
+        headerStatus = status;
+        invalidate();
+      }
+      for (Tile tile : tiles) {
+        String next;
+        if (tile.type.equals("gauges")) next = state.optInt("cpu") + ":" + state.optInt("memory");
+        else if (tile.type.equals("volume"))
+          next = state.optInt("volume") + ":" + state.optBoolean("muted");
+        else if (tile.type.equals("timer")) next = String.valueOf(state.optJSONObject("timers"));
+        else next = "static";
+        if (!next.equals(tile.signature)) {
+          tile.signature = next;
+          tile.invalidate();
+        }
+        float alpha = connected ? 1f : .55f;
+        if (tile.getAlpha() != alpha) tile.setAlpha(alpha);
+      }
+    }
+
+    void tick() {
+      for (Tile tile : tiles) {
+        if (tile.type.equals("clock") && hostNow() / 60000 != tile.clockMinute) tile.invalidate();
+        if (tile.type.equals("timer")) {
+          JSONObject all = state.optJSONObject("timers"),
+              timer = all == null ? null : all.optJSONObject(tile.id);
+          if (timer != null && timer.optBoolean("running")) tile.invalidate();
+        }
+      }
+    }
+
+    private class Tile extends View {
+      final JSONObject widget;
+      final String id, type;
+      final RectF bounds = new RectF();
+      String signature = "";
+      long clockMinute = -1;
+
+      Tile(JSONObject w) {
+        super(MainActivity.this);
+        widget = w;
+        id = w.optString("id");
+        type = w.optString("type");
+        setContentDescription(w.optString("label"));
+        setImportantForAccessibility(View.IMPORTANT_FOR_ACCESSIBILITY_YES);
+        setFocusable(true);
+        if (type.equals("button") || type.equals("timer"))
+          setOnClickListener(
+              v -> {
+                try {
+                  JSONObject b = new JSONObject().put("id", id);
+                  if (type.equals("timer")) b.put("kind", "timer").put("gesture", "tap");
+                  action(b);
+                } catch (JSONException ignored) {
+                }
+              });
+      }
+
+      @Override
+      public CharSequence getAccessibilityClassName() {
+        return type.equals("button") ? "android.widget.Button" : "android.view.View";
+      }
+
+      @Override
+      protected void onSizeChanged(int w, int h, int oldW, int oldH) {
+        bounds.set(0, 0, w, h);
+      }
+
+      @Override
+      protected void onDraw(Canvas c) {
+        drawWidget(c, widget, bounds);
+        clockMinute = hostNow() / 60000;
+      }
+    }
+
     @Override
     protected void onDraw(Canvas c) {
       super.onDraw(c);
-      int width = getWidth(), height = getHeight();
-      float margin = dp(18), gap = dp(12), header = dp(68), bottom = dp(46);
-      JSONArray pages = config.optJSONArray("pages");
-      label(c, "◈  OPEN DECK", margin, dp(28), 12, color("#c4cfff"), Paint.Align.LEFT);
+      label(c, "◈  OPEN DECK", dp(18), dp(28), 12, color("#c4cfff"), Paint.Align.LEFT);
       label(
           c,
-          connected ? "USB · 연결됨" : "맥에 다시 연결하는 중…",
-          margin,
+          connected
+              ? (base.startsWith("https:") ? "Wi-Fi · 암호화 연결됨" : "USB · 연결됨")
+              : "맥에 다시 연결하는 중…",
+          dp(18),
           dp(49),
           10,
           color(connected ? "#70c9a8" : "#e7b16c"),
           Paint.Align.LEFT);
-      label(c, "⚙", width - margin, dp(40), 24, color("#879dbd"), Paint.Align.RIGHT);
-      if (pages == null || pages.length() == 0) {
+      label(c, "⚙", getWidth() - dp(18), dp(40), 24, color("#879dbd"), Paint.Align.RIGHT);
+      if (tiles.isEmpty())
         label(
             c,
-            "맥에서 Open Deck을 실행하고 USB 연결을 확인하세요.",
-            width / 2f,
-            height / 2f,
+            "맥에서 Open Deck을 실행하고 연결을 확인하세요.",
+            getWidth() / 2f,
+            getHeight() / 2f,
             16,
             color("#9bacc6"),
             Paint.Align.CENTER);
-        return;
-      }
-      JSONObject page = pages.optJSONObject(0);
-      for (int i = 0; i < pages.length(); i++)
-        if (pages.optJSONObject(i).optString("id").equals(pageId)) page = pages.optJSONObject(i);
-      pageId = page.optString("id");
-      JSONArray items = page.optJSONArray("widgets");
-      if (items == null) return;
-      int cols =
-          width < height ? Math.min(2, config.optInt("columns", 4)) : config.optInt("columns", 4);
-      cols = Math.max(2, Math.min(8, cols));
-      int rows = Math.max(1, (items.length() + cols - 1) / cols);
-      float cellW = (width - margin * 2 - gap * (cols - 1)) / cols,
-          available = height - header - bottom - margin,
-          cellH = Math.max(dp(145), (available - gap * (rows - 1)) / rows);
-      maxScroll = Math.max(0, rows * (cellH + gap) - gap - available);
-      scroll = Math.min(scroll, maxScroll);
-      rects.clear();
-      widgets.clear();
-      c.save();
-      c.clipRect(0, header, width, height - bottom);
-      for (int i = 0; i < items.length(); i++) {
-        JSONObject w = items.optJSONObject(i);
-        if (w == null) continue;
-        float left = margin + (i % cols) * (cellW + gap),
-            top = header + (i / cols) * (cellH + gap) - scroll;
-        RectF r = new RectF(left, top, left + cellW, top + cellH);
-        rects.add(r);
-        widgets.add(w);
-        drawWidget(c, w, r);
-      }
-      c.restore();
-      pageRects.clear();
-      float total = pages.length() * dp(140), start = (width - total) / 2;
-      for (int i = 0; i < pages.length(); i++) {
-        JSONObject p = pages.optJSONObject(i);
-        RectF r =
-            new RectF(start + i * dp(140), height - bottom, start + (i + 1) * dp(140), height);
-        pageRects.add(r);
-        label(
-            c,
-            p.optString("name"),
-            r.centerX(),
-            height - dp(17),
-            11,
-            color(p.optString("id").equals(pageId) ? "#b5c4ff" : "#536c91"),
-            Paint.Align.CENTER);
-      }
+      JSONArray pages = config.optJSONArray("pages");
+      if (pages != null)
+        for (int i = 0; i < pageRects.size(); i++) {
+          JSONObject p = pages.optJSONObject(i);
+          RectF r = pageRects.get(i);
+          label(
+              c,
+              p.optString("name"),
+              r.centerX(),
+              getHeight() - dp(17),
+              11,
+              color(p.optString("id").equals(pageId) ? "#b5c4ff" : "#536c91"),
+              Paint.Align.CENTER);
+        }
     }
 
     void drawWidget(Canvas c, JSONObject w, RectF r) {
@@ -553,26 +915,12 @@ public class MainActivity extends Activity {
       paint.setColor(color("#172436"));
       paint.setStyle(Paint.Style.FILL);
       c.drawRoundRect(r, dp(13), dp(13), paint);
-      boolean running =
-          state.optJSONArray("running") != null
-              && state.optJSONArray("running").toString().contains('"' + id + '"');
       if (type.equals("button")) {
         paint.setStyle(Paint.Style.STROKE);
-        paint.setStrokeWidth(dp(running ? 3 : 1.3f));
-        paint.setColor(running ? Color.WHITE : accent);
+        paint.setStrokeWidth(dp(1.3f));
+        paint.setColor(accent);
         c.drawRoundRect(r, dp(13), dp(13), paint);
         paint.setStyle(Paint.Style.FILL);
-        JSONObject results = state.optJSONObject("results"),
-            result = results == null ? null : results.optJSONObject(id);
-        if (result != null && System.currentTimeMillis() - result.optLong("at") < 1800 && !running)
-          label(
-              c,
-              "ok".equals(result.optString("status")) ? "✓" : "!",
-              r.right - dp(15),
-              r.top + dp(23),
-              13,
-              color("ok".equals(result.optString("status")) ? "#7ce3b5" : "#ff9a9a"),
-              Paint.Align.RIGHT);
       }
       float cx = r.centerX(), cy = r.centerY(), basis = Math.min(r.width(), r.height());
       if (type.equals("button")) {
@@ -587,8 +935,6 @@ public class MainActivity extends Activity {
           label(c, l, cx, y, textSize, color("#e0e9fa"), Paint.Align.CENTER);
           y += dp(21);
         }
-        if (running)
-          label(c, "실행 중", r.right - dp(15), r.top + dp(23), 9, Color.WHITE, Paint.Align.RIGHT);
       } else if (type.equals("clock")) {
         label(
             c,
@@ -600,7 +946,7 @@ public class MainActivity extends Activity {
             Paint.Align.CENTER);
         label(
             c,
-            new SimpleDateFormat("HH:mm", Locale.KOREA).format(new Date()),
+            timeFormat.format(new Date(hostNow())),
             cx,
             r.top + r.height() * .60f,
             Math.min(48, basis / dp(1) * .24f),
@@ -608,7 +954,7 @@ public class MainActivity extends Activity {
             Paint.Align.CENTER);
         label(
             c,
-            new SimpleDateFormat("M월 d일 EEEE", Locale.KOREA).format(new Date()),
+            dateFormat.format(new Date(hostNow())),
             cx,
             r.top + r.height() * .79f,
             13,
@@ -627,11 +973,8 @@ public class MainActivity extends Activity {
         for (int k = 0; k < 2; k++) {
           float gx = r.left + r.width() * (k == 0 ? .27f : .73f), gy = r.top + r.height() * .44f;
           int val = state.optInt(k == 0 ? "cpu" : "memory");
-          arc(
-              c,
-              new RectF(gx - rad, gy - rad, gx + rad, gy + rad),
-              val / 100f,
-              color(k == 0 ? "#7cbaff" : "#ad9bff"));
+          arcBounds.set(gx - rad, gy - rad, gx + rad, gy + rad);
+          arc(c, arcBounds, val / 100f, color(k == 0 ? "#7cbaff" : "#ad9bff"));
           label(
               c,
               val + "%",
@@ -657,14 +1000,11 @@ public class MainActivity extends Activity {
                 t == null
                     ? duration
                     : t.optBoolean("running")
-                        ? Math.max(0, t.optLong("end") - System.currentTimeMillis())
+                        ? Math.max(0, t.optLong("end") - hostNow())
                         : t.optLong("remaining", duration);
         float rad = basis * .34f;
-        arc(
-            c,
-            new RectF(cx - rad, cy - rad - dp(8), cx + rad, cy + rad - dp(8)),
-            remaining / (float) duration,
-            accent);
+        arcBounds.set(cx - rad, cy - rad - dp(8), cx + rad, cy + rad - dp(8));
+        arc(c, arcBounds, remaining / (float) duration, accent);
         long sec = (remaining + 999) / 1000;
         label(
             c,
@@ -728,7 +1068,8 @@ public class MainActivity extends Activity {
       paint.setStrokeWidth(1.8f);
       paint.setStrokeCap(Paint.Cap.ROUND);
       paint.setStrokeJoin(Paint.Join.ROUND);
-      Path p = new Path();
+      Path p = iconPath;
+      p.rewind();
       switch (type) {
         case "power":
           c.drawArc(new RectF(3, 3, 21, 21), -52, 284, false, paint);
@@ -846,30 +1187,41 @@ public class MainActivity extends Activity {
           downAt = System.currentTimeMillis();
           moved = false;
           downIndex = hit(x, y);
+          if (downIndex >= 0) {
+            Tile tile = tiles.get(downIndex);
+            tile.animate().cancel();
+            tile.setScaleX(.985f);
+            tile.setScaleY(.985f);
+          }
           if (downIndex >= 0 && widgets.get(downIndex).optString("type").equals("volume")) {
             dragVolume = volumeAt(x, rects.get(downIndex));
-            invalidate();
+            tiles.get(downIndex).invalidate();
           }
           return true;
         case MotionEvent.ACTION_MOVE:
           if (Math.abs(x - downX) + Math.abs(y - downY) > dp(10)) moved = true;
           if (dragVolume >= 0 && downIndex >= 0) dragVolume = volumeAt(x, rects.get(downIndex));
-          else scroll = Math.max(0, Math.min(maxScroll, scroll + lastY - y));
+          else if (maxScroll > 0) {
+            scroll = Math.max(0, Math.min(maxScroll, scroll + lastY - y));
+            requestLayout();
+          }
           lastY = y;
-          invalidate();
+          if (downIndex >= 0 && dragVolume >= 0) tiles.get(downIndex).invalidate();
           return true;
         case MotionEvent.ACTION_CANCEL:
+          releasePress();
           dragVolume = -1;
           invalidate();
           return true;
         case MotionEvent.ACTION_UP:
+          releasePress();
           try {
             if (dragVolume >= 0) {
               int value = Math.round(dragVolume);
               dragVolume = -1;
               state.put("volume", value);
               action(new JSONObject().put("kind", "volume").put("value", value));
-              invalidate();
+              if (downIndex >= 0) tiles.get(downIndex).invalidate();
               return true;
             }
             if (moved) return true;
@@ -884,7 +1236,7 @@ public class MainActivity extends Activity {
                   pageId = ps.getJSONObject(i).getString("id");
                   prefs.edit().putString("page", pageId).apply();
                   scroll = 0;
-                  invalidate();
+                  rebuild();
                 }
               return true;
             }
@@ -904,6 +1256,11 @@ public class MainActivity extends Activity {
           return true;
       }
       return super.onTouchEvent(e);
+    }
+
+    void releasePress() {
+      if (downIndex >= 0 && downIndex < tiles.size())
+        tiles.get(downIndex).animate().scaleX(1f).scaleY(1f).setDuration(90).start();
     }
 
     @Override
