@@ -73,6 +73,9 @@ const types = new Set([
   "image",
   "spacer",
   "page",
+  "agenda",
+  "inbox",
+  "notification-feed",
 ]);
 const actionTypes = new Set([
   "openApp",
@@ -88,6 +91,7 @@ const actionTypes = new Set([
   "toggleVariable",
   "http",
   "plugin",
+  "extension",
 ]);
 const color = (v) => typeof v === "string" && /^#[0-9a-f]{6}$/i.test(v);
 const integer = (v, min, max) => Number.isInteger(v) && v >= min && v <= max;
@@ -102,6 +106,22 @@ export function validateConfig(input) {
   if (!Array.isArray(c.pages) || !c.pages.length || c.pages.length > 40)
     throw Error("1~40개의 페이지가 필요합니다.");
   if (!integer(c.columns, 2, 12)) throw Error("열 수는 2~12입니다.");
+  c.extensions ??= {};
+  if (
+    !plain(c.extensions) ||
+    Object.keys(c.extensions).some((k) => k !== "jimin-os")
+  )
+    throw Error("지원하지 않는 연결입니다.");
+  const os = c.extensions["jimin-os"];
+  if (
+    os &&
+    (!plain(os) ||
+      (os.enabled !== undefined && typeof os.enabled !== "boolean") ||
+      (os.notifications !== undefined &&
+        typeof os.notifications !== "boolean") ||
+      !integer(os.reminderMinutes ?? 10, 1, 120))
+  )
+    throw Error("Jimin OS 알림 설정을 확인하세요.");
   const ids = new Set(),
     pageIds = new Set(c.pages.map((p) => p.id));
   let count = 0;
@@ -122,6 +142,13 @@ export function validateConfig(input) {
           JSON.stringify(a.parameters || {}).length > 16384)
       )
         throw Error("플러그인 동작 정보를 확인하세요.");
+      if (
+        a.type === "extension" &&
+        (a.extensionId !== "jimin-os" ||
+          !["navigate", "refresh"].includes(a.operation) ||
+          !plain(a.parameters || {}))
+      )
+        throw Error("Jimin OS 동작을 확인하세요.");
       if (a.type === "if") {
         validateActions(a.then || [], depth + 1);
         validateActions(a.else || [], depth + 1);
@@ -258,6 +285,8 @@ export function validateConfig(input) {
       )
         throw Error("위젯 배치가 겹치거나 페이지를 벗어납니다.");
       boxes.push(w);
+      if (w.provider && w.provider !== "jimin-os")
+        throw Error("지원하지 않는 연결입니다.");
       if (w.color && !color(w.color)) throw Error("색상은 #RRGGBB 형식입니다.");
       if (!plain(w.style)) throw Error("잘못된 스타일입니다.");
       for (const k of ["background", "textColor", "borderColor"])

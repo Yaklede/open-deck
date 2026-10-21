@@ -58,6 +58,12 @@ public class MainActivity extends Activity {
       };
   private static final Pattern TEMPLATE = Pattern.compile("\\{\\{\\s*([a-zA-Z0-9_]+)\\s*\\}\\}");
   private Typeface font;
+  private int osMonthOffset = 0;
+  private final Map<String, SimpleDateFormat> osDateFormats = new HashMap<>();
+  private final Map<String, Integer> osEventDays = new HashMap<>();
+  private final Set<String> osTaskDays = new HashSet<>();
+  private long osIndexedAt = -1;
+  private final Set<String> deliveredNotifications = new HashSet<>();
   private Thread events;
   private SharedPreferences prefs;
   private final Map<String, Long> lastErrors = new HashMap<>();
@@ -85,6 +91,15 @@ public class MainActivity extends Activity {
       for (int i = 0; i < urls.length(); i++) wifiUrls.add(urls.getString(i));
     } catch (Exception ignored) {
     }
+    deliveredNotifications.addAll(
+        prefs.getStringSet("deliveredNotifications", Collections.emptySet()));
+    NotificationManager notificationManager = getSystemService(NotificationManager.class);
+    NotificationChannel channel =
+        new NotificationChannel(
+            "jimin-os", "Jimin OS 일정과 업무", NotificationManager.IMPORTANCE_DEFAULT);
+    channel.setDescription("일정 시작, 할 일 마감, 새 업무 요청을 알려드려요.");
+    channel.setLockscreenVisibility(Notification.VISIBILITY_PRIVATE);
+    notificationManager.createNotificationChannel(channel);
     token = readToken();
     immersive();
     if (prefs.getBoolean("awake", true))
@@ -92,6 +107,7 @@ public class MainActivity extends Activity {
     if (token.isEmpty()) pairScreen();
     else showDeck();
     ui.post(tick);
+    if (getIntent().getBooleanExtra("openOS", false)) pageId = "jimin-os-page";
   }
 
   @Override
@@ -108,6 +124,289 @@ public class MainActivity extends Activity {
   public void onPause() {
     foreground = false;
     super.onPause();
+  }
+
+  @Override
+  protected void onNewIntent(Intent intent) {
+    super.onNewIntent(intent);
+    setIntent(intent);
+    if (intent.getBooleanExtra("openOS", false) && deck != null) navigate("jimin-os-page");
+  }
+
+  private JSONObject osProvider() {
+    JSONObject all = state.optJSONObject("extensions");
+    return all == null ? null : all.optJSONObject("jimin-os");
+  }
+
+  private JSONObject osData() {
+    JSONObject p = osProvider();
+    return p == null ? null : p.optJSONObject("data");
+  }
+
+  private JSONArray osRows(String key) {
+    JSONObject data = osData();
+    JSONArray rows = data == null ? null : data.optJSONArray(key);
+    return rows == null ? new JSONArray() : rows;
+  }
+
+  private long instant(String value) {
+    try {
+      return java.time.Instant.parse(value).toEpochMilli();
+    } catch (Exception ignored) {
+      return 0;
+    }
+  }
+
+  private String osDate(long at, String pattern) {
+    SimpleDateFormat formatter = osDateFormats.get(pattern);
+    if (formatter == null) {
+      formatter = new SimpleDateFormat(pattern, Locale.KOREA);
+      formatter.setTimeZone(TimeZone.getTimeZone("Asia/Seoul"));
+      osDateFormats.put(pattern, formatter);
+    }
+    return formatter.format(new Date(at));
+  }
+
+  private void indexOSCalendar() {
+    JSONObject data = osData();
+    long revision = data == null ? 0 : data.optLong("updatedAt");
+    if (osIndexedAt == revision) return;
+    osIndexedAt = revision;
+    osEventDays.clear();
+    osTaskDays.clear();
+    JSONArray events = osRows("events");
+    for (int i = 0; i < events.length(); i++) {
+      long at = instant(events.optJSONObject(i).optString("startsAt"));
+      if (at > 0) {
+        long end = instant(events.optJSONObject(i).optString("endsAt"));
+        java.time.ZoneId zone = java.time.ZoneId.of("Asia/Seoul");
+        java.time.LocalDate day = java.time.Instant.ofEpochMilli(at).atZone(zone).toLocalDate();
+        java.time.LocalDate last =
+            java.time.Instant.ofEpochMilli(Math.max(at, end - 1)).atZone(zone).toLocalDate();
+        for (int count = 0; count < 63 && !day.isAfter(last); count++, day = day.plusDays(1)) {
+          String key = day.toString();
+          osEventDays.put(key, osEventDays.getOrDefault(key, 0) + 1);
+        }
+      }
+    }
+    JSONArray tasks = osRows("tasks");
+    for (int i = 0; i < tasks.length(); i++) {
+      long at = instant(tasks.optJSONObject(i).optString("dueAt"));
+      if (at > 0) osTaskDays.add(osDate(at, "yyyy-MM-dd"));
+    }
+  }
+
+  private void showOSNotifications() {
+    JSONObject provider = osProvider();
+    if (provider != null
+        && provider.optBoolean("enabled")
+        && foreground
+        && Build.VERSION.SDK_INT >= 33
+        && !prefs.getBoolean("osNotificationPermissionAsked", false)) {
+      prefs.edit().putBoolean("osNotificationPermissionAsked", true).apply();
+      if (checkSelfPermission(android.Manifest.permission.POST_NOTIFICATIONS)
+          != android.content.pm.PackageManager.PERMISSION_GRANTED)
+        requestPermissions(new String[] {android.Manifest.permission.POST_NOTIFICATIONS}, 71);
+    }
+    JSONArray feed = state.optJSONArray("notifications");
+    if (feed == null) return;
+    boolean permission =
+        Build.VERSION.SDK_INT < 33
+            || checkSelfPermission(android.Manifest.permission.POST_NOTIFICATIONS)
+                == android.content.pm.PackageManager.PERMISSION_GRANTED;
+    boolean updated = false;
+    int shown = 0;
+    for (int i = feed.length() - 1; i >= 0; i--) {
+      JSONObject n = feed.optJSONObject(i);
+      if (n == null) continue;
+      String id = n.optString("id");
+      if (id.isEmpty() || deliveredNotifications.contains(id)) continue;
+      if (!permission) continue;
+      deliveredNotifications.add(id);
+      updated = true;
+      if (hostNow() - n.optLong("createdAt") > 3600000 || shown >= 3) continue;
+      Intent open =
+          new Intent(this, MainActivity.class)
+              .putExtra("openOS", true)
+              .addFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP | Intent.FLAG_ACTIVITY_CLEAR_TOP);
+      PendingIntent pending =
+          PendingIntent.getActivity(
+              this, 0, open, PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
+      Notification notification =
+          new Notification.Builder(this, "jimin-os")
+              .setSmallIcon(app.opendeck.client.R.drawable.opendeck_icon)
+              .setContentTitle(n.optString("title"))
+              .setContentText(n.optString("body"))
+              .setStyle(new Notification.BigTextStyle().bigText(n.optString("body")))
+              .setVisibility(Notification.VISIBILITY_PRIVATE)
+              .setContentIntent(pending)
+              .setAutoCancel(true)
+              .setGroup("jimin-os")
+              .build();
+      getSystemService(NotificationManager.class).notify(id.hashCode(), notification);
+      shown++;
+    }
+    if (updated) {
+      if (deliveredNotifications.size() > 200) {
+        deliveredNotifications.clear();
+        for (int i = 0; i < feed.length(); i++)
+          deliveredNotifications.add(feed.optJSONObject(i).optString("id"));
+      }
+      prefs
+          .edit()
+          .putStringSet("deliveredNotifications", new HashSet<>(deliveredNotifications))
+          .apply();
+    }
+  }
+
+  @Override
+  public void onRequestPermissionsResult(int request, String[] permissions, int[] results) {
+    super.onRequestPermissionsResult(request, permissions, results);
+    if (request == 71) showOSNotifications();
+  }
+
+  private void osAction(JSONObject widget, String operation, String itemId) {
+    try {
+      JSONObject body =
+          new JSONObject()
+              .put("kind", "extension")
+              .put("id", widget.getString("id"))
+              .put("operation", operation);
+      if (itemId != null) body.put("itemId", itemId);
+      action(body);
+    } catch (JSONException ignored) {
+    }
+  }
+
+  private void styleOSText(View view) {
+    if (view instanceof TextView) {
+      TextView text = (TextView) view;
+      text.setTypeface(font);
+      text.setTextColor(Color.parseColor(view instanceof Button ? "#8fcfc1" : "#e0e9fa"));
+      text.setLetterSpacing(0);
+    }
+    if (view instanceof ViewGroup) {
+      ViewGroup group = (ViewGroup) view;
+      for (int i = 0; i < group.getChildCount(); i++) styleOSText(group.getChildAt(i));
+    }
+  }
+
+  private AlertDialog.Builder osDialog() {
+    return new AlertDialog.Builder(this) {
+      @Override
+      public AlertDialog show() {
+        AlertDialog dialog = super.show();
+        android.graphics.drawable.GradientDrawable background =
+            new android.graphics.drawable.GradientDrawable();
+        background.setColor(Color.parseColor("#1f2b36"));
+        background.setCornerRadius(dp(16));
+        if (dialog.getWindow() != null) {
+          dialog.getWindow().setBackgroundDrawable(background);
+          dialog.getWindow().setDimAmount(.55f);
+          styleOSText(dialog.getWindow().getDecorView());
+        }
+        ListView list = dialog.getListView();
+        if (list != null)
+          list.setOnHierarchyChangeListener(
+              new ViewGroup.OnHierarchyChangeListener() {
+                public void onChildViewAdded(View parent, View child) {
+                  styleOSText(child);
+                }
+
+                public void onChildViewRemoved(View parent, View child) {}
+              });
+        return dialog;
+      }
+    };
+  }
+
+  private void osList(JSONObject widget, String day) {
+    String type = widget.optString("type");
+    if (type.equals("inbox")) {
+      osAction(widget, "navigate", null);
+      return;
+    }
+    if (type.equals("notification-feed")) {
+      JSONArray feed = state.optJSONArray("notifications");
+      StringBuilder text = new StringBuilder();
+      if (feed != null)
+        for (int i = feed.length() - 1; i >= 0; i--) {
+          JSONObject n = feed.optJSONObject(i);
+          text.append(osDate(n.optLong("createdAt"), "M/d HH:mm"))
+              .append("  ")
+              .append(n.optString("title"))
+              .append("\n")
+              .append(n.optString("body"))
+              .append("\n\n");
+        }
+      osDialog()
+          .setTitle("Jimin OS 알림")
+          .setMessage(text.length() == 0 ? "새 알림이 없어요." : text.toString())
+          .setPositiveButton("닫기", null)
+          .show();
+      return;
+    }
+    if (osData() == null) {
+      osDialog()
+          .setTitle("Jimin OS 연결 대기")
+          .setMessage("맥에서 Jimin OS 앱을 열고 로그인 상태를 확인해 주세요.")
+          .setPositiveButton("확인", null)
+          .show();
+      return;
+    }
+    List<JSONObject> items = new ArrayList<>();
+    List<String> labels = new ArrayList<>();
+    JSONArray events = osRows("events");
+    for (int i = 0; i < events.length(); i++) {
+      JSONObject event = events.optJSONObject(i);
+      long start = instant(event.optString("startsAt")), end = instant(event.optString("endsAt"));
+      if (day != null
+          ? (day.compareTo(osDate(start, "yyyy-MM-dd")) < 0
+              || day.compareTo(osDate(Math.max(start, end - 1), "yyyy-MM-dd")) > 0)
+          : end < hostNow()) continue;
+      items.add(event);
+      labels.add(
+          osDate(start, day == null ? "M/d HH:mm" : "HH:mm")
+              + " – "
+              + osDate(end, "HH:mm")
+              + "  "
+              + event.optString("title"));
+    }
+    JSONArray tasks = osRows("tasks");
+    for (int i = 0; i < tasks.length(); i++) {
+      JSONObject task = tasks.optJSONObject(i);
+      long due = instant(task.optString("dueAt"));
+      if (due == 0 || (day != null && !day.equals(osDate(due, "yyyy-MM-dd")))) continue;
+      items.add(task);
+      labels.add("할 일 · " + osDate(due, "M/d HH:mm") + "  " + task.optString("title"));
+    }
+    AlertDialog.Builder dialog =
+        osDialog().setTitle(day == null ? "다가오는 일정" : day + " 일정").setNegativeButton("닫기", null);
+    if (items.isEmpty()) dialog.setMessage("등록된 일정이 없어요.");
+    else
+      dialog.setItems(
+          labels.toArray(new String[0]),
+          (d, index) -> {
+            JSONObject e = items.get(index);
+            osDialog()
+                .setTitle(e.optString("title"))
+                .setMessage(
+                    e.has("startsAt")
+                        ? osDate(instant(e.optString("startsAt")), "M월 d일 EEEE HH:mm")
+                            + " – "
+                            + osDate(instant(e.optString("endsAt")), "HH:mm")
+                        : "마감 · " + osDate(instant(e.optString("dueAt")), "M월 d일 EEEE HH:mm"))
+                .setPositiveButton(
+                    "맥에서 열기",
+                    (a, b) ->
+                        osAction(
+                            widget,
+                            e.has("startsAt") ? "open-schedule" : "open-task",
+                            e.optString("id")))
+                .setNegativeButton("닫기", null)
+                .show();
+          });
+    dialog.show();
   }
 
   private void disconnectEvents() {
@@ -375,6 +674,8 @@ public class MainActivity extends Activity {
                       for (int i = 0; i < running.length(); i++)
                         runningIds.add(running.optString(i));
                     showErrors();
+                    indexOSCalendar();
+                    showOSNotifications();
                     if (deck != null && foreground) {
                       if (changed) {
                         renderedConfig = configJson;
@@ -843,7 +1144,7 @@ public class MainActivity extends Activity {
       "화면 켜짐 유지: " + (prefs.getBoolean("awake", true) ? "켜짐" : "꺼짐"),
       "연결 방식 · Wi-Fi / USB",
       "연결 초기화",
-      "Open Deck 0.2.0 · MIT · 무료"
+      "Open Deck 0.4.0 · MIT · 무료"
     };
     new AlertDialog.Builder(this)
         .setTitle("Open Deck")
@@ -1101,11 +1402,16 @@ public class MainActivity extends Activity {
     }
 
     void updateState() {
-      String status = connected + base;
+      String status =
+          connected
+              + base
+              + String.valueOf(osProvider() == null ? null : osProvider().optString("status"));
       if (!status.equals(headerStatus)) {
         headerStatus = status;
         invalidate();
       }
+      String osSignature =
+          String.valueOf(osProvider()) + String.valueOf(state.optJSONArray("notifications"));
       for (Tile tile : tiles) {
         String next;
         if (tile.type.equals("gauges")) next = state.optInt("cpu") + ":" + state.optInt("memory");
@@ -1114,6 +1420,7 @@ public class MainActivity extends Activity {
         else if (tile.type.equals("timer")) next = String.valueOf(state.optJSONObject("timers"));
         else if (tile.type.equals("graph")) next = String.valueOf(state.optJSONObject("history"));
         else if (tile.type.equals("todo")) next = String.valueOf(state.optJSONObject("todos"));
+        else if (tile.widget.optString("provider").equals("jimin-os")) next = osSignature;
         else next = "static";
         if (tile.widget.has("binding") || tile.widget.optString("label").contains("{{"))
           next += String.valueOf(state.optJSONObject("variables"));
@@ -1160,10 +1467,21 @@ public class MainActivity extends Activity {
             || type.equals("timer")
             || type.equals("page")
             || type.equals("todo")
-            || type.equals("toggle"))
+            || type.equals("toggle")
+            || type.equals("agenda")
+            || type.equals("inbox")
+            || type.equals("notification-feed")
+            || (type.equals("calendar") && w.optString("provider").equals("jimin-os")))
           setOnClickListener(
               v -> {
                 try {
+                  if (type.equals("agenda")
+                      || type.equals("inbox")
+                      || type.equals("notification-feed")
+                      || (type.equals("calendar") && w.optString("provider").equals("jimin-os"))) {
+                    osList(w, null);
+                    return;
+                  }
                   JSONObject b = new JSONObject().put("id", id);
                   if (type.equals("page")) {
                     navigate(w.optString("targetPage"));
@@ -1236,11 +1554,21 @@ public class MainActivity extends Activity {
                 (getHeight() + bh) / 2),
             paint);
       }
-      label(c, "◈  OPEN DECK", dp(18), dp(28), 12, color(themeValue("text")), Paint.Align.LEFT);
+      label(
+          c,
+          "◈  OPEN DECK" + (pageId.equals("jimin-os-page") ? "  /  Jimin OS" : ""),
+          dp(18),
+          dp(28),
+          12,
+          color(themeValue("text")),
+          Paint.Align.LEFT);
       label(
           c,
           connected
               ? (base.startsWith("https:") ? "Wi-Fi · 암호화 연결됨" : "USB · 연결됨")
+                  + (pageId.equals("jimin-os-page")
+                      ? (osData() == null ? "  · OS 연결 대기" : "  · OS 동기화됨")
+                      : "")
               : "맥에 다시 연결하는 중…",
           dp(18),
           dp(49),
@@ -1449,16 +1777,22 @@ public class MainActivity extends Activity {
         paint.setColor(Color.WHITE);
         c.drawCircle(cx + (on ? 1 : -1) * (sw - sh) / 2, cy, sh * .38f, paint);
         drawLabel(c, w, r, style, style.optString("labelPosition", "bottom"));
+      } else if (type.equals("agenda")
+          || type.equals("inbox")
+          || type.equals("notification-feed")) {
+        drawOSSummary(c, w, r, accent);
       } else if (type.equals("calendar")) {
-        Calendar date = Calendar.getInstance();
+        Calendar date = Calendar.getInstance(TimeZone.getTimeZone("Asia/Seoul"));
         date.setTimeInMillis(hostNow());
+        boolean provider = w.optString("provider").equals("jimin-os");
+        if (provider) date.add(Calendar.MONTH, osMonthOffset);
         int day = date.get(Calendar.DAY_OF_MONTH),
             days = date.getActualMaximum(Calendar.DAY_OF_MONTH);
         date.set(Calendar.DAY_OF_MONTH, 1);
         int offset = date.get(Calendar.DAY_OF_WEEK) - 1;
         label(
             c,
-            new SimpleDateFormat("yyyy년 M월", Locale.KOREA).format(new Date(hostNow())),
+            osDate(date.getTimeInMillis(), "yyyy년 M월") + (provider ? "  ›" : ""),
             cx,
             r.top + dp(28),
             16,
@@ -1477,7 +1811,7 @@ public class MainActivity extends Activity {
         for (int d = 1; d <= days; d++) {
           int at = offset + d - 1;
           float x = r.left + cw * (at % 7 + 1), y = r.top + dp(48) + ch * (at / 7 + 1);
-          if (d == day) {
+          if (d == day && (!provider || osMonthOffset == 0)) {
             paint.setColor(accent);
             c.drawCircle(x, y - dp(4), dp(10), paint);
           }
@@ -1487,9 +1821,35 @@ public class MainActivity extends Activity {
               x,
               y,
               11,
-              color(d == day ? themeValue("background") : themeValue("text")),
+              color(
+                  d == day && (!provider || osMonthOffset == 0)
+                      ? themeValue("background")
+                      : themeValue("text")),
               Paint.Align.CENTER);
+          if (provider && osData() != null) {
+            date.set(Calendar.DAY_OF_MONTH, d);
+            String dateKey = osDate(date.getTimeInMillis(), "yyyy-MM-dd");
+            int count = osEventDays.getOrDefault(dateKey, 0);
+            boolean hasTask = osTaskDays.contains(dateKey);
+            if (hasTask) {
+              paint.setColor(color("#e7ba83"));
+              c.drawCircle(x + dp(10), y + dp(8), dp(1.8f), paint);
+            }
+            paint.setColor(accent);
+            for (int dot = 0; dot < Math.min(3, count); dot++)
+              c.drawCircle(
+                  x + (dot - (Math.min(3, count) - 1) / 2f) * dp(5), y + dp(8), dp(1.8f), paint);
+          }
         }
+        if (provider)
+          label(
+              c,
+              osData() == null ? "Jimin OS 연결 대기" : "날짜를 눌러 일정과 할 일을 확인해요",
+              cx,
+              r.bottom - dp(13),
+              10,
+              color("#8ba4af"),
+              Paint.Align.CENTER);
       } else if (type.equals("graph")) {
         JSONObject histories = state.optJSONObject("history");
         JSONArray values =
@@ -1631,6 +1991,113 @@ public class MainActivity extends Activity {
       }
     }
 
+    void drawOSSummary(Canvas c, JSONObject w, RectF r, int accent) {
+      String type = w.optString("type");
+      float left = r.left + dp(20), top = r.top + dp(28);
+      if (type.equals("notification-feed")) {
+        JSONArray feed = state.optJSONArray("notifications");
+        drawIcon(
+            c,
+            "bell",
+            r.centerX(),
+            r.top + r.height() * .34f,
+            Math.min(r.width(), r.height()) * .28f,
+            accent);
+        label(
+            c,
+            "알림" + (feed == null || feed.length() == 0 ? "" : " · " + feed.length()),
+            r.centerX(),
+            r.bottom - dp(17),
+            13,
+            color(themeValue("text")),
+            Paint.Align.CENTER);
+        return;
+      }
+      label(c, w.optString("label"), left, top, 14, accent, Paint.Align.LEFT);
+      if (osData() == null) {
+        label(
+            c, "Jimin OS 연결을 기다리고 있어요", left, top + dp(36), 12, color("#8ba4af"), Paint.Align.LEFT);
+        return;
+      }
+      JSONArray rows = osRows(type.equals("inbox") ? "inbox" : "events");
+      float y = top + dp(33);
+      int count = 0;
+      if (type.equals("inbox")) {
+        JSONObject counts = osData().optJSONObject("counts");
+        String summary =
+            "새 요청 "
+                + (counts == null ? 0 : counts.optInt("requests"))
+                + "   업데이트 "
+                + (counts == null ? 0 : counts.optInt("updates"));
+        label(c, summary, left, y, 19, color(themeValue("text")), Paint.Align.LEFT);
+        y += dp(33);
+      }
+      for (int i = 0; i < rows.length() && count < 3; i++) {
+        JSONObject item = rows.optJSONObject(i);
+        if (!type.equals("inbox") && instant(item.optString("endsAt")) < hostNow()) continue;
+        if (y > r.bottom - dp(22)) break;
+        String title = item.optString("title");
+        if (!type.equals("inbox"))
+          title = osDate(instant(item.optString("startsAt")), "M/d HH:mm") + "  " + title;
+        paint.setTextSize(dp(13));
+        label(
+            c,
+            ellipsize(title, r.width() - dp(40), 13),
+            left,
+            y,
+            13,
+            color(themeValue("text")),
+            Paint.Align.LEFT);
+        y += dp(30);
+        count++;
+      }
+      if (count == 0)
+        label(
+            c,
+            type.equals("inbox") ? "확인할 새 업무 요청이 없어요" : "다가오는 일정이 없어요",
+            left,
+            y,
+            12,
+            color("#8ba4af"),
+            Paint.Align.LEFT);
+      if (type.equals("inbox")) {
+        JSONArray routines = osRows("routines");
+        String next = "";
+        for (int i = 0; i < routines.length(); i++) {
+          JSONObject rule = routines.optJSONObject(i);
+          if (rule.optBoolean("enabled") && instant(rule.optString("nextRunAt")) > 0) {
+            next = "예약 업무 · " + osDate(instant(rule.optString("nextRunAt")), "M/d HH:mm");
+            break;
+          }
+        }
+        if (!next.isEmpty())
+          label(c, next, left, r.bottom - dp(14), 10, color("#8ba4af"), Paint.Align.LEFT);
+      }
+    }
+
+    void osCalendarTap(JSONObject w, RectF r, float x, float y) {
+      if (y < r.top + dp(38)) {
+        osMonthOffset = osMonthOffset == 0 ? 1 : 0;
+        refresh(w.optString("id"));
+        return;
+      }
+      Calendar date = Calendar.getInstance(TimeZone.getTimeZone("Asia/Seoul"));
+      date.setTimeInMillis(hostNow());
+      date.add(Calendar.MONTH, osMonthOffset);
+      date.set(Calendar.DAY_OF_MONTH, 1);
+      float cw = r.width() / 8, ch = (r.height() - dp(72)) / 7;
+      int col = Math.round((x - r.left) / cw) - 1, row = Math.round((y - r.top - dp(48)) / ch) - 1;
+      int day = row * 7 + col - (date.get(Calendar.DAY_OF_WEEK) - 1) + 1;
+      if (col >= 0
+          && col < 7
+          && row >= 0
+          && day >= 1
+          && day <= date.getActualMaximum(Calendar.DAY_OF_MONTH)) {
+        date.set(Calendar.DAY_OF_MONTH, day);
+        osList(w, osDate(date.getTimeInMillis(), "yyyy-MM-dd"));
+      }
+    }
+
     void drawIcon(Canvas c, String type, float cx, float cy, float size, int col) {
       c.save();
       c.translate(cx - size / 2, cy - size / 2);
@@ -1643,6 +2110,37 @@ public class MainActivity extends Activity {
       Path p = iconPath;
       p.rewind();
       switch (type) {
+        case "mic":
+          c.drawRoundRect(new RectF(9, 2, 15, 15), 3, 3, paint);
+          c.drawArc(new RectF(5, 5, 19, 19), 0, 180, false, paint);
+          c.drawLine(5, 10, 5, 12, paint);
+          c.drawLine(19, 10, 19, 12, paint);
+          c.drawLine(12, 19, 12, 23, paint);
+          c.drawLine(8, 23, 16, 23, paint);
+          break;
+        case "refresh":
+          c.drawArc(new RectF(3, 3, 21, 21), 20, 290, false, paint);
+          c.drawLine(20, 2, 20, 8, paint);
+          c.drawLine(20, 8, 14, 8, paint);
+          break;
+        case "calendar":
+          c.drawRoundRect(new RectF(3, 5, 21, 22), 2, 2, paint);
+          c.drawLine(3, 10, 21, 10, paint);
+          c.drawLine(8, 2, 8, 8, paint);
+          c.drawLine(16, 2, 16, 8, paint);
+          break;
+        case "clock":
+          c.drawCircle(12, 12, 9, paint);
+          c.drawLine(12, 6, 12, 12, paint);
+          c.drawLine(12, 12, 16, 14, paint);
+          break;
+        case "bell":
+          c.drawArc(new RectF(5, 3, 19, 20), 180, 180, false, paint);
+          c.drawLine(5, 11, 5, 18, paint);
+          c.drawLine(19, 11, 19, 18, paint);
+          c.drawLine(3, 18, 21, 18, paint);
+          c.drawArc(new RectF(9, 19, 15, 23), 0, 180, false, paint);
+          break;
         case "power":
           c.drawArc(new RectF(3, 3, 21, 21), -52, 284, false, paint);
           c.drawLine(12, 1, 12, 11, paint);
@@ -1836,7 +2334,12 @@ public class MainActivity extends Activity {
             if (downIndex < 0 || downIndex != hit(x, y)) return true;
             JSONObject w = widgets.get(downIndex);
             String type = w.optString("type");
-            if (type.equals("button"))
+            if (type.equals("calendar") && w.optString("provider").equals("jimin-os"))
+              osCalendarTap(w, rects.get(downIndex), x, y);
+            else if (type.equals("agenda")
+                || type.equals("inbox")
+                || type.equals("notification-feed")) osList(w, null);
+            else if (type.equals("button"))
               dispatchButton(w, System.currentTimeMillis() - downAt > 650 ? "long" : "tap");
             else if (type.equals("page")) navigate(w.optString("targetPage"));
             else if (type.equals("todo")) todoDialog(w);

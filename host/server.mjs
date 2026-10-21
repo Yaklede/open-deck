@@ -1,4 +1,5 @@
 import http from "node:http";
+import { Extensions, osPage } from "./extensions.mjs";
 import { Plugins } from "./plugins.mjs";
 import { saveAsset, readAsset } from "./assets.mjs";
 import { Connectors, setSecret } from "./connectors.mjs";
@@ -22,6 +23,7 @@ export const deviceConfig = (c) => ({
   ...c,
   automations: undefined,
   integrations: undefined,
+  extensions: undefined,
   pages: c.pages.map((p) => ({
     ...p,
     widgets: p.widgets.map(({ actions, longActions, doubleActions, ...w }) => ({
@@ -109,6 +111,12 @@ export function createHost({
     (pluginId, eventId) => engine.pluginEvent(pluginId, eventId),
   );
   engine.plugins = plugins;
+  const extensions = new Extensions({
+    dir,
+    getConfig: () => config,
+    onChange: broadcast,
+  });
+  engine.extensions = extensions;
   const stateFile = path.join(dir, "state.json");
   try {
     const saved = JSON.parse(fs.readFileSync(stateFile, "utf8"));
@@ -261,6 +269,38 @@ export function createHost({
           broadcast();
           return send(res, 200, { ok: true, config });
         }
+        if (req.method === "GET" && u.pathname === "/api/admin/extensions")
+          return send(res, 200, { extensions: extensions.state() });
+        if (req.method === "POST" && u.pathname === "/api/admin/extensions") {
+          const b = await body(req);
+          if (b.id !== "jimin-os") throw Error("지원하지 않는 연결입니다.");
+          const candidate = structuredClone(config);
+          candidate.extensions ??= {};
+          candidate.extensions["jimin-os"] = {
+            enabled: b.enabled !== false,
+            notifications: b.notifications !== false,
+            reminderMinutes: b.reminderMinutes ?? 10,
+          };
+          if (
+            b.addPage &&
+            !candidate.pages.some((p) => p.id === "jimin-os-page")
+          )
+            candidate.pages.push(osPage());
+          config = validateConfig(candidate);
+          writeJson(path.join(dir, "deck.json"), config);
+          configRevision++;
+          engine.configure(config);
+          broadcast();
+          extensions.poll();
+          return send(res, 200, { config, extensions: extensions.state() });
+        }
+        if (
+          req.method === "POST" &&
+          u.pathname === "/api/admin/extensions/test-notification"
+        ) {
+          extensions.testNotification();
+          return send(res, 200, { ok: true });
+        }
         if (req.method === "GET" && u.pathname === "/api/admin/plugins")
           return send(res, 200, { plugins: plugins.list() });
         if (req.method === "POST" && u.pathname === "/api/admin/plugins") {
@@ -311,6 +351,30 @@ export function createHost({
         }
         if (req.method === "POST" && u.pathname === "/api/action") {
           const b = await body(req);
+          if (b.kind === "extension") {
+            const w = engine.widget(b.id);
+            if (!w || w.provider !== "jimin-os")
+              throw Error("연결된 위젯을 확인하세요.");
+            const allowed =
+              w.type === "calendar" || w.type === "agenda"
+                ? ["open-schedule", "open-task"]
+                : w.type === "inbox"
+                  ? ["navigate"]
+                  : [];
+            if (!allowed.includes(b.operation))
+              throw Error("지원하지 않는 위젯 동작입니다.");
+            return send(
+              res,
+              200,
+              await extensions.invoke(
+                "jimin-os",
+                b.operation,
+                w.type === "inbox"
+                  ? { view: "requests" }
+                  : { itemId: b.itemId },
+              ),
+            );
+          }
           if (b.kind === "control") {
             const value = engine.control(b.id, b.value);
             if (
@@ -391,6 +455,7 @@ export function createHost({
     clearInterval(interval);
     clearInterval(schedule);
     connectors.close();
+    extensions.close();
     plugins.close();
     for (const s of streams) s.end();
   });

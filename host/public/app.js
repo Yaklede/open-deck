@@ -13,6 +13,10 @@ const undo = [],
   redo = [];
 let lastEdit = 0;
 const paths = {
+  mic: "M9 5a3 3 0 0 1 6 0v7a3 3 0 0 1-6 0z M5 10v2a7 7 0 0 0 14 0v-2 M12 19v4 M8 23h8",
+  refresh: "M20 8a9 9 0 1 0 1 7 M20 2v6h-6",
+  calendar: "M3 5h18v16H3z M3 10h18 M8 2v6 M16 2v6",
+  clock: "M12 3a9 9 0 1 0 0 18a9 9 0 0 0 0-18 M12 6v6l4 2",
   power: "M12 2v9 M6 5a9 9 0 1 0 12 0",
   globe:
     "M3 12h18 M12 3a9 9 0 1 0 0 18a9 9 0 0 0 0-18 M12 3c-5 5-5 13 0 18c5-5 5-13 0-18",
@@ -38,6 +42,9 @@ const names = {
   slider: "슬라이더",
   graph: "기록 그래프",
   calendar: "달력",
+  agenda: "OS 일정 목록",
+  inbox: "OS 업무 요청",
+  "notification-feed": "OS 알림",
   todo: "할 일",
   image: "이미지",
   spacer: "빈 공간",
@@ -56,6 +63,7 @@ const kinds = {
   toggleVariable: "변수 토글",
   http: "HTTP 연동 실행",
   plugin: "플러그인 동작",
+  extension: "Jimin OS 열기",
   if: "조건 분기 (JSON)",
 };
 const n = (tag, text, cls) => {
@@ -190,6 +198,7 @@ function render() {
   variables();
   connectors();
   renderPlugins();
+  renderEcosystem();
 }
 function renderBoard() {
   const p = page(),
@@ -265,6 +274,8 @@ function renderBoard() {
         body.append(n("div", "○", "toggle-reading"));
       else if (w.type === "calendar")
         body.append(n("div", "—", "calendar-reading"));
+      else if (["agenda", "inbox", "notification-feed"].includes(w.type))
+        body.append(n("div", "연결을 기다리고 있어요.", "os-reading"));
       else if (w.type === "todo")
         body.append(n("div", "할 일을 태블릿에서 추가하세요.", "todo-reading"));
       else if (w.type === "graph") {
@@ -438,13 +449,47 @@ function updateLive() {
       c.querySelector(".toggle-reading").textContent = value
         ? "● 켜짐"
         : "○ 꺼짐";
-    if (w.type === "calendar")
+    if (w.type === "calendar" && !w.provider)
       c.querySelector(".calendar-reading").textContent =
         new Date().toLocaleDateString("ko-KR", {
           month: "long",
           day: "numeric",
           weekday: "long",
         });
+    if (w.provider === "jimin-os") {
+      const provider = state.extensions?.["jimin-os"],
+        data = provider?.data;
+      const target = c.querySelector(".os-reading,.calendar-reading");
+      if (target) {
+        if (!data) target.textContent = "Jimin OS 연결을 기다리고 있어요.";
+        else if (w.type === "inbox")
+          target.textContent =
+            `새 업무 요청 ${data.counts.requests} · 업데이트 ${data.counts.updates}\n` +
+            data.inbox
+              .slice(0, 3)
+              .map((x) => x.title)
+              .join("\n");
+        else if (w.type === "notification-feed")
+          target.textContent = `알림 ${(state.notifications || []).length}개`;
+        else
+          target.textContent =
+            (data.events || [])
+              .filter((x) => Date.parse(x.endsAt) > Date.now())
+              .slice(0, w.type === "calendar" ? 6 : 3)
+              .map(
+                (x) =>
+                  new Date(x.startsAt).toLocaleString("ko-KR", {
+                    month: "numeric",
+                    day: "numeric",
+                    hour: "2-digit",
+                    minute: "2-digit",
+                  }) +
+                  "  " +
+                  x.title,
+              )
+              .join("\n") || "다가오는 일정이 없어요.";
+      }
+    }
     if (w.type === "todo")
       c.querySelector(".todo-reading").textContent =
         (state.todos?.[w.id] || [])
@@ -589,6 +634,18 @@ function inspect() {
     );
     if (w.image) button(box, "이미지 제거", () => change(() => delete w.image));
   }
+  if (["calendar", "agenda", "inbox", "notification-feed"].includes(w.type))
+    field(
+      box,
+      "데이터 연결",
+      w.provider || "",
+      (v) =>
+        change(() => {
+          if (v) w.provider = v;
+          else delete w.provider;
+        }),
+      { choices: { "": "로컬", "jimin-os": "Jimin OS" } },
+    );
   if (w.type === "timer")
     field(box, "타이머 (분)", w.minutes, (v) => change(() => (w.minutes = v)), {
       type: "number",
@@ -772,7 +829,11 @@ function renderActions() {
           },
         },
       );
-    if (!["mute", "toggleVariable", "if", "http", "plugin"].includes(a.type))
+    if (
+      !["mute", "toggleVariable", "if", "http", "plugin", "extension"].includes(
+        a.type,
+      )
+    )
       field(
         row,
         "값",
@@ -797,6 +858,37 @@ function renderActions() {
                 : "값",
         },
       );
+    if (a.type === "extension") {
+      a.extensionId = "jimin-os";
+      a.operation ||= "navigate";
+      a.parameters ||= { view: "home" };
+      field(
+        row,
+        "열 화면",
+        a.operation === "refresh" ? "refresh" : a.parameters.view,
+        (v) => {
+          checkpoint();
+          a.operation = v === "refresh" ? "refresh" : "navigate";
+          a.parameters = v === "refresh" ? {} : { view: v };
+          changed();
+        },
+        {
+          choices: {
+            home: "나의 하루",
+            requests: "업무 요청",
+            scheduled: "예약 업무",
+            calendar: "일정",
+            tasks: "할 일",
+            meetings: "회의 기록",
+            memory: "기억",
+            assistant: "지민에게 말하기",
+            "new-schedule": "일정 추가",
+            "new-task": "할 일 추가",
+            refresh: "새로고침",
+          },
+        },
+      );
+    }
     if (a.type === "plugin") {
       field(row, "플러그인 ID", a.pluginId || "", (v) => {
         checkpoint();
@@ -852,6 +944,11 @@ function addWidget(type) {
         y: 0,
         style: {},
       };
+    if (["agenda", "inbox", "notification-feed"].includes(type)) {
+      w.provider = "jimin-os";
+      w.w = Math.min(2, p.columns);
+      w.h = 2;
+    }
     if (type === "button") w.actions = [];
     if (type === "timer") w.minutes = 25;
     if (type === "page")
@@ -1724,8 +1821,84 @@ try {
         .catch(() => {});
     }
     updateLive();
+    updateEcosystemStatus();
   });
   events.onerror = () => notice("맥 호스트 연결을 기다리는 중입니다.", true);
 } catch (e) {
   notice(e.message, true);
+}
+
+function updateEcosystemStatus() {
+  const status = $("#osStatus");
+  if (!status) return;
+  const p = state.extensions?.["jimin-os"];
+  status.textContent =
+    p?.status === "connected"
+      ? "연결됨 · 일정과 업무 요청을 동기화하고 있어요."
+      : p?.enabled
+        ? "연결 대기 · 맥에서 Jimin OS 앱을 열어 주세요."
+        : "연결 전";
+}
+function renderEcosystem() {
+  const box = $("#ecosystem");
+  box.replaceChildren();
+  box.append(n("p", "연결 상태를 확인하고 있어요.", "text-muted"));
+  box.lastChild.id = "osStatus";
+  updateEcosystemStatus();
+  const options = config.extensions?.["jimin-os"] || {},
+    draft = { ...options };
+  field(
+    box,
+    "일정·새 업무 요청 알림",
+    options.notifications !== false,
+    (v) => (draft.notifications = v),
+    { type: "checkbox" },
+  );
+  field(
+    box,
+    "일정과 마감 알림 (분 전)",
+    options.reminderMinutes || 10,
+    (v) => (draft.reminderMinutes = v),
+    { type: "number", min: 1, max: 120 },
+  );
+  button(
+    box,
+    options.enabled ? "연결 설정 저장" : "연결하고 OS 탭 추가",
+    async () => {
+      try {
+        await save();
+        const r = await api("/api/admin/extensions", "POST", {
+          id: "jimin-os",
+          ...draft,
+          enabled: true,
+          addPage: true,
+        });
+        config = migrate(r.config);
+        pageId = "jimin-os-page";
+        render();
+        notice("OS 탭을 연결했어요.");
+      } catch (e) {
+        notice(e.message, true);
+      }
+    },
+    "primary",
+  );
+  button(box, "태블릿으로 연결 알림 보내기", async () => {
+    try {
+      await api("/api/admin/extensions/test-notification", "POST", {});
+      notice("연결된 태블릿에 알림을 보냈어요.");
+    } catch (e) {
+      notice(e.message, true);
+    }
+  });
+  if (options.enabled)
+    button(box, "연결 끄기", async () => {
+      const r = await api("/api/admin/extensions", "POST", {
+        id: "jimin-os",
+        ...draft,
+        enabled: false,
+      });
+      config = migrate(r.config);
+      render();
+    });
 }

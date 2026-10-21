@@ -820,3 +820,25 @@ input[type="checkbox"] {
 #redo:disabled {
   opacity: 0.35;
 }
+
+.os-reading,
+.card[data-type="calendar"] .calendar-reading {
+  white-space: pre-line;
+  font-size: clamp(10px, 1vw, 17px);
+  line-height: 1.8;
+  text-align: left;
+  overflow: hidden;
+  max-height: 90%;
+  padding: 12px;
+  width: 100%;
+  box-sizing: border-box;
+}
+#ecosystem {
+  padding: 18px;
+  border: 1px solid #334e50;
+  border-radius: 14px;
+  background: #15242b;
+}
+#ecosystem button {
+  margin: 8px 8px 0 0;
+}

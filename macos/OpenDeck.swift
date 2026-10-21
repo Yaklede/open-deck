@@ -1,10 +1,12 @@
 import AppKit
 import WebKit
+import Darwin
 
 final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, WKUIDelegate, WKScriptMessageHandler {
     var window: NSWindow!
     var web: WKWebView!
     var host: Process?
+    var adoptedHostPID: Int32?
     var menuItem: NSStatusItem!
     var poll: Timer?
     var usbTimer: Timer?
@@ -28,10 +30,28 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, WKUI
         menu.addItem(NSMenuItem.separator()); menu.addItem(withTitle:"종료",action:#selector(quit),keyEquivalent:""); menuItem.menu=menu
         window.makeKeyAndOrderFront(nil); NSApp.activate(ignoringOtherApps:true)
         startHost()
-        poll=Timer.scheduledTimer(withTimeInterval:0.3,repeats:true){[weak self] _ in self?.loadEditor()}
         connectUSB(); usbTimer=Timer.scheduledTimer(withTimeInterval:15,repeats:true){[weak self] _ in self?.connectUSB()}
     }
+    func beginEditorPolling(){
+        attempts=0
+        poll=Timer.scheduledTimer(withTimeInterval:0.3,repeats:true){[weak self] _ in self?.loadEditor()}
+    }
     func startHost() {
+        let runtime=directory.appendingPathComponent("runtime.json")
+        if let data=try? Data(contentsOf:runtime),let json=(try? JSONSerialization.jsonObject(with:data)) as? [String:Any],let port=json["port"] as? Int,let pid=json["pid"] as? Int32,let key=json["adminKey"] as? String,port==8840,kill(pid,0)==0 {
+            var request=URLRequest(url:URL(string:"http://127.0.0.1:\(port)/api/admin/info")!);request.timeoutInterval=1;request.setValue(key,forHTTPHeaderField:"X-Open-Deck-Admin")
+            URLSession.shared.dataTask(with:request){[weak self] _,response,_ in
+                DispatchQueue.main.async {
+                    guard let self=self else{return}
+                    if (response as? HTTPURLResponse)?.statusCode==200 {self.adoptedHostPID=pid;self.beginEditorPolling()}
+                    else {self.launchHost()}
+                }
+            }.resume()
+            return
+        }
+        launchHost()
+    }
+    func launchHost() {
         guard let resources=Bundle.main.resourceURL else{return}
         try? FileManager.default.createDirectory(at:directory,withIntermediateDirectories:true)
         let runtime=directory.appendingPathComponent("runtime.json"); try? FileManager.default.removeItem(at:runtime)
@@ -39,7 +59,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, WKUI
         var env=ProcessInfo.processInfo.environment; env["OPEN_DECK_DATA"]=directory.path; p.environment=env
         let logfile=directory.appendingPathComponent("host.log"); if !FileManager.default.fileExists(atPath:logfile.path){FileManager.default.createFile(atPath:logfile.path,contents:nil,attributes:[.posixPermissions:0o600])}
         if let handle=try? FileHandle(forWritingTo:logfile){try? handle.seekToEnd();p.standardOutput=handle;p.standardError=handle}
-        do{try p.run();host=p}catch{showError("호스트를 시작하지 못했습니다: \(error.localizedDescription)")}
+        do{try p.run();host=p;beginEditorPolling()}catch{showError("호스트를 시작하지 못했습니다: \(error.localizedDescription)")}
     }
     func loadEditor(){
         attempts += 1
@@ -61,7 +81,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, WKUI
         }
     }
     @objc func show(){window.makeKeyAndOrderFront(nil);NSApp.activate(ignoringOtherApps:true)}
-    @objc func about(){showError("Open Deck 0.3.0\n맥 호스트 + 네이티브 Android 컨트롤 패널\nMIT 오픈소스 · 계정과 구독 없음\nhttps://github.com/Yaklede/open-deck")}
+    @objc func about(){showError("Open Deck 0.4.0\n맥 호스트 + 네이티브 Android 컨트롤 패널\nMIT 오픈소스 · 계정과 구독 없음\nhttps://github.com/Yaklede/open-deck")}
     @objc func quit(){NSApp.terminate(nil)}
     func userContentController(_ controller:WKUserContentController,didReceive message:WKScriptMessage){
         guard message.name=="exportConfig",message.frameInfo.isMainFrame,message.frameInfo.request.url?.host=="127.0.0.1",let body=message.body as? String,body.utf8.count<16777216 else{return}
@@ -69,7 +89,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, WKUI
     }
     func webView(_ webView:WKWebView,runOpenPanelWith parameters:WKOpenPanelParameters,initiatedByFrame frame:WKFrameInfo,completionHandler:@escaping([URL]?)->Void){let p=NSOpenPanel();p.allowsMultipleSelection=false;p.canChooseDirectories=false;p.beginSheetModal(for:window){r in completionHandler(r == .OK ? p.urls:nil)}}
     func windowShouldClose(_ sender:NSWindow)->Bool{sender.orderOut(nil);return false}
-    func applicationShouldTerminate(_ sender:NSApplication)->NSApplication.TerminateReply {poll?.invalidate();usbTimer?.invalidate();host?.terminate();return .terminateNow}
+    func applicationShouldTerminate(_ sender:NSApplication)->NSApplication.TerminateReply {poll?.invalidate();usbTimer?.invalidate();host?.terminate();if let pid=adoptedHostPID{kill(pid,SIGTERM)};return .terminateNow}
     func webView(_ webView:WKWebView,runJavaScriptAlertPanelWithMessage message:String,initiatedByFrame frame:WKFrameInfo,completionHandler:@escaping()->Void){showError(message);completionHandler()}
     func webView(_ webView:WKWebView,runJavaScriptConfirmPanelWithMessage message:String,initiatedByFrame frame:WKFrameInfo,completionHandler:@escaping(Bool)->Void){let a=NSAlert();a.messageText=message;a.addButton(withTitle:"확인");a.addButton(withTitle:"취소");completionHandler(a.runModal() == .alertFirstButtonReturn)}
     func webView(_ webView:WKWebView,runJavaScriptTextInputPanelWithPrompt prompt:String,defaultText:String?,initiatedByFrame frame:WKFrameInfo,completionHandler:@escaping(String?)->Void){let a=NSAlert();a.messageText=prompt;let field=NSTextField(frame:NSRect(x:0,y:0,width:300,height:24));field.stringValue=defaultText ?? "";a.accessoryView=field;a.addButton(withTitle:"확인");a.addButton(withTitle:"취소");completionHandler(a.runModal() == .alertFirstButtonReturn ? field.stringValue:nil)}

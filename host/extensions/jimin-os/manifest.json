@@ -1,0 +1,15 @@
+{
+  "id": "jimin-os",
+  "name": "Jimin OS",
+  "version": "1.0.0",
+  "protocol": 1,
+  "capabilities": [
+    "calendar",
+    "tasks",
+    "inbox",
+    "scheduled-work",
+    "notifications",
+    "navigation"
+  ],
+  "transport": "authenticated-loopback"
+}

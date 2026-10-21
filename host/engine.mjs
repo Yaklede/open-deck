@@ -74,6 +74,8 @@ export class Engine {
       todos: this.todos,
       history: this.history,
       integrations: this.integrations,
+      extensions: this.extensions?.state() || {},
+      notifications: this.extensions?.notifications || [],
     };
   }
   metrics() {
@@ -419,6 +421,13 @@ export class Engine {
         case "http":
           if (!this.connectors) throw Error("연동이 준비되지 않았습니다.");
           await this.connectors.run(a.integrationId);
+          break;
+        case "extension":
+          await this.extensions.invoke(
+            a.extensionId,
+            a.operation,
+            a.parameters || {},
+          );
           break;
         case "plugin":
           if (!this.plugins) throw Error("플러그인이 연결되지 않았습니다.");
