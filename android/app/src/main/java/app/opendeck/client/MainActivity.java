@@ -44,6 +44,7 @@ public class MainActivity extends Activity {
   private volatile List<String> wifiUrls = new ArrayList<>();
   private volatile int connectionRevision = 0;
   private String connectionError = "";
+  private long lastWifiProbe = -15000;
   private volatile JSONObject config = new JSONObject(), state = new JSONObject();
   private DeckView deck;
   private final ExecutorService images = Executors.newFixedThreadPool(2);
@@ -352,9 +353,10 @@ public class MainActivity extends Activity {
           while (!stopped && (line = reader.readLine()) != null) {
             if (line.startsWith("data: ")) {
               JSONObject snapshot = new JSONObject(line.substring(6));
-              if (learnNetwork(snapshot.optJSONObject("network"))
-                  && "auto".equals(transport)
-                  && base.startsWith("http:")) {
+              boolean learned = learnNetwork(snapshot.optJSONObject("network"));
+              if ("auto".equals(transport)
+                  && base.startsWith("http:")
+                  && (learned || wifiAvailable())) {
                 switchToWifi = true;
               }
               JSONObject cfg = snapshot.optJSONObject("config"),
@@ -412,6 +414,27 @@ public class MainActivity extends Activity {
         }
       delay = Math.min(5000, delay * 2);
     }
+  }
+
+  // Probe on the event thread, never on the render or command threads. A working USB stream
+  // stays active if Wi-Fi is unavailable; healthy Wi-Fi becomes preferred again after recovery.
+  private boolean wifiAvailable() {
+    long now = SystemClock.elapsedRealtime();
+    if (wifiPin.isEmpty() || wifiUrls.isEmpty() || now - lastWifiProbe < 15000) return false;
+    lastWifiProbe = now;
+    for (int i = 0; i < Math.min(2, wifiUrls.size()); i++) {
+      HttpURLConnection probe = null;
+      try {
+        probe = PinnedConnection.open(wifiUrls.get(i) + "/health", wifiPin);
+        probe.setConnectTimeout(700);
+        probe.setReadTimeout(700);
+        if (probe.getResponseCode() == 200) return true;
+      } catch (Exception ignored) {
+      } finally {
+        if (probe != null) probe.disconnect();
+      }
+    }
+    return false;
   }
 
   private List<String> endpoints() {
