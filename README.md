@@ -6,7 +6,7 @@ A local macro deck with a **macOS host and a native Android app**. Build your co
 
 ![Open Deck running natively on an Android tablet](assets/screenshots/tablet.png)
 
-> Version 0.1.0 is a working USB-first alpha for Apple Silicon Macs and Android 8+. It implements the core desk-control workflow; it does not claim full feature or plugin compatibility with Macro Deck or Touch Portal.
+> Version 0.1.0 is a working USB-first alpha for Apple Silicon Macs (macOS 13+) and Android 8+. It implements the core desk-control workflow; it does not claim full feature or plugin compatibility with Macro Deck or Touch Portal.
 
 ## Download
 
