@@ -24,6 +24,10 @@ export function sanitizeSnapshot(s) {
     throw Error("Jimin OS에서 서버 연결을 확인해 주세요.");
   return {
     schemaVersion: 1,
+    capabilities: {
+      scheduleCreate: s.capabilities?.scheduleCreate === true,
+      taskComplete: s.capabilities?.taskComplete === true,
+    },
     updatedAt: s.updatedAt,
     timeZone: "Asia/Seoul",
     range: { from: date(s.range?.from), to: date(s.range?.to) },
@@ -52,6 +56,7 @@ export function sanitizeSnapshot(s) {
         dueAt: date(x.dueAt) || null,
         assignee: text(x.assignee, 60),
         state: text(x.state, 30),
+        version: Number.isInteger(x.version) && x.version > 0 ? x.version : 0,
       })),
     inbox: rows(s.inbox)
       .filter((x) => id(x.id))
@@ -168,7 +173,11 @@ export class JiminOS {
         throw Error("진행 중인 동작이 있어요. 잠시 후 다시 눌러 주세요.");
       if (code === "BUSY_EDITING")
         throw Error("Jimin OS에서 편집 중인 내용을 먼저 저장해 주세요.");
-      throw Error("Jimin OS에서 연결 상태를 확인한 뒤 다시 눌러 주세요.");
+      const failure = Error(
+        "Jimin OS에서 연결 상태를 확인한 뒤 다시 눌러 주세요.",
+      );
+      failure.code = code;
+      throw failure;
     }
     const raw = await res.text();
     if (raw.length > 131072)
@@ -311,6 +320,97 @@ export class JiminOS {
       return result;
     } finally {
       this.activeActions.delete(key);
+    }
+  }
+  async mutate(input) {
+    const create = input.operation === "create-schedule",
+      complete = input.operation === "complete-task";
+    if (
+      !this.getOptions().enabled ||
+      this.status !== "connected" ||
+      !this.data ||
+      Date.now() - this.data.updatedAt > 120000
+    )
+      throw Error("Jimin OS 연결을 확인한 뒤 다시 시도해 주세요.");
+    if (
+      !/^[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(
+        input.mutationId,
+      ) ||
+      (!create && !complete)
+    )
+      throw Error("잘못된 저장 요청이에요.");
+    const command = {
+      mutationId: input.mutationId,
+      operation: input.operation,
+      retry: input.retry === true,
+    };
+    if (create) {
+      if (
+        !this.data.capabilities?.scheduleCreate ||
+        typeof input.title !== "string" ||
+        !input.title.trim() ||
+        input.title.length > 160 ||
+        (typeof input.notes !== "string" && input.notes !== undefined) ||
+        String(input.notes || "").length > 2000 ||
+        !date(input.startsAt) ||
+        !date(input.endsAt) ||
+        Date.parse(input.endsAt) <= Date.parse(input.startsAt) ||
+        Date.parse(input.endsAt) - Date.parse(input.startsAt) > 366 * 86400000
+      )
+        throw Error("일정 제목과 시작·종료 시간을 확인해 주세요.");
+      Object.assign(command, {
+        title: input.title.trim(),
+        notes: input.notes || "",
+        startsAt: new Date(input.startsAt).toISOString(),
+        endsAt: new Date(input.endsAt).toISOString(),
+      });
+    } else {
+      if (
+        !this.data.capabilities?.taskComplete ||
+        !id(input.itemId) ||
+        !Number.isInteger(input.expectedVersion) ||
+        input.expectedVersion < 1 ||
+        (typeof input.completionNote !== "string" &&
+          input.completionNote !== undefined) ||
+        String(input.completionNote || "").length > 2000
+      )
+        throw Error("할 일 정보를 다시 확인해 주세요.");
+      // Ownership is also checked by Jimin OS against its published tasks and server session.
+      Object.assign(command, {
+        itemId: input.itemId,
+        expectedVersion: input.expectedVersion,
+        completionNote: input.completionNote || "",
+      });
+    }
+    try {
+      return await this.request("mutations", command);
+    } catch (error) {
+      if (
+        ["CONFLICT", "INVALID", "ID_REUSED", "UNAUTHORIZED"].includes(
+          error.code,
+        )
+      )
+        return {
+          mutationId: command.mutationId,
+          status: "failed",
+          error:
+            error.code === "UNAUTHORIZED"
+              ? "AUTH_REQUIRED"
+              : error.code === "ID_REUSED"
+                ? "CONFLICT"
+                : error.code,
+        };
+      throw error;
+    }
+  }
+  async mutationStatus(id) {
+    if (!/^[0-9a-f-]{36}$/i.test(id)) throw Error("잘못된 저장 요청이에요.");
+    try {
+      return await this.request("mutations/" + id);
+    } catch (error) {
+      if (error.code === "NOT_FOUND")
+        return { mutationId: id, status: "not-found" };
+      throw error;
     }
   }
   close() {

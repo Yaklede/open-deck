@@ -28,6 +28,12 @@ export const deviceConfig = (c) => ({
     ...p,
     widgets: p.widgets.map(({ actions, longActions, doubleActions, ...w }) => ({
       ...w,
+      ...(w.provider === "jimin-os" &&
+      actions?.[0]?.type === "extension" &&
+      actions[0].extensionId === "jimin-os" &&
+      actions[0].operation === "navigate"
+        ? { osView: actions[0].parameters?.view }
+        : {}),
       gestures: {
         long: !!longActions?.length,
         double: !!doubleActions?.length,
@@ -41,6 +47,7 @@ export function createHost({
   metrics = true,
   wifi = false,
   wifiPort = 8841,
+  extensionOptions = {},
 } = {}) {
   let config = loadConfig(dir);
   let configRevision = 1;
@@ -113,6 +120,7 @@ export function createHost({
   engine.plugins = plugins;
   const extensions = new Extensions({
     dir,
+    providerOptions: extensionOptions,
     getConfig: () => config,
     onChange: broadcast,
   });
@@ -191,13 +199,16 @@ export function createHost({
             "/api/events",
             "/api/action",
           ].includes(u.pathname) &&
-          !/^\/api\/assets\/[a-f0-9]{64}$/.test(u.pathname)
+          !/^\/api\/assets\/[a-f0-9]{64}$/.test(u.pathname) &&
+          !/^\/api\/extensions\/jimin-os\/mutations(?:\/[0-9a-f-]{36})?$/i.test(
+            u.pathname,
+          )
         )
           return send(res, 403, {
             error: "Wi-Fi에서는 태블릿 연결만 허용됩니다.",
           });
         if (req.method === "GET" && u.pathname === "/health")
-          return send(res, 200, { name: "Open Deck", version: "0.3.0" });
+          return send(res, 200, { name: "Open Deck", version: "0.5.0" });
         if (req.method === "POST" && u.pathname === "/api/pair") {
           const now = Date.now(),
             key = req.socket.remoteAddress,
@@ -348,6 +359,50 @@ export function createHost({
           broadcast();
           req.on("close", () => streams.delete(res));
           return;
+        }
+        if (
+          req.method === "GET" &&
+          /^\/api\/extensions\/jimin-os\/mutations\/[0-9a-f-]{36}$/i.test(
+            u.pathname,
+          )
+        )
+          return send(
+            res,
+            200,
+            await extensions.mutationStatus(
+              device(req)?.id || "admin",
+              u.pathname.split("/").pop(),
+            ),
+          );
+        if (
+          req.method === "POST" &&
+          u.pathname === "/api/extensions/jimin-os/mutations"
+        ) {
+          const input = await body(req),
+            w = engine.widget(input.widgetId);
+          if (!w || w.provider !== "jimin-os")
+            throw Error("연결된 위젯을 확인해 주세요.");
+          const view = w.actions?.find(
+            (a) =>
+              a.type === "extension" &&
+              a.extensionId === "jimin-os" &&
+              a.operation === "navigate",
+          )?.parameters?.view;
+          const calendar = ["calendar", "agenda"].includes(w.type);
+          if (
+            !(
+              (input.operation === "create-schedule" &&
+                (calendar || view === "new-schedule")) ||
+              (input.operation === "complete-task" &&
+                (calendar || view === "tasks"))
+            )
+          )
+            throw Error("이 위젯에서 사용할 수 없는 동작이에요.");
+          return send(
+            res,
+            202,
+            await extensions.mutate(device(req)?.id || "admin", input),
+          );
         }
         if (req.method === "POST" && u.pathname === "/api/action") {
           const b = await body(req);

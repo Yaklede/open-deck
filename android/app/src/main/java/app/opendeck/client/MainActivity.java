@@ -356,7 +356,8 @@ public class MainActivity extends Activity {
     }
     List<JSONObject> items = new ArrayList<>();
     List<String> labels = new ArrayList<>();
-    JSONArray events = osRows("events");
+    boolean tasksOnly = widget.optString("osView").equals("tasks");
+    JSONArray events = tasksOnly ? new JSONArray() : osRows("events");
     for (int i = 0; i < events.length(); i++) {
       JSONObject event = events.optJSONObject(i);
       long start = instant(event.optString("startsAt")), end = instant(event.optString("endsAt"));
@@ -376,37 +377,411 @@ public class MainActivity extends Activity {
     for (int i = 0; i < tasks.length(); i++) {
       JSONObject task = tasks.optJSONObject(i);
       long due = instant(task.optString("dueAt"));
-      if (due == 0 || (day != null && !day.equals(osDate(due, "yyyy-MM-dd")))) continue;
+      if ((!tasksOnly && due == 0) || (day != null && !day.equals(osDate(due, "yyyy-MM-dd"))))
+        continue;
       items.add(task);
-      labels.add("할 일 · " + osDate(due, "M/d HH:mm") + "  " + task.optString("title"));
+      labels.add(
+          "할 일 · "
+              + (due == 0 ? "마감 없음" : osDate(due, "M/d HH:mm"))
+              + "  "
+              + task.optString("title"));
     }
     AlertDialog.Builder dialog =
-        osDialog().setTitle(day == null ? "다가오는 일정" : day + " 일정").setNegativeButton("닫기", null);
+        osDialog()
+            .setTitle(tasksOnly ? "할 일" : day == null ? "다가오는 일정" : day + " 일정")
+            .setNegativeButton("닫기", null);
+    if (!tasksOnly && osCan("scheduleCreate"))
+      dialog.setPositiveButton("일정 추가", (a, b) -> osCreateSchedule(widget, day));
     if (items.isEmpty()) dialog.setMessage("등록된 일정이 없어요.");
     else
       dialog.setItems(
           labels.toArray(new String[0]),
           (d, index) -> {
             JSONObject e = items.get(index);
-            osDialog()
-                .setTitle(e.optString("title"))
-                .setMessage(
-                    e.has("startsAt")
-                        ? osDate(instant(e.optString("startsAt")), "M월 d일 EEEE HH:mm")
-                            + " – "
-                            + osDate(instant(e.optString("endsAt")), "HH:mm")
-                        : "마감 · " + osDate(instant(e.optString("dueAt")), "M월 d일 EEEE HH:mm"))
-                .setPositiveButton(
-                    "맥에서 열기",
-                    (a, b) ->
-                        osAction(
-                            widget,
-                            e.has("startsAt") ? "open-schedule" : "open-task",
-                            e.optString("id")))
-                .setNegativeButton("닫기", null)
-                .show();
+            AlertDialog.Builder detail =
+                osDialog()
+                    .setTitle(e.optString("title"))
+                    .setMessage(
+                        e.has("startsAt")
+                            ? osDate(instant(e.optString("startsAt")), "M월 d일 EEEE HH:mm")
+                                + " – "
+                                + osDate(instant(e.optString("endsAt")), "M/d HH:mm")
+                            : "마감 · "
+                                + (instant(e.optString("dueAt")) == 0
+                                    ? "없음"
+                                    : osDate(instant(e.optString("dueAt")), "M월 d일 EEEE HH:mm")))
+                    .setNeutralButton(
+                        "맥에서 열기",
+                        (a, b) ->
+                            osAction(
+                                widget,
+                                e.has("startsAt") ? "open-schedule" : "open-task",
+                                e.optString("id")))
+                    .setNegativeButton("닫기", null);
+            if (!e.has("startsAt") && osCan("taskComplete") && e.optInt("version") > 0)
+              detail.setPositiveButton("완료하기", (a, b) -> osCompleteTask(widget, e));
+            detail.show();
           });
     dialog.show();
+  }
+
+  private boolean osCan(String capability) {
+    JSONObject data = osData();
+    JSONObject caps = data == null ? null : data.optJSONObject("capabilities");
+    return connected && caps != null && caps.optBoolean(capability);
+  }
+
+  private boolean osNativeButton(JSONObject widget) {
+    if (!widget.optString("provider").equals("jimin-os")) return false;
+    String view = widget.optString("osView");
+    if (view.equals("new-schedule")) {
+      osCreateSchedule(widget, null);
+      return true;
+    }
+    if (view.equals("tasks")) {
+      osList(widget, null);
+      return true;
+    }
+    return false;
+  }
+
+  private LinearLayout osForm() {
+    LinearLayout form = new LinearLayout(this);
+    form.setOrientation(LinearLayout.VERTICAL);
+    form.setPadding((int) dp(24), (int) dp(8), (int) dp(24), (int) dp(8));
+    return form;
+  }
+
+  private TextView osText(LinearLayout form, String label) {
+    TextView text = new TextView(this);
+    text.setText(label);
+    text.setTextSize(15);
+    text.setPadding(0, (int) dp(8), 0, (int) dp(8));
+    form.addView(text);
+    return text;
+  }
+
+  private EditText osField(LinearLayout form, String hint, int limit, boolean multiline) {
+    EditText field = new EditText(this);
+    field.setHint(hint);
+    field.setHintTextColor(Color.parseColor("#9aaabb"));
+    field.setTextSize(17);
+    field.setSingleLine(!multiline);
+    field.setInputType(
+        InputType.TYPE_CLASS_TEXT
+            | (multiline
+                ? InputType.TYPE_TEXT_FLAG_MULTI_LINE | InputType.TYPE_TEXT_FLAG_CAP_SENTENCES
+                : InputType.TYPE_TEXT_FLAG_CAP_SENTENCES));
+    field.setFilters(
+        new android.text.InputFilter[] {new android.text.InputFilter.LengthFilter(limit)});
+    form.addView(field);
+    return field;
+  }
+
+  private ScrollView osScroll(LinearLayout form) {
+    ScrollView scroll = new ScrollView(this);
+    scroll.setFillViewport(true);
+    scroll.addView(form);
+    return scroll;
+  }
+
+  private void osPickTime(Calendar date, Button button) {
+    new DatePickerDialog(
+            this,
+            (picker, year, month, day) -> {
+              new TimePickerDialog(
+                      this,
+                      (clock, hour, minute) -> {
+                        date.set(year, month, day, hour, minute, 0);
+                        date.set(Calendar.MILLISECOND, 0);
+                        button.setText(osDate(date.getTimeInMillis(), "M월 d일 EEEE HH:mm"));
+                      },
+                      date.get(Calendar.HOUR_OF_DAY),
+                      date.get(Calendar.MINUTE),
+                      true)
+                  .show();
+            },
+            date.get(Calendar.YEAR),
+            date.get(Calendar.MONTH),
+            date.get(Calendar.DAY_OF_MONTH))
+        .show();
+  }
+
+  private boolean osResumePending() {
+    String saved = prefs.getString("pendingOSMutation", "");
+    if (saved.isEmpty()) return false;
+    try {
+      JSONObject input = new JSONObject(saved);
+      LinearLayout form = osForm();
+      osText(
+          form,
+          input.optString("operation").equals("create-schedule")
+              ? input.optString("title")
+              : "할 일 완료 요청");
+      TextView status = osText(form, "이전 요청의 처리 결과를 확인해 주세요. 다시 시도해도 같은 요청으로 확인해 중복 저장을 막아요.");
+      AlertDialog dialog =
+          osDialog()
+              .setTitle("처리 결과 확인")
+              .setView(osScroll(form))
+              .setPositiveButton("상태 확인", null)
+              .setNeutralButton("같은 요청 재시도", null)
+              .setNegativeButton("닫기", null)
+              .show();
+      OSWrite write = new OSWrite(dialog, status, input);
+      dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener(v -> write.check());
+      dialog.getButton(AlertDialog.BUTTON_NEUTRAL).setOnClickListener(v -> write.send(true));
+      write.check();
+      return true;
+    } catch (JSONException ignored) {
+      prefs.edit().remove("pendingOSMutation").apply();
+      return false;
+    }
+  }
+
+  private void osCreateSchedule(JSONObject widget, String day) {
+    if (osResumePending()) return;
+    if (!osCan("scheduleCreate")) {
+      osDialog()
+          .setTitle("일정 추가 연결 대기")
+          .setMessage("맥의 Jimin OS와 Open Deck을 최신 버전으로 열고 연결을 확인해 주세요.")
+          .setPositiveButton("확인", null)
+          .show();
+      return;
+    }
+    Calendar start = Calendar.getInstance(TimeZone.getTimeZone("Asia/Seoul"));
+    start.add(Calendar.HOUR_OF_DAY, 1);
+    start.set(Calendar.MINUTE, 0);
+    start.set(Calendar.SECOND, 0);
+    start.set(Calendar.MILLISECOND, 0);
+    if (day != null) {
+      String[] parts = day.split("-");
+      if (parts.length == 3)
+        start.set(
+            Integer.parseInt(parts[0]), Integer.parseInt(parts[1]) - 1, Integer.parseInt(parts[2]));
+    }
+    Calendar end = (Calendar) start.clone();
+    end.add(Calendar.HOUR_OF_DAY, 1);
+    LinearLayout form = osForm();
+    osText(form, "Jimin OS 캘린더에 저장해요. 시간은 한국 표준시예요.");
+    EditText title = osField(form, "일정 제목", 160, false);
+    osText(form, "시작");
+    Button from = new Button(this);
+    from.setText(osDate(start.getTimeInMillis(), "M월 d일 EEEE HH:mm"));
+    form.addView(from);
+    from.setOnClickListener(v -> osPickTime(start, from));
+    osText(form, "종료");
+    Button to = new Button(this);
+    to.setText(osDate(end.getTimeInMillis(), "M월 d일 EEEE HH:mm"));
+    form.addView(to);
+    to.setOnClickListener(v -> osPickTime(end, to));
+    EditText notes = osField(form, "메모 (선택)", 2000, true);
+    TextView status = osText(form, "");
+    AlertDialog dialog =
+        osDialog()
+            .setTitle("일정 추가")
+            .setView(osScroll(form))
+            .setPositiveButton("저장", null)
+            .setNeutralButton("같은 요청 재시도", null)
+            .setNegativeButton("닫기", null)
+            .show();
+    dialog.getButton(AlertDialog.BUTTON_NEUTRAL).setVisibility(View.GONE);
+    dialog
+        .getButton(AlertDialog.BUTTON_POSITIVE)
+        .setOnClickListener(
+            v -> {
+              if (title.getText().toString().trim().isEmpty()) {
+                title.setError("제목을 입력해 주세요.");
+                return;
+              }
+              if (end.getTimeInMillis() <= start.getTimeInMillis()) {
+                status.setText("종료 시간을 시작 시간 뒤로 설정해 주세요.");
+                return;
+              }
+              try {
+                JSONObject input =
+                    new JSONObject()
+                        .put("widgetId", widget.getString("id"))
+                        .put("mutationId", osMutationId())
+                        .put("operation", "create-schedule")
+                        .put("title", title.getText().toString().trim())
+                        .put("notes", notes.getText().toString().trim())
+                        .put(
+                            "startsAt",
+                            java.time.Instant.ofEpochMilli(start.getTimeInMillis()).toString())
+                        .put(
+                            "endsAt",
+                            java.time.Instant.ofEpochMilli(end.getTimeInMillis()).toString());
+                title.setEnabled(false);
+                notes.setEnabled(false);
+                from.setEnabled(false);
+                to.setEnabled(false);
+                new OSWrite(dialog, status, input).send(false);
+              } catch (JSONException ignored) {
+              }
+            });
+  }
+
+  private void osCompleteTask(JSONObject widget, JSONObject task) {
+    if (osResumePending()) return;
+    if (!osCan("taskComplete") || task.optInt("version") < 1) return;
+    LinearLayout form = osForm();
+    osText(form, task.optString("title"));
+    osText(
+        form, "완료하면 Jimin OS와 연결된 업무에도 반영돼요. 답글을 쓰면 일감에 저장하고, Google Chat에서 받은 일감은 원래 대화에도 전달해요.");
+    EditText note = osField(form, "완료 답글 (선택)", 2000, true);
+    TextView status = osText(form, "");
+    AlertDialog dialog =
+        osDialog()
+            .setTitle("할 일 완료")
+            .setView(osScroll(form))
+            .setPositiveButton("완료하기", null)
+            .setNeutralButton("같은 요청 재시도", null)
+            .setNegativeButton("닫기", null)
+            .show();
+    dialog.getButton(AlertDialog.BUTTON_NEUTRAL).setVisibility(View.GONE);
+    dialog
+        .getButton(AlertDialog.BUTTON_POSITIVE)
+        .setOnClickListener(
+            v -> {
+              try {
+                JSONObject input =
+                    new JSONObject()
+                        .put("widgetId", widget.getString("id"))
+                        .put("mutationId", osMutationId())
+                        .put("operation", "complete-task")
+                        .put("itemId", task.getString("id"))
+                        .put("expectedVersion", task.getInt("version"))
+                        .put("completionNote", note.getText().toString().trim());
+                note.setEnabled(false);
+                new OSWrite(dialog, status, input).send(false);
+              } catch (JSONException ignored) {
+              }
+            });
+  }
+
+  private String osMutationId() {
+    long timestamp = System.currentTimeMillis();
+    UUID random = UUID.randomUUID();
+    return new UUID(
+            (timestamp << 16) | 0x7000L | (random.getMostSignificantBits() & 0xfffL),
+            random.getLeastSignificantBits())
+        .toString();
+  }
+
+  private class OSWrite {
+    final AlertDialog dialog;
+    final TextView status;
+    final JSONObject input;
+    boolean busy;
+    int polls;
+
+    OSWrite(AlertDialog dialog, TextView status, JSONObject input) {
+      this.dialog = dialog;
+      this.status = status;
+      this.input = input;
+    }
+
+    void controls(boolean enabled, String label, boolean retry) {
+      Button main = dialog.getButton(AlertDialog.BUTTON_POSITIVE);
+      main.setText(label);
+      main.setEnabled(enabled);
+      main.setOnClickListener(v -> check());
+      Button again = dialog.getButton(AlertDialog.BUTTON_NEUTRAL);
+      if (again != null) {
+        again.setVisibility(retry ? View.VISIBLE : View.GONE);
+        again.setEnabled(enabled);
+        again.setOnClickListener(v -> send(true));
+      }
+    }
+
+    void send(boolean retry) {
+      if (busy) return;
+      try {
+        input.put("retry", retry);
+      } catch (JSONException ignored) {
+      }
+      prefs.edit().putString("pendingOSMutation", input.toString()).commit();
+      run(true);
+    }
+
+    void check() {
+      if (!busy) run(false);
+    }
+
+    void run(boolean post) {
+      if (busy || stopped) return;
+      busy = true;
+      controls(false, "처리 확인 중…", false);
+      status.setText(post ? "Jimin OS에 저장하고 있어요…" : "저장 결과를 확인하고 있어요…");
+      try {
+        commands.execute(
+            () -> {
+              try {
+                JSONObject receipt =
+                    request(
+                        "/api/extensions/jimin-os/mutations"
+                            + (post ? "" : "/" + input.optString("mutationId")),
+                        post ? "POST" : "GET",
+                        post ? input : null,
+                        true);
+                ui.post(
+                    () -> {
+                      busy = false;
+                      result(receipt);
+                    });
+              } catch (Exception e) {
+                ui.post(
+                    () -> {
+                      busy = false;
+                      status.setText("결과를 아직 확인하지 못했어요. 상태를 확인하거나 같은 요청을 다시 시도해 주세요.");
+                      controls(true, "상태 확인", true);
+                    });
+              }
+            });
+      } catch (RejectedExecutionException e) {
+        busy = false;
+        status.setText("다른 요청이 진행 중이에요. 잠시 후 상태를 확인해 주세요.");
+        controls(true, "상태 확인", true);
+      }
+    }
+
+    void result(JSONObject receipt) {
+      String value = receipt.optString("status");
+      if (value.equals("succeeded")) {
+        prefs.edit().remove("pendingOSMutation").apply();
+        dialog.dismiss();
+        Toast.makeText(
+                MainActivity.this,
+                input.optString("operation").equals("create-schedule")
+                    ? "일정을 저장했어요."
+                    : receipt.optBoolean("alreadyCompleted") ? "이미 완료된 할 일이에요." : "할 일을 완료했어요.",
+                Toast.LENGTH_SHORT)
+            .show();
+      } else if (value.equals("failed")) {
+        prefs.edit().remove("pendingOSMutation").apply();
+        String code = receipt.optString("error");
+        status.setText(
+            code.equals("CONFLICT")
+                ? "다른 곳에서 변경된 할 일이에요. 닫고 최신 목록에서 다시 확인해 주세요."
+                : code.equals("AUTH_REQUIRED")
+                    ? "맥의 Jimin OS에서 로그인을 확인해 주세요."
+                    : "저장하지 못했어요. 닫고 내용을 확인한 뒤 다시 시도해 주세요.");
+        controls(true, "닫기", false);
+        dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener(v -> dialog.dismiss());
+      } else if (value.equals("running")) {
+        status.setText("Jimin OS에서 처리 중이에요. 이 창을 닫아도 다음 요청 때 결과를 확인할 수 있어요.");
+        controls(true, "상태 확인", false);
+        if (++polls < 30 && dialog.isShowing())
+          ui.postDelayed(
+              () -> {
+                if (dialog.isShowing()) check();
+              },
+              1000);
+      } else {
+        status.setText("저장 여부를 확인해야 해요. 같은 요청을 다시 시도하면 중복 여부를 먼저 확인해요.");
+        controls(true, "상태 확인", true);
+      }
+    }
   }
 
   private void disconnectEvents() {
@@ -896,14 +1271,20 @@ public class MainActivity extends Activity {
 
   private void navigate(String id) {
     JSONArray pages = config.optJSONArray("pages");
-    if (pages == null) return;
+    if (pages == null || id.equals(pageId)) return;
+    int current = 0;
+    for (int i = 0; i < pages.length(); i++)
+      if (pages.optJSONObject(i).optString("id").equals(pageId)) current = i;
     for (int i = 0; i < pages.length(); i++)
       if (pages.optJSONObject(i).optString("id").equals(id)) {
+        deck.finishPageTransition();
+        List<DeckView.Tile> previous = new ArrayList<>(deck.tiles);
         pageId = id;
         prefs.edit().putString("page", id).apply();
         deck.scroll = 0;
         deck.rebuild();
         deck.updateState();
+        deck.animatePage(previous, i > current ? 1 : -1);
         return;
       }
   }
@@ -1034,6 +1415,7 @@ public class MainActivity extends Activity {
   private Runnable singleTap;
 
   private void dispatchButton(JSONObject w, String gesture) throws JSONException {
+    if (gesture.equals("tap") && osNativeButton(w)) return;
     JSONObject gestures = w.optJSONObject("gestures");
     boolean hasDouble = gestures != null && gestures.optBoolean("double"),
         hasLong = gestures != null && gestures.optBoolean("long");
@@ -1193,6 +1575,7 @@ public class MainActivity extends Activity {
     long downAt;
     int downIndex = -1;
     boolean moved = false;
+    int touchAxis = 0;
 
     DeckView() {
       super(MainActivity.this);
@@ -1246,6 +1629,55 @@ public class MainActivity extends Activity {
       return key.equals("background")
           ? "#0c1320"
           : key.equals("surface") ? "#172436" : key.equals("text") ? "#e0e9fa" : "#a6acff";
+    }
+
+    final List<Tile> outgoingPage = new ArrayList<>();
+    long transitionUntil;
+
+    void finishPageTransition() {
+      for (Tile tile : outgoingPage) {
+        tile.animate().cancel();
+        tile.setTranslationX(0);
+        if (!tiles.contains(tile)) tile.setVisibility(View.GONE);
+      }
+      outgoingPage.clear();
+      for (Tile tile : tiles) {
+        tile.animate().cancel();
+        tile.setTranslationX(0);
+        tile.setScaleX(1);
+        tile.setScaleY(1);
+      }
+      transitionUntil = 0;
+    }
+
+    void animatePage(List<Tile> previous, int direction) {
+      if (getWidth() == 0 || !android.animation.ValueAnimator.areAnimatorsEnabled()) return;
+      transitionUntil = SystemClock.elapsedRealtime() + 240;
+      float distance = direction * getWidth();
+      android.view.animation.Interpolator easing =
+          new android.view.animation.DecelerateInterpolator(1.35f);
+      for (Tile tile : previous) {
+        // Existing cached native views slide together; no full-screen bitmap or re-render loop.
+        if (tile.getParent() != this || tiles.contains(tile)) continue;
+        outgoingPage.add(tile);
+        tile.setVisibility(View.VISIBLE);
+        tile.setTranslationX(0);
+        tile.animate()
+            .translationX(-distance)
+            .setDuration(240)
+            .setInterpolator(easing)
+            .withEndAction(
+                () -> {
+                  if (!tiles.contains(tile)) tile.setVisibility(View.GONE);
+                  tile.setTranslationX(0);
+                  outgoingPage.remove(tile);
+                })
+            .start();
+      }
+      for (Tile tile : tiles) {
+        tile.setTranslationX(distance);
+        tile.animate().translationX(0).setDuration(240).setInterpolator(easing).start();
+      }
     }
 
     void rebuild() {
@@ -1480,6 +1912,10 @@ public class MainActivity extends Activity {
                       || type.equals("notification-feed")
                       || (type.equals("calendar") && w.optString("provider").equals("jimin-os"))) {
                     osList(w, null);
+                    return;
+                  }
+                  if (type.equals("button")) {
+                    dispatchButton(w, "tap");
                     return;
                   }
                   JSONObject b = new JSONObject().put("id", id);
@@ -2256,6 +2692,7 @@ public class MainActivity extends Activity {
           lastY = y;
           downAt = System.currentTimeMillis();
           moved = false;
+          touchAxis = 0;
           downIndex = hit(x, y);
           if (downIndex >= 0) {
             Tile tile = tiles.get(downIndex);
@@ -2271,14 +2708,25 @@ public class MainActivity extends Activity {
           }
           return true;
         case MotionEvent.ACTION_MOVE:
-          if (Math.abs(x - downX) + Math.abs(y - downY) > dp(10)) moved = true;
+          if (Math.abs(x - downX) + Math.abs(y - downY) > dp(10)) {
+            if (!moved) releasePress();
+            moved = true;
+            if (touchAxis == 0)
+              touchAxis = Math.abs(x - downX) > Math.abs(y - downY) * 1.3f ? 1 : 2;
+          }
           if (dragVolume >= 0 && downIndex >= 0) dragVolume = volumeAt(x, rects.get(downIndex));
-          else if (maxScroll > 0) {
+          else if (touchAxis == 2 && maxScroll > 0) {
             scroll = Math.max(0, Math.min(maxScroll, scroll + lastY - y));
             requestLayout();
           }
           lastY = y;
           if (downIndex >= 0 && dragVolume >= 0) tiles.get(downIndex).invalidate();
+          return true;
+        case MotionEvent.ACTION_POINTER_DOWN:
+          moved = true;
+          touchAxis = 2;
+          dragVolume = -1;
+          releasePress();
           return true;
         case MotionEvent.ACTION_CANCEL:
           releasePress();
@@ -2308,7 +2756,28 @@ public class MainActivity extends Activity {
               if (downIndex >= 0) tiles.get(downIndex).invalidate();
               return true;
             }
-            if (moved) return true;
+            if (moved) {
+              if (touchAxis == 1
+                  && downY > dp(60)
+                  && downY < getHeight() - dp(46)
+                  && Math.abs(x - downX) >= Math.max(dp(72), getWidth() * .08f)
+                  && Math.abs(x - downX) > Math.abs(y - downY) * 1.5f) {
+                JSONArray pages = config.optJSONArray("pages");
+                if (pages != null)
+                  for (int i = 0; i < pages.length(); i++) {
+                    if (pages.optJSONObject(i).optString("id").equals(pageId)) {
+                      int next = i + (x < downX ? 1 : -1);
+                      if (next >= 0 && next < pages.length()) {
+                        performHapticFeedback(HapticFeedbackConstants.CLOCK_TICK);
+                        navigate(pages.optJSONObject(next).optString("id"));
+                      }
+                      break;
+                    }
+                  }
+              }
+              return true;
+            }
+            if (SystemClock.elapsedRealtime() < transitionUntil) return true;
             if (y < dp(60) && x > getWidth() - dp(75)) {
               settings();
               return true;

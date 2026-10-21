@@ -12,6 +12,14 @@ export class Extensions {
     try {
       this.notifications = JSON.parse(fs.readFileSync(this.file)).slice(-40);
     } catch {}
+    this.mutationOwnersFile = path.join(dir, "extension-mutation-owners.json");
+    try {
+      this.mutationOwners = JSON.parse(
+        fs.readFileSync(this.mutationOwnersFile),
+      );
+    } catch {
+      this.mutationOwners = {};
+    }
     this.providers = new Map([
       [
         "jimin-os",
@@ -55,6 +63,28 @@ export class Extensions {
     const p = this.providers.get(id);
     if (!p) throw Error("연결한 플러그인을 찾을 수 없어요.");
     return p.invoke(operation, parameters);
+  }
+  async mutate(owner, input) {
+    const key = input.mutationId;
+    if (typeof key !== "string" || !/^[0-9a-f-]{36}$/i.test(key))
+      throw Error("잘못된 저장 요청이에요.");
+    const existing = this.mutationOwners[key];
+    if (existing && existing.owner !== owner)
+      throw Error("이 기기의 저장 요청이 아니에요.");
+    if (!existing) {
+      const entries = Object.entries(this.mutationOwners)
+        .filter(([, v]) => Date.now() - v.at < 86400000)
+        .slice(-199);
+      this.mutationOwners = Object.fromEntries(entries);
+      this.mutationOwners[key] = { owner, at: Date.now() };
+      writeJson(this.mutationOwnersFile, this.mutationOwners);
+    }
+    return this.providers.get("jimin-os").mutate(input);
+  }
+  mutationStatus(owner, id) {
+    if (this.mutationOwners[id]?.owner !== owner)
+      throw Error("이 기기의 저장 요청을 찾을 수 없어요.");
+    return this.providers.get("jimin-os").mutationStatus(id);
   }
   poll() {
     for (const p of this.providers.values()) p.poll();

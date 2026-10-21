@@ -266,3 +266,155 @@ test("admin settings are authenticated and invalid updates leave live config int
   });
   assert.equal(action.status, 400);
 });
+
+test("tablet mutation endpoints enforce pairing, widget scope and per-device receipts", async (t) => {
+  const fixture = setup(t);
+  let posts = 0;
+  const jobs = new Map();
+  const data = {
+    ...snapshot(),
+    capabilities: { scheduleCreate: true, taskComplete: true },
+    tasks: [
+      { id: other, title: "Task", version: 7, state: "open", dueAt: null },
+    ],
+  };
+  const c = defaultConfig();
+  c.pages.push(osPage());
+  c.extensions = {
+    "jimin-os": { enabled: true, notifications: false, reminderMinutes: 10 },
+  };
+  fs.writeFileSync(path.join(fixture.dir, "deck.json"), JSON.stringify(c));
+  const h = createHost({
+    dir: fixture.dir,
+    metrics: false,
+    extensionOptions: {
+      bridgePath: fixture.bridgePath,
+      fetcher: async (url, init) => {
+        if (url.endsWith("snapshot")) return new Response(JSON.stringify(data));
+        if (init.method === "POST") {
+          posts++;
+          const input = JSON.parse(init.body);
+          const receipt = {
+            mutationId: input.mutationId,
+            status: "succeeded",
+            entityId: input.mutationId,
+          };
+          jobs.set(input.mutationId, receipt);
+          assert.equal(input.command, undefined);
+          return new Response(JSON.stringify(receipt), { status: 202 });
+        }
+        return new Response(
+          JSON.stringify(jobs.get(url.split("/").pop()) || {}),
+        );
+      },
+    },
+  });
+  await new Promise((resolve) => h.server.listen(0, "127.0.0.1", resolve));
+  t.after(() => h.close());
+  const base = "http://127.0.0.1:" + h.server.address().port;
+  const req = (route, method = "GET", body, token) =>
+    fetch(base + route, {
+      method,
+      headers: {
+        "Content-Type": "application/json",
+        ...(token ? { Authorization: "Bearer " + token } : {}),
+      },
+      body: body ? JSON.stringify(body) : undefined,
+    });
+  const pair = async () =>
+    (await (await req("/api/pair", "POST", { pin: h.getPin() })).json()).token;
+  const a = await pair(),
+    b = await pair();
+  await h.engine.extensions.providers.get("jimin-os").poll();
+  const route = "/api/extensions/jimin-os/mutations";
+  const write = {
+    mutationId: id,
+    widgetId: "os-new-schedule",
+    operation: "create-schedule",
+    title: "Planning",
+    startsAt: "2026-10-22T01:00:00Z",
+    endsAt: "2026-10-22T02:00:00Z",
+    command: "never run",
+  };
+  assert.equal((await req(route, "POST", write)).status, 401);
+  assert.equal(
+    (await req(route, "POST", { ...write, widgetId: "os-tasks" }, a)).status,
+    400,
+  );
+  assert.equal((await req(route, "POST", write, a)).status, 202);
+  assert.equal((await req(route + "/" + id, "GET", null, a)).status, 200);
+  assert.equal((await req(route + "/" + id, "GET", null, b)).status, 400);
+  assert.equal((await req(route, "POST", write, b)).status, 400);
+  assert.equal(posts, 1);
+  const exposed = deviceConfig(c).pages.at(-1).widgets;
+  assert.equal(
+    exposed.find((w) => w.id === "os-new-schedule").osView,
+    "new-schedule",
+  );
+  assert(!JSON.stringify(exposed).includes('"actions"'));
+});
+
+test("writes require advertised capabilities and valid dates, version and bounded notes", async (t) => {
+  const h = setup(t);
+  await h.p.poll();
+  const schedule = {
+    mutationId: id,
+    operation: "create-schedule",
+    title: "Planning",
+    startsAt: "2026-10-22T01:00:00Z",
+    endsAt: "2026-10-22T02:00:00Z",
+  };
+  await assert.rejects(() => h.p.mutate(schedule));
+  h.setData({
+    ...snapshot(),
+    capabilities: { scheduleCreate: true, taskComplete: true },
+  });
+  await h.p.poll();
+  await assert.rejects(() =>
+    h.p.mutate({ ...schedule, endsAt: schedule.startsAt }),
+  );
+  await assert.rejects(() =>
+    h.p.mutate({ ...schedule, notes: "x".repeat(2001) }),
+  );
+  await assert.rejects(() =>
+    h.p.mutate({
+      mutationId: id,
+      operation: "complete-task",
+      itemId: other,
+      expectedVersion: 0,
+    }),
+  );
+});
+
+test("known version conflicts are failed receipts while missing receipts remain recoverable", async (t) => {
+  const h = setup(t, {
+    fetcher: async (url) =>
+      url.endsWith("snapshot")
+        ? new Response(
+            JSON.stringify({
+              ...snapshot(),
+              capabilities: { taskComplete: true, scheduleCreate: true },
+            }),
+          )
+        : new Response(
+            JSON.stringify({
+              error: url.includes("/mutations/") ? "NOT_FOUND" : "CONFLICT",
+            }),
+            { status: url.includes("/mutations/") ? 404 : 409 },
+          ),
+  });
+  await h.p.poll();
+  assert.deepEqual(
+    await h.p.mutate({
+      mutationId: id,
+      operation: "complete-task",
+      itemId: other,
+      expectedVersion: 7,
+    }),
+    { mutationId: id, status: "failed", error: "CONFLICT" },
+  );
+  assert.deepEqual(await h.p.mutationStatus(id), {
+    mutationId: id,
+    status: "not-found",
+  });
+});
