@@ -65,6 +65,7 @@ export class Engine {
       at: Date.now(),
       cpu: this.cpu,
       memory: this.memory,
+      system: this.systemMonitor?.state() || { status: "unavailable" },
       volume: this.volume,
       muted: this.muted,
       running: [...this.running],
@@ -122,7 +123,20 @@ export class Engine {
           end: 0,
           finished: true,
         });
-    if (process.platform === "darwin" && !this.readingMemory) {
+    const system = this.systemMonitor?.state();
+    if (
+      system?.status === "connected" &&
+      system.memory?.totalBytes &&
+      system.memory.usedBytes !== null
+    )
+      this.memory = Math.round(
+        (system.memory.usedBytes / system.memory.totalBytes) * 100,
+      );
+    if (
+      process.platform === "darwin" &&
+      system?.status !== "connected" &&
+      !this.readingMemory
+    ) {
       this.readingMemory = true;
       this.runner("/usr/bin/vm_stat", [], 1500)
         .then((text) => {

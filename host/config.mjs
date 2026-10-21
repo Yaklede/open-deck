@@ -62,6 +62,8 @@ const types = new Set([
   "button",
   "clock",
   "gauges",
+  "system",
+  "grafana",
   "timer",
   "volume",
   "text",
@@ -319,6 +321,64 @@ export function validateConfig(input) {
         throw Error("타이머는 1~1440분입니다.");
       if (w.type === "page" && !pageIds.has(w.targetPage))
         throw Error("이동할 페이지를 선택하세요.");
+      if (
+        w.type === "system" &&
+        ![
+          "overview",
+          "cpu",
+          "memory",
+          "disk",
+          "network",
+          "processes",
+          "power",
+        ].includes(w.metric || "overview")
+      )
+        throw Error("시스템 지표를 선택하세요.");
+      if (w.type === "grafana") {
+        if (w.url !== undefined && typeof w.url !== "string")
+          throw Error("Grafana 주소를 확인하세요.");
+        if (w.url) {
+          let u;
+          try {
+            u = new URL(w.url);
+          } catch {
+            throw Error("Grafana 주소를 확인하세요.");
+          }
+          if (
+            u.protocol !== "https:" ||
+            u.username ||
+            u.password ||
+            w.url.length > 2048
+          )
+            throw Error("Grafana는 인증 정보 없는 HTTPS 주소를 사용하세요.");
+        }
+        if (
+          !Array.isArray(w.projects) ||
+          w.projects.length < 1 ||
+          w.projects.length > 20 ||
+          w.projects.some(
+            (p) =>
+              !p ||
+              typeof p.label !== "string" ||
+              !p.label.trim() ||
+              p.label.length > 40 ||
+              typeof p.value !== "string" ||
+              !/^[a-zA-Z0-9_-]{1,80}$/.test(p.value),
+          ) ||
+          new Set(w.projects.map((p) => p.value)).size !== w.projects.length
+        )
+          throw Error("Grafana 프로젝트 이름과 값을 확인하세요.");
+        if (
+          w.defaultProject &&
+          !w.projects.some((p) => p.value === w.defaultProject)
+        )
+          throw Error("기본 프로젝트를 선택하세요.");
+        if (
+          w.projectVariable &&
+          !/^[a-zA-Z_][a-zA-Z0-9_]{0,40}$/.test(w.projectVariable)
+        )
+          throw Error("프로젝트 필터 이름을 확인하세요.");
+      }
       if (
         w.binding &&
         !Object.hasOwn(c.variables, w.binding) &&

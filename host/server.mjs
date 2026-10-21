@@ -1,4 +1,5 @@
 import http from "node:http";
+import { MacMetrics } from "./mac-metrics.mjs";
 import { Extensions, osPage } from "./extensions.mjs";
 import { Plugins } from "./plugins.mjs";
 import { saveAsset, readAsset } from "./assets.mjs";
@@ -125,6 +126,7 @@ export function createHost({
     onChange: broadcast,
   });
   engine.extensions = extensions;
+  if (metrics) engine.systemMonitor = new MacMetrics(broadcast);
   const stateFile = path.join(dir, "state.json");
   try {
     const saved = JSON.parse(fs.readFileSync(stateFile, "utf8"));
@@ -208,7 +210,7 @@ export function createHost({
             error: "Wi-Fi에서는 태블릿 연결만 허용됩니다.",
           });
         if (req.method === "GET" && u.pathname === "/health")
-          return send(res, 200, { name: "Open Deck", version: "0.5.0" });
+          return send(res, 200, { name: "Open Deck", version: "0.6.0" });
         if (req.method === "POST" && u.pathname === "/api/pair") {
           const now = Date.now(),
             key = req.socket.remoteAddress,
@@ -511,6 +513,7 @@ export function createHost({
     clearInterval(schedule);
     connectors.close();
     extensions.close();
+    engine.systemMonitor?.close();
     plugins.close();
     for (const s of streams) s.end();
   });

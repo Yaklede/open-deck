@@ -6,7 +6,7 @@ A local macro deck with a **macOS host and a native Android app**. Build your co
 
 ![Native monitor page on Android](assets/screenshots/monitor.png)
 
-> Version 0.4.0 is a working USB + encrypted Wi-Fi alpha for Apple Silicon Macs (macOS 13+) and Android 8+. It implements the core desk-control workflow; it does not claim full feature or plugin compatibility with Macro Deck or Touch Portal.
+> Version 0.6.0 is a working USB + encrypted Wi-Fi alpha for Apple Silicon Macs (macOS 13+) and Android 8+. It implements the core desk-control workflow; it does not claim full feature or plugin compatibility with Macro Deck or Touch Portal.
 
 ## Download
 
@@ -27,10 +27,14 @@ The macOS download is an ad-hoc signed developer build, not Apple notarized. You
 | Routines                             | Multiple steps, waits, commands, volume, mute and conditional branches                            |
 | Automations                          | Weekday/time schedules, variable changes and experimental plugin events                           |
 | Live widgets                         | CPU/memory, clock, timer, volume, text, toggle, slider, graph, monthly calendar, todos and images |
+| Mac system monitor                   | Per-core CPU, memory pressure/compression/swap, storage and I/O, network, power/thermal state and top apps |
+| Grafana                              | Configurable HTTPS dashboard launcher with saved project selection in the Android browser session |
 | Pairing                              | Expiring single-use PIN, per-device scoped tokens, device revocation                              |
 | Backup                               | Deck JSON with image assets; theme presets                                                        |
 | HTTP connectors                      | GET polling, manual webhooks, scalar JSON binding, Keychain Bearer tokens                         |
 | Plugins (experimental)               | Trusted local macOS arm64 plugins: actions, eager variable reads and events; capability reporting |
+
+The **모니터** template shows live Mac system cards. Its Grafana card opens a configured dashboard in the tablet browser with a saved project filter. See [monitoring setup and metric definitions](docs/monitoring.md).
 
 ## Jimin OS 연결
 

@@ -1,4 +1,5 @@
 import { migrate, place, overlaps, themes } from "./layout.mjs";
+import { monitorPage } from "./monitor-layout.mjs";
 const $ = (s) => document.querySelector(s),
   uid = () => crypto.randomUUID();
 let config,
@@ -35,6 +36,8 @@ const names = {
   button: "동작 버튼",
   clock: "시계",
   gauges: "CPU · 메모리",
+  system: "맥 시스템 상태",
+  grafana: "Grafana 대시보드",
   timer: "집중 타이머",
   volume: "Mac 음량",
   text: "텍스트",
@@ -264,6 +267,8 @@ function renderBoard() {
       } else if (["button", "page"].includes(w.type)) body.append(icon(w.icon));
       else if (w.type === "clock") body.append(n("div", "—", "clock"));
       else if (w.type === "gauges") body.append(n("div", "—", "gauges"));
+      else if (["system", "grafana"].includes(w.type))
+        body.append(n("div", "—", "system-reading"));
       else if (w.type === "timer") body.append(n("div", "25:00", "clock"));
       else if (w.type === "volume" || w.type === "slider") {
         const bar = n("input");
@@ -420,6 +425,68 @@ function updateLive() {
         "ko-KR",
         { hour: "2-digit", minute: "2-digit", hour12: false },
       );
+    if (w.type === "system") {
+      const target = c.querySelector(".system-reading"),
+        s = state.system;
+      if (!s || s.status !== "connected")
+        target.textContent = "맥 상태 연결 대기";
+      else {
+        const bytes = (v) =>
+          typeof v === "number"
+            ? v >= 1073741824
+              ? (v / 1073741824).toFixed(1) + " GiB"
+              : (v / 1048576).toFixed(1) + " MiB"
+            : "—";
+        target.style.whiteSpace = "pre-line";
+        target.textContent =
+          w.metric === "cpu"
+            ? "CPU " + (s.cpu?.percent?.toFixed(1) ?? "—") + "%"
+            : w.metric === "memory"
+              ? bytes(s.memory?.usedBytes) +
+                " / " +
+                bytes(s.memory?.totalBytes) +
+                "\n메모리 압력 " +
+                ({ normal: "정상", warning: "주의", critical: "높음" }[
+                  s.memory?.pressure
+                ] || "확인 중")
+              : w.metric === "disk"
+                ? "여유 " + bytes(s.disk?.availableBytes)
+                : w.metric === "network"
+                  ? "↓ " +
+                    bytes(s.network?.rxBytesPerSecond) +
+                    "/s\n↑ " +
+                    bytes(s.network?.txBytesPerSecond) +
+                    "/s"
+                  : w.metric === "power"
+                    ? (s.power?.batteryPercent ?? "—") +
+                      "% · " +
+                      ({
+                        normal: "발열 정상",
+                        fair: "발열 약간 높음",
+                        serious: "발열 높음",
+                        critical: "발열 매우 높음",
+                      }[s.power?.thermal] || "확인 중")
+                    : w.metric === "processes"
+                      ? (s.processes?.cpu || [])
+                          .slice(0, 3)
+                          .map(
+                            (p) =>
+                              p.name + " · " + p.cpuPercent.toFixed(1) + "%",
+                          )
+                          .join("\n") || "앱 사용량 비교 중"
+                      : (s.model || "내 Mac") + "\n실시간 시스템 상태";
+      }
+    }
+    if (w.type === "grafana") {
+      const p =
+        w.projects?.find((p) => p.value === w.defaultProject) ||
+        w.projects?.[0];
+      c.querySelector(".system-reading").textContent =
+        "DB CPU · TPS\n" +
+        (p?.label || "프로젝트 선택") +
+        "\n태블릿에서 대시보드 열기";
+      c.querySelector(".system-reading").style.whiteSpace = "pre-line";
+    }
     if (w.type === "gauges")
       c.querySelector(".gauges").textContent =
         `${state.cpu ?? 0}% / ${state.memory ?? 0}%`;
@@ -646,6 +713,69 @@ function inspect() {
         }),
       { choices: { "": "로컬", "jimin-os": "Jimin OS" } },
     );
+  if (w.type === "system")
+    field(
+      box,
+      "시스템 지표",
+      w.metric || "overview",
+      (v) => change(() => (w.metric = v)),
+      {
+        choices: {
+          overview: "맥 상태 요약",
+          cpu: "CPU",
+          memory: "메모리 압력·사용량",
+          disk: "저장 공간·디스크 I/O",
+          network: "네트워크",
+          processes: "사용량 높은 앱",
+          power: "전원·발열",
+        },
+      },
+    );
+  if (w.type === "grafana") {
+    field(box, "Grafana HTTPS 대시보드 주소", w.url || "", (v) =>
+      change(() => (w.url = v)),
+    );
+    field(box, "프로젝트 필터 이름", w.projectVariable || "project", (v) =>
+      change(() => (w.projectVariable = v)),
+    );
+    (w.projects || []).forEach((p, i) => {
+      field(box, "프로젝트 " + (i + 1) + " 이름", p.label, (v) =>
+        change(() => (p.label = v)),
+      );
+      field(box, "프로젝트 " + (i + 1) + " 필터 값", p.value, (v) =>
+        change(() => (p.value = v)),
+      );
+      if (w.projects.length > 1)
+        button(box, "프로젝트 " + (i + 1) + " 제거", () =>
+          change(() => {
+            w.projects.splice(i, 1);
+            if (w.defaultProject === p.value)
+              w.defaultProject = w.projects[0].value;
+          }, true),
+        );
+    });
+    button(box, "프로젝트 추가", () =>
+      change(
+        () =>
+          w.projects.push({
+            label: "새 프로젝트",
+            value: "project-" + (w.projects.length + 1),
+          }),
+        true,
+      ),
+    );
+    field(
+      box,
+      "기본 프로젝트",
+      w.defaultProject || w.projects?.[0]?.value,
+      (v) => change(() => (w.defaultProject = v)),
+      {
+        choices: Object.fromEntries(
+          (w.projects || []).map((p) => [p.value, p.label]),
+        ),
+      },
+    );
+  }
   if (w.type === "timer")
     field(box, "타이머 (분)", w.minutes, (v) => change(() => (w.minutes = v)), {
       type: "number",
@@ -954,6 +1084,14 @@ function addWidget(type) {
     if (type === "page")
       w.targetPage = config.pages.find((x) => x.id !== p.id)?.id || p.id;
     if (type === "graph") w.binding = "cpu";
+    if (type === "system") w.metric = "overview";
+    if (type === "grafana")
+      Object.assign(w, {
+        url: "",
+        projects: [{ label: "프로젝트", value: "project" }],
+        defaultProject: "project",
+        projectVariable: "project",
+      });
     if (type === "toggle" || type === "slider") {
       const key =
         (type === "toggle" ? "toggle_" : "value_") + uid().slice(0, 6);
@@ -985,6 +1123,14 @@ function addPage(name = "새 페이지", template = "empty") {
     pageId = p.id;
     selected = null;
   }, true);
+  if (template === "monitor") {
+    change(() => {
+      const p = page();
+      Object.assign(p, monitorPage({ id: p.id }));
+      selected = null;
+    }, true);
+    return;
+  }
   if (template !== "empty") {
     const list =
       template === "focus"
