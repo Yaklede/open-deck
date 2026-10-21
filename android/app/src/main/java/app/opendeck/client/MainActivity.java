@@ -123,6 +123,11 @@ public class MainActivity extends Activity {
   @Override
   public void onPause() {
     foreground = false;
+    if (deck != null) {
+      deck.finishPageTransition();
+      deck.clearVelocity();
+      deck.gestureBlocked = true;
+    }
     super.onPause();
   }
 
@@ -1567,6 +1572,8 @@ public class MainActivity extends Activity {
     final ArrayList<Tile> tiles = new ArrayList<>();
     final Map<String, Tile> cachedTiles = new HashMap<>();
     String cachedConfig = "";
+    JSONObject drawingPage;
+    final Map<String, PageBackdrop> backdrops = new HashMap<>();
     String headerStatus = "";
     ArrayList<RectF> rects = new ArrayList<>();
     ArrayList<JSONObject> widgets = new ArrayList<>();
@@ -1613,7 +1620,11 @@ public class MainActivity extends Activity {
     }
 
     String themeValue(String key) {
-      String theme = activePage().optString("theme", "midnight");
+      return themeValue(key, drawingPage == null ? activePage() : drawingPage);
+    }
+
+    String themeValue(String key, JSONObject page) {
+      String theme = page.optString("theme", "midnight");
       if (theme.equals("paper"))
         return key.equals("background")
             ? "#e9edf2"
@@ -1631,11 +1642,186 @@ public class MainActivity extends Activity {
           : key.equals("surface") ? "#172436" : key.equals("text") ? "#e0e9fa" : "#a6acff";
     }
 
+    private class PagePreview {
+      final JSONObject page;
+      final List<Tile> tiles = new ArrayList<>();
+      final List<JSONObject> widgets = new ArrayList<>();
+      final List<RectF> rects = new ArrayList<>();
+
+      PagePreview(JSONObject page) {
+        this.page = page;
+      }
+    }
+
+    PagePreview swipePreview;
+    int swipeDirection;
+    float swipeOffset, dragStartOffset;
+    boolean swiping, gestureBlocked;
+    VelocityTracker swipeVelocity;
+    android.animation.ValueAnimator swipeSettle;
+
+    void clearVelocity() {
+      if (swipeVelocity != null) {
+        swipeVelocity.recycle();
+        swipeVelocity = null;
+      }
+    }
+
+    JSONObject adjacentPage(int direction) {
+      JSONArray pages = config.optJSONArray("pages");
+      if (pages == null) return null;
+      for (int i = 0; i < pages.length(); i++)
+        if (pages.optJSONObject(i).optString("id").equals(pageId)) {
+          int index = i + direction;
+          return index >= 0 && index < pages.length() ? pages.optJSONObject(index) : null;
+        }
+      return null;
+    }
+
+    void hidePreview() {
+      if (swipePreview == null) return;
+      for (Tile tile : swipePreview.tiles) {
+        tile.setTranslationX(0);
+        tile.setVisibility(View.GONE);
+      }
+      PageBackdrop background = backdrops.get(swipePreview.page.optString("id"));
+      if (background != null) {
+        background.setTranslationX(0);
+        background.setVisibility(View.GONE);
+      }
+      swipePreview = null;
+    }
+
+    void preparePreview(int direction) {
+      hidePreview();
+      swipeDirection = direction;
+      JSONObject page = adjacentPage(direction);
+      if (page == null) return;
+      PagePreview preview = new PagePreview(page);
+      JSONArray items = page.optJSONArray("widgets");
+      if (items != null)
+        for (int i = 0; i < items.length(); i++) {
+          JSONObject w = items.optJSONObject(i);
+          if (w == null) continue;
+          Tile tile = cachedTiles.get(w.optString("id"));
+          if (tile == null) {
+            tile = new Tile(w, page);
+            cachedTiles.put(w.optString("id"), tile);
+            addView(tile);
+          }
+          tile.animate().cancel();
+          tile.setScaleX(1);
+          tile.setScaleY(1);
+          tile.setImportantForAccessibility(View.IMPORTANT_FOR_ACCESSIBILITY_NO);
+          tile.invalidate();
+          preview.tiles.add(tile);
+          preview.widgets.add(w);
+          preview.rects.add(new RectF());
+        }
+      measurePage(page, preview.tiles, preview.widgets, preview.rects, 0, getWidth(), getHeight());
+      placePage(preview.tiles, preview.rects, getHeight());
+      PageBackdrop background = backdrop(page);
+      background.measure(
+          MeasureSpec.makeMeasureSpec(getWidth(), MeasureSpec.EXACTLY),
+          MeasureSpec.makeMeasureSpec(getHeight(), MeasureSpec.EXACTLY));
+      background.layout(0, 0, getWidth(), getHeight());
+      background.setVisibility(View.VISIBLE);
+      swipePreview = preview;
+      updateState();
+    }
+
+    void applySwipe(float offset) {
+      swipeOffset = offset;
+      for (Tile tile : tiles) tile.setTranslationX(offset);
+      PageBackdrop current = backdrops.get(pageId);
+      if (current != null) current.setTranslationX(offset);
+      if (swipePreview != null) {
+        float adjacent = offset + swipeDirection * getWidth();
+        for (Tile tile : swipePreview.tiles) tile.setTranslationX(adjacent);
+        backdrop(swipePreview.page).setTranslationX(adjacent);
+      }
+    }
+
+    void dragPage(float distance) {
+      int direction = distance < 0 ? 1 : -1;
+      if (!swiping) {
+        finishPageTransition();
+        swiping = true;
+        swipeDirection = 0;
+        // A horizontal drag cannot later release a pending double-tap action.
+        if (singleTap != null) ui.removeCallbacks(singleTap);
+        lastButtonId = "";
+      }
+      if (direction != swipeDirection) preparePreview(direction);
+      applySwipe(SwipePhysics.offset(distance, getWidth(), swipePreview != null));
+    }
+
+    void cancelSwipeImmediately() {
+      if (swipeSettle != null) {
+        android.animation.ValueAnimator animator = swipeSettle;
+        swipeSettle = null;
+        animator.removeAllListeners();
+        animator.cancel();
+      }
+      if (!swiping && swipePreview == null) return;
+      applySwipe(0);
+      hidePreview();
+      swiping = false;
+      swipeDirection = 0;
+      swipeOffset = 0;
+    }
+
+    void settleSwipe(boolean allowCommit, float velocity) {
+      if (!swiping) return;
+      boolean commit =
+          allowCommit
+              && SwipePhysics.commit(
+                  swipeOffset, velocity, getWidth(), dp(24), dp(650), swipePreview != null);
+      float target = commit ? -swipeDirection * getWidth() : 0;
+      Runnable finish =
+          () -> {
+            String destination =
+                commit && swipePreview != null ? swipePreview.page.optString("id") : null;
+            applySwipe(0);
+            hidePreview();
+            swiping = false;
+            swipeOffset = 0;
+            swipeDirection = 0;
+            swipeSettle = null;
+            if (destination != null) {
+              pageId = destination;
+              prefs.edit().putString("page", destination).apply();
+              scroll = 0;
+              rebuild();
+              updateState();
+              performHapticFeedback(HapticFeedbackConstants.CLOCK_TICK);
+            }
+          };
+      if (!android.animation.ValueAnimator.areAnimatorsEnabled()
+          || Math.abs(target - swipeOffset) < 1) {
+        finish.run();
+        return;
+      }
+      swipeSettle = android.animation.ValueAnimator.ofFloat(swipeOffset, target);
+      swipeSettle.setDuration(SwipePhysics.duration(swipeOffset, target, velocity, getWidth()));
+      swipeSettle.setInterpolator(new android.view.animation.DecelerateInterpolator(1.5f));
+      swipeSettle.addUpdateListener(animator -> applySwipe((float) animator.getAnimatedValue()));
+      swipeSettle.addListener(
+          new android.animation.AnimatorListenerAdapter() {
+            @Override
+            public void onAnimationEnd(android.animation.Animator animator) {
+              finish.run();
+            }
+          });
+      swipeSettle.start();
+    }
+
     final List<Tile> outgoingPage = new ArrayList<>();
     long transitionUntil;
 
     void finishPageTransition() {
-      for (Tile tile : outgoingPage) {
+      cancelSwipeImmediately();
+      for (Tile tile : new ArrayList<>(outgoingPage)) {
         tile.animate().cancel();
         tile.setTranslationX(0);
         if (!tiles.contains(tile)) tile.setVisibility(View.GONE);
@@ -1681,6 +1867,9 @@ public class MainActivity extends Activity {
     }
 
     void rebuild() {
+      boolean interrupted = swiping || swipeSettle != null;
+      finishPageTransition();
+      if (interrupted) gestureBlocked = true;
       String nextConfig = config.toString();
       int count =
           activePage().optJSONArray("widgets") == null
@@ -1689,9 +1878,11 @@ public class MainActivity extends Activity {
       if (!nextConfig.equals(cachedConfig) || cachedTiles.size() + count > 256) {
         removeAllViews();
         cachedTiles.clear();
+        backdrops.clear();
         cachedConfig = nextConfig;
       }
       for (Tile tile : cachedTiles.values()) tile.setVisibility(View.GONE);
+      for (PageBackdrop backdrop : backdrops.values()) backdrop.setVisibility(View.GONE);
       tiles.clear();
       widgets.clear();
       rects.clear();
@@ -1702,6 +1893,7 @@ public class MainActivity extends Activity {
         for (int i = 0; i < pages.length(); i++)
           if (pages.optJSONObject(i).optString("id").equals(pageId)) page = pages.optJSONObject(i);
         pageId = page.optString("id");
+        backdrop(page).setVisibility(View.VISIBLE);
         JSONArray items = page.optJSONArray("widgets");
         if (items != null)
           for (int i = 0; i < items.length(); i++) {
@@ -1712,11 +1904,12 @@ public class MainActivity extends Activity {
             String id = w.optString("id");
             Tile tile = cachedTiles.get(id);
             if (tile == null) {
-              tile = new Tile(w);
+              tile = new Tile(w, page);
               cachedTiles.put(id, tile);
               addView(tile);
             }
             tile.setVisibility(View.VISIBLE);
+            tile.setImportantForAccessibility(View.IMPORTANT_FOR_ACCESSIBILITY_YES);
             tiles.add(tile);
           }
       }
@@ -1725,11 +1918,14 @@ public class MainActivity extends Activity {
       invalidate();
     }
 
-    @Override
-    protected void onMeasure(int widthSpec, int heightSpec) {
-      int width = MeasureSpec.getSize(widthSpec), height = MeasureSpec.getSize(heightSpec);
-      setMeasuredDimension(width, height);
-      JSONObject p = activePage();
+    float measurePage(
+        JSONObject p,
+        List<Tile> tiles,
+        List<JSONObject> widgets,
+        List<RectF> rects,
+        float scroll,
+        int width,
+        int height) {
       boolean portrait = width < height;
       JSONObject portraitConfig = p.optJSONObject("portrait");
       int cols =
@@ -1775,7 +1971,7 @@ public class MainActivity extends Activity {
       float margin = dp(18), gap = dp(p.optInt("gap", 12)), available = height - dp(132);
       float cellW = (width - margin * 2 - gap * (cols - 1)) / cols;
       float cellH = Math.max(dp(48), (available - gap * (rows - 1)) / rows);
-      maxScroll = Math.max(0, rows * (cellH + gap) - gap - available);
+      float maxScroll = Math.max(0, rows * (cellH + gap) - gap - available);
       scroll = Math.min(scroll, maxScroll);
       for (int i = 0; i < tiles.size(); i++) {
         int[] box = boxes[i];
@@ -1790,6 +1986,37 @@ public class MainActivity extends Activity {
                 MeasureSpec.makeMeasureSpec(tw, MeasureSpec.EXACTLY),
                 MeasureSpec.makeMeasureSpec(th, MeasureSpec.EXACTLY));
       }
+      return maxScroll;
+    }
+
+    @Override
+    protected void onSizeChanged(int width, int height, int oldWidth, int oldHeight) {
+      super.onSizeChanged(width, height, oldWidth, oldHeight);
+      if (oldWidth > 0 && (width != oldWidth || height != oldHeight)) {
+        finishPageTransition();
+        clearVelocity();
+        gestureBlocked = true;
+        dragVolume = -1;
+      }
+    }
+
+    @Override
+    protected void onMeasure(int widthSpec, int heightSpec) {
+      int width = MeasureSpec.getSize(widthSpec), height = MeasureSpec.getSize(heightSpec);
+      setMeasuredDimension(width, height);
+      maxScroll = measurePage(activePage(), tiles, widgets, rects, scroll, width, height);
+      scroll = Math.min(scroll, maxScroll);
+      if (swipePreview != null)
+        measurePage(
+            swipePreview.page,
+            swipePreview.tiles,
+            swipePreview.widgets,
+            swipePreview.rects,
+            0,
+            width,
+            height);
+      for (PageBackdrop backdrop : backdrops.values())
+        if (backdrop.getVisibility() == View.VISIBLE) backdrop.measure(widthSpec, heightSpec);
       pageRects.clear();
       JSONArray pages = config.optJSONArray("pages");
       int n = pages == null ? 0 : pages.length();
@@ -1803,11 +2030,18 @@ public class MainActivity extends Activity {
 
     @Override
     protected void onLayout(boolean changed, int l, int t, int r, int b) {
-      for (int i = 0; i < tiles.size(); i++) {
-        RectF rect = rects.get(i);
-        Tile tile = tiles.get(i);
+      placePage(tiles, rects, b - t);
+      if (swipePreview != null) placePage(swipePreview.tiles, swipePreview.rects, b - t);
+      for (PageBackdrop backdrop : backdrops.values())
+        if (backdrop.getVisibility() == View.VISIBLE) backdrop.layout(0, 0, r - l, b - t);
+    }
+
+    void placePage(List<Tile> pageTiles, List<RectF> pageBounds, int height) {
+      for (int i = 0; i < pageTiles.size(); i++) {
+        RectF rect = pageBounds.get(i);
+        Tile tile = pageTiles.get(i);
         tile.setVisibility(
-            rect.bottom > dp(68) && rect.top < b - dp(46) ? View.VISIBLE : View.INVISIBLE);
+            rect.bottom > dp(68) && rect.top < height - dp(46) ? View.VISIBLE : View.INVISIBLE);
         tile.layout(
             Math.round(rect.left),
             Math.round(rect.top),
@@ -1830,7 +2064,8 @@ public class MainActivity extends Activity {
     }
 
     void refresh(String id) {
-      for (Tile tile : tiles) if (tile.id.equals(id)) tile.invalidate();
+      Tile tile = cachedTiles.get(id);
+      if (tile != null && tile.getVisibility() != View.GONE) tile.invalidate();
     }
 
     void updateState() {
@@ -1844,7 +2079,8 @@ public class MainActivity extends Activity {
       }
       String osSignature =
           String.valueOf(osProvider()) + String.valueOf(state.optJSONArray("notifications"));
-      for (Tile tile : tiles) {
+      for (Tile tile : cachedTiles.values()) {
+        if (tile.getVisibility() != View.VISIBLE) continue;
         String next;
         if (tile.type.equals("gauges")) next = state.optInt("cpu") + ":" + state.optInt("memory");
         else if (tile.type.equals("volume"))
@@ -1870,7 +2106,8 @@ public class MainActivity extends Activity {
     }
 
     void tick() {
-      for (Tile tile : tiles) {
+      for (Tile tile : cachedTiles.values()) {
+        if (tile.getVisibility() != View.VISIBLE) continue;
         if (tile.type.equals("clock") && hostNow() / 60000 != tile.clockMinute) tile.invalidate();
         if (tile.type.equals("timer")) {
           JSONObject all = state.optJSONObject("timers"),
@@ -1881,15 +2118,16 @@ public class MainActivity extends Activity {
     }
 
     private class Tile extends View {
-      final JSONObject widget;
+      final JSONObject widget, ownerPage;
       final String id, type;
       final RectF bounds = new RectF();
       String signature = "";
       long clockMinute = -1;
 
-      Tile(JSONObject w) {
+      Tile(JSONObject w, JSONObject page) {
         super(MainActivity.this);
         widget = w;
+        ownerPage = page;
         id = w.optString("id");
         type = w.optString("type");
         setContentDescription(w.optString("label"));
@@ -1949,7 +2187,12 @@ public class MainActivity extends Activity {
 
       @Override
       protected void onDraw(Canvas c) {
-        drawWidget(c, widget, bounds);
+        drawingPage = ownerPage;
+        try {
+          drawWidget(c, widget, bounds);
+        } finally {
+          drawingPage = null;
+        }
         clockMinute = hostNow() / 60000;
       }
     }
@@ -1957,39 +2200,7 @@ public class MainActivity extends Activity {
     @Override
     protected void onDraw(Canvas c) {
       super.onDraw(c);
-      JSONObject themedPage = activePage();
-      if (themedPage.has("gradient")) {
-        paint.setShader(
-            new LinearGradient(
-                0,
-                0,
-                getWidth(),
-                getHeight(),
-                color(themedPage.optString("background", themeValue("background"))),
-                color(themedPage.optString("gradient")),
-                Shader.TileMode.CLAMP));
-        c.drawRect(0, 0, getWidth(), getHeight(), paint);
-        paint.setShader(null);
-      }
-      Bitmap background = bitmap(themedPage.optString("backgroundImage"), 2560);
-      if (background != null) {
-        paint.setColor(Color.WHITE);
-        paint.setFilterBitmap(true);
-        float scale =
-            Math.max(
-                getWidth() / (float) background.getWidth(),
-                getHeight() / (float) background.getHeight());
-        float bw = background.getWidth() * scale, bh = background.getHeight() * scale;
-        c.drawBitmap(
-            background,
-            null,
-            new RectF(
-                (getWidth() - bw) / 2,
-                (getHeight() - bh) / 2,
-                (getWidth() + bw) / 2,
-                (getHeight() + bh) / 2),
-            paint);
-      }
+      drawPageBackground(c, activePage());
       label(
           c,
           "◈  OPEN DECK" + (pageId.equals("jimin-os-page") ? "  /  Jimin OS" : ""),
@@ -2037,13 +2248,75 @@ public class MainActivity extends Activity {
         }
     }
 
+    void drawPageBackground(Canvas c, JSONObject themedPage) {
+      c.drawColor(color(themedPage.optString("background", themeValue("background", themedPage))));
+      if (themedPage.has("gradient")) {
+        paint.setShader(
+            new LinearGradient(
+                0,
+                0,
+                getWidth(),
+                getHeight(),
+                color(themedPage.optString("background", themeValue("background", themedPage))),
+                color(themedPage.optString("gradient")),
+                Shader.TileMode.CLAMP));
+        c.drawRect(0, 0, getWidth(), getHeight(), paint);
+        paint.setShader(null);
+      }
+      Bitmap background = bitmap(themedPage.optString("backgroundImage"), 2560);
+      if (background != null) {
+        paint.setColor(Color.WHITE);
+        paint.setFilterBitmap(true);
+        float scale =
+            Math.max(
+                getWidth() / (float) background.getWidth(),
+                getHeight() / (float) background.getHeight());
+        float bw = background.getWidth() * scale, bh = background.getHeight() * scale;
+        c.drawBitmap(
+            background,
+            null,
+            new RectF(
+                (getWidth() - bw) / 2,
+                (getHeight() - bh) / 2,
+                (getWidth() + bw) / 2,
+                (getHeight() + bh) / 2),
+            paint);
+      }
+    }
+
+    private class PageBackdrop extends View {
+      final JSONObject page;
+
+      PageBackdrop(JSONObject page) {
+        super(MainActivity.this);
+        this.page = page;
+        setImportantForAccessibility(View.IMPORTANT_FOR_ACCESSIBILITY_NO);
+      }
+
+      @Override
+      protected void onDraw(Canvas c) {
+        drawPageBackground(c, page);
+      }
+    }
+
+    PageBackdrop backdrop(JSONObject page) {
+      String id = page.optString("id");
+      PageBackdrop view = backdrops.get(id);
+      if (view == null) {
+        view = new PageBackdrop(page);
+        backdrops.put(id, view);
+        addView(view, 0);
+      }
+      return view;
+    }
+
     void drawWidget(Canvas c, JSONObject w, RectF r) {
       String type = w.optString("type"), id = w.optString("id");
       int accent = color(w.optString("color", "#86b6ff"));
       JSONObject style = w.optJSONObject("style");
       if (style == null) style = new JSONObject();
       if (type.equals("spacer")) return;
-      float radius = dp(activePage().optInt("radius", 13));
+      float radius = dp((drawingPage == null ? activePage() : drawingPage).optInt("radius", 13));
       paint.setColor(color(style.optString("background", themeValue("surface"))));
       paint.setStyle(Paint.Style.FILL);
       c.drawRoundRect(r, radius, radius, paint);
@@ -2687,13 +2960,30 @@ public class MainActivity extends Activity {
       float x = e.getX(), y = e.getY();
       switch (e.getActionMasked()) {
         case MotionEvent.ACTION_DOWN:
+          clearVelocity();
+          boolean resumeSwipe = swipeSettle != null && y > dp(68) && y < getHeight() - dp(46);
+          if (resumeSwipe) {
+            swipeSettle.removeAllListeners();
+            swipeSettle.cancel();
+            swipeSettle = null;
+          }
+          gestureBlocked =
+              !resumeSwipe
+                  && (swipeSettle != null || SystemClock.elapsedRealtime() < transitionUntil);
+          if (gestureBlocked) return true;
+          swipeVelocity = VelocityTracker.obtain();
+          swipeVelocity.addMovement(e);
           downX = x;
           downY = y;
           lastY = y;
           downAt = System.currentTimeMillis();
-          moved = false;
-          touchAxis = 0;
-          downIndex = hit(x, y);
+          moved = resumeSwipe;
+          touchAxis = resumeSwipe ? 1 : 0;
+          dragStartOffset =
+              resumeSwipe
+                  ? SwipePhysics.distance(swipeOffset, getWidth(), swipePreview != null)
+                  : 0;
+          downIndex = resumeSwipe ? -1 : hit(x, y);
           if (downIndex >= 0) {
             Tile tile = tiles.get(downIndex);
             tile.animate().cancel();
@@ -2708,6 +2998,8 @@ public class MainActivity extends Activity {
           }
           return true;
         case MotionEvent.ACTION_MOVE:
+          if (gestureBlocked) return true;
+          if (swipeVelocity != null) swipeVelocity.addMovement(e);
           if (Math.abs(x - downX) + Math.abs(y - downY) > dp(10)) {
             if (!moved) releasePress();
             moved = true;
@@ -2715,6 +3007,8 @@ public class MainActivity extends Activity {
               touchAxis = Math.abs(x - downX) > Math.abs(y - downY) * 1.3f ? 1 : 2;
           }
           if (dragVolume >= 0 && downIndex >= 0) dragVolume = volumeAt(x, rects.get(downIndex));
+          else if (touchAxis == 1 && downY > dp(68) && downY < getHeight() - dp(46))
+            dragPage(dragStartOffset + x - downX);
           else if (touchAxis == 2 && maxScroll > 0) {
             scroll = Math.max(0, Math.min(maxScroll, scroll + lastY - y));
             requestLayout();
@@ -2723,18 +3017,39 @@ public class MainActivity extends Activity {
           if (downIndex >= 0 && dragVolume >= 0) tiles.get(downIndex).invalidate();
           return true;
         case MotionEvent.ACTION_POINTER_DOWN:
+          gestureBlocked = true;
+          clearVelocity();
+          if (swiping && swipeSettle == null) settleSwipe(false, 0);
           moved = true;
           touchAxis = 2;
           dragVolume = -1;
           releasePress();
           return true;
         case MotionEvent.ACTION_CANCEL:
+          clearVelocity();
+          if (swiping && swipeSettle == null) settleSwipe(false, 0);
           releasePress();
           dragVolume = -1;
           invalidate();
           return true;
         case MotionEvent.ACTION_UP:
+          if (gestureBlocked) {
+            clearVelocity();
+            return true;
+          }
+          float velocity = 0;
+          if (swipeVelocity != null) {
+            swipeVelocity.addMovement(e);
+            swipeVelocity.computeCurrentVelocity(1000, dp(8000));
+            velocity = swipeVelocity.getXVelocity();
+          }
+          clearVelocity();
           releasePress();
+          if (swiping) {
+            dragPage(dragStartOffset + x - downX);
+            settleSwipe(true, velocity);
+            return true;
+          }
           try {
             if (dragVolume >= 0) {
               int value = Math.round(dragVolume);
@@ -2756,27 +3071,7 @@ public class MainActivity extends Activity {
               if (downIndex >= 0) tiles.get(downIndex).invalidate();
               return true;
             }
-            if (moved) {
-              if (touchAxis == 1
-                  && downY > dp(60)
-                  && downY < getHeight() - dp(46)
-                  && Math.abs(x - downX) >= Math.max(dp(72), getWidth() * .08f)
-                  && Math.abs(x - downX) > Math.abs(y - downY) * 1.5f) {
-                JSONArray pages = config.optJSONArray("pages");
-                if (pages != null)
-                  for (int i = 0; i < pages.length(); i++) {
-                    if (pages.optJSONObject(i).optString("id").equals(pageId)) {
-                      int next = i + (x < downX ? 1 : -1);
-                      if (next >= 0 && next < pages.length()) {
-                        performHapticFeedback(HapticFeedbackConstants.CLOCK_TICK);
-                        navigate(pages.optJSONObject(next).optString("id"));
-                      }
-                      break;
-                    }
-                  }
-              }
-              return true;
-            }
+            if (moved) return true;
             if (SystemClock.elapsedRealtime() < transitionUntil) return true;
             if (y < dp(60) && x > getWidth() - dp(75)) {
               settings();

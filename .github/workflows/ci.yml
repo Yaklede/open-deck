@@ -25,6 +25,7 @@ jobs:
           packages: platform-tools platforms;android-35 build-tools;35.0.0
           log-accepted-android-sdk-licenses: false
       - uses: gradle/actions/setup-gradle@v4
+      - run: ./scripts/test-swipe.sh
       - run: ./gradlew :app:assembleDebug :app:lintDebug --console=plain
         working-directory: android
       - uses: actions/upload-artifact@v4
