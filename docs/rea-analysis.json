@@ -1,0 +1,20 @@
+{
+  "tool": "REA",
+  "version": "1",
+  "operation": "analyze_javascript_application",
+  "evidence_id": "ev_a4f1c92ce4c182c86d437674086a62bb085bf1ebd688216673e159a30adf4db8",
+  "evidence_sha256": "2d84e88ff6d0f79fad0352620edde565aa04d68220ea9131b536ae0b3ac46fc5",
+  "source": "https://github.com/Macro-Deck-App/Macro-Deck/tree/v3.0.0-beta.18/ui/web-client",
+  "source_commit": "7089154cde506c0884bb39c4712863e0fef83d84",
+  "statistics": {
+    "relevant_files": 132,
+    "nested_asar_containers": 0,
+    "text_bytes_read": 866095,
+    "invalid_utf8_files": 0,
+    "parsed_javascript_files": 127,
+    "visited_ast_nodes": 124621,
+    "findings": 1484,
+    "modules": 0,
+    "parse_failures": 0
+  }
+}

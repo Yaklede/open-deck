@@ -1,0 +1,141 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Open Deck</title>
+    <link rel="stylesheet" href="/app.css" />
+  </head>
+  <body>
+    <aside>
+      <div class="brand">
+        <span>◈</span>
+        <div>Open Deck<small>YOUR DESK, CONNECTED.</small></div>
+      </div>
+      <div class="eyebrow">WORKSPACE</div>
+      <nav id="pages"></nav>
+      <button id="addPage" class="subtle">＋ 새 페이지</button>
+      <div class="aside-bottom">
+        <span class="dot"></span>USB · 로컬 연결<small
+          >개인 설정은 이 맥에만 저장됩니다.</small
+        ><button id="devicesToggle" class="subtle">연결된 기기</button>
+      </div>
+    </aside>
+    <main>
+      <header>
+        <div>
+          <div class="eyebrow">CONTROL CENTER</div>
+          <h1 id="pageTitle">Workspace</h1>
+          <p>자주 하는 일을 한 번의 터치로.</p>
+        </div>
+        <div class="pair">
+          <small>태블릿 페어링 코드</small><strong id="pin">··· ···</strong
+          ><button id="newPin" title="코드 갱신">↻</button>
+        </div>
+      </header>
+      <div class="toolbar">
+        <div class="segmented">
+          <button id="editTab" class="active">덱 편집</button
+          ><button id="automationTab">자동화</button>
+        </div>
+        <div class="tools">
+          <label
+            >열
+            <select id="columns">
+              <option>2</option>
+              <option>3</option>
+              <option>4</option>
+              <option>5</option>
+              <option>6</option>
+              <option>8</option>
+            </select></label
+          ><button id="renamePage">이름 변경</button
+          ><button id="removePage">페이지 삭제</button
+          ><button id="import">가져오기</button
+          ><button id="export">내보내기</button
+          ><button id="save" class="primary">변경 저장</button>
+        </div>
+      </div>
+      <div id="notice" role="status"></div>
+      <section id="deckArea">
+        <div class="palette">
+          <span>위젯 추가</span><button data-add="button">＋ 동작 버튼</button
+          ><button data-add="clock">시계</button
+          ><button data-add="gauges">CPU · 메모리</button
+          ><button data-add="timer">집중 타이머</button
+          ><button data-add="volume">음량 슬라이더</button
+          ><button data-add="text">텍스트</button>
+        </div>
+        <div id="board"></div>
+        <div class="hint">
+          드래그해서 순서를 바꾸고, 위젯을 눌러 동작을 편집하세요. 저장하면
+          태블릿에 바로 반영됩니다.
+        </div>
+      </section>
+      <section id="automationArea" hidden>
+        <h2>매일 반복하는 일</h2>
+        <p>이 맥과 Open Deck이 실행 중일 때 지정한 버튼을 실행합니다.</p>
+        <div id="automations"></div>
+        <button id="addAutomation">＋ 시간 자동화 추가</button>
+      </section>
+      <section id="devices" hidden>
+        <h2>연결된 태블릿</h2>
+        <div id="deviceList"></div>
+      </section>
+      <footer>
+        <span id="saved">Ready</span><span>OPEN DECK · 0.1.0</span>
+      </footer>
+    </main>
+    <section id="inspector" hidden>
+      <div class="inspector-head">
+        <div>
+          <div class="eyebrow">WIDGET</div>
+          <h2>위젯 편집</h2>
+        </div>
+        <button id="closeInspector">✕</button>
+      </div>
+      <label>이름<input id="label" maxlength="120" /></label>
+      <div class="two">
+        <label>강조 색<input type="color" id="color" /></label
+        ><label
+          >아이콘<select id="icon">
+            <option value="power">시작</option>
+            <option value="globe">브라우저</option>
+            <option value="monitor">앱</option>
+            <option value="tasks">일감</option>
+            <option value="mail">메일</option>
+            <option value="chat">채팅</option>
+            <option value="spark">AI</option>
+            <option value="link">링크</option>
+            <option value="code">개발</option>
+            <option value="note">메모</option>
+            <option value="music">음악</option>
+            <option value="volume">음량</option>
+          </select></label
+        >
+      </div>
+      <label id="minutesRow"
+        >분<input type="number" id="minutes" min="1" max="1440"
+      /></label>
+      <div id="flowEditor">
+        <div class="flow-heading">
+          <h3>누르면 실행</h3>
+          <button id="addAction">＋ 단계</button>
+        </div>
+        <div id="actions"></div>
+        <details>
+          <summary>고급 동작 JSON</summary>
+          <textarea id="actionsJson" rows="8"></textarea
+          ><button id="applyJson">적용</button>
+        </details>
+        <button id="testAction" class="primary">이 맥에서 실행</button>
+      </div>
+      <div class="inspector-bottom">
+        <button id="duplicate">복제</button
+        ><button id="removeWidget" class="danger">위젯 삭제</button>
+      </div>
+    </section>
+    <input type="file" id="file" accept="application/json" hidden />
+    <script type="module" src="/app.js"></script>
+  </body>
+</html>

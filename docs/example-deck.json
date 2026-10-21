@@ -1,0 +1,132 @@
+{
+  "version": 1,
+  "name": "Open Deck",
+  "columns": 4,
+  "pages": [
+    {
+      "id": "home",
+      "name": "Workspace",
+      "widgets": [
+        {
+          "id": "2bd10e40-d3c3-4565-89ec-3d70d79b16d2",
+          "type": "button",
+          "label": "Start work",
+          "icon": "power",
+          "color": "#aaa0ff",
+          "actions": [
+            {
+              "type": "openApp",
+              "value": "/Applications/Safari.app"
+            }
+          ]
+        },
+        {
+          "id": "51da687e-63ef-4959-bbd1-71f4b2536926",
+          "type": "clock",
+          "label": "YOUR WORKSPACE",
+          "color": "#81b6ff"
+        },
+        {
+          "id": "919ba5dc-d98c-4e7a-963d-300e13f68ad4",
+          "type": "gauges",
+          "label": "Mac · LIVE",
+          "color": "#ad9bff"
+        },
+        {
+          "id": "f449ade2-488e-4437-b76e-f02406a46196",
+          "type": "timer",
+          "label": "집중 · 25분",
+          "minutes": 25,
+          "color": "#81a8ff"
+        },
+        {
+          "id": "b032393a-66cb-4932-a925-89717399172c",
+          "type": "button",
+          "label": "Browser",
+          "icon": "globe",
+          "color": "#83b7ff",
+          "actions": [
+            {
+              "type": "openApp",
+              "value": "/Applications/Safari.app"
+            }
+          ]
+        },
+        {
+          "id": "61cc5869-91f8-462a-bb6f-637ddd0b77ca",
+          "type": "button",
+          "label": "Mail",
+          "icon": "mail",
+          "color": "#ff9f8c",
+          "actions": [
+            {
+              "type": "openApp",
+              "value": "/System/Applications/Mail.app"
+            }
+          ]
+        },
+        {
+          "id": "28421e46-98fb-4311-8a82-6e3d051450fe",
+          "type": "button",
+          "label": "Notes",
+          "icon": "note",
+          "color": "#f5c66a",
+          "actions": [
+            {
+              "type": "openApp",
+              "value": "/System/Applications/Notes.app"
+            }
+          ]
+        },
+        {
+          "id": "d809806a-e7d9-4984-b622-12431c43fdb4",
+          "type": "button",
+          "label": "Music",
+          "icon": "music",
+          "color": "#78d2a6",
+          "actions": [
+            {
+              "type": "openApp",
+              "value": "/System/Applications/Music.app"
+            }
+          ]
+        },
+        {
+          "id": "demo-prod",
+          "type": "button",
+          "label": "Production",
+          "icon": "link",
+          "color": "#6fd8ad",
+          "actions": []
+        },
+        {
+          "id": "demo-dev",
+          "type": "button",
+          "label": "Development",
+          "icon": "code",
+          "color": "#ffc16b",
+          "actions": []
+        },
+        {
+          "id": "807b714e-bea5-454f-aafa-0725e4b62a18",
+          "type": "volume",
+          "label": "Mac 음량",
+          "color": "#83b7ff"
+        },
+        {
+          "id": "8adfe423-d68e-4863-afe2-8d7b580e7238",
+          "type": "button",
+          "label": "음소거 전환",
+          "icon": "volume",
+          "color": "#8fc9ff",
+          "actions": [
+            {
+              "type": "mute"
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "automations": []
+}

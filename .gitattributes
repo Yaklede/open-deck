@@ -1,0 +1,7 @@
+*.ttf binary
+*.icns binary
+*.png binary
+*.jar binary
+
+*.bat text eol=crlf
+*OFL.txt -whitespace
