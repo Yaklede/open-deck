@@ -129,6 +129,44 @@ test("DB GiB uses actual bytes from the same highest-utilization node, not a dif
   raw.results.I.frames.pop();
   assert.equal(parseGrafanaMetrics(raw, now).memory.usedBytes, null);
 });
+test("node comparison joins CPU and actual memory by exact node, preserves missing data and excludes exporter identities", () => {
+  const raw = response();
+  raw.results.A = {
+    frames: [frame("db-0", [0.1, 0.2, 0.3]), frame("db-1", [0.5, 0.4, 0.2])],
+  };
+  raw.results.H = {
+    frames: [frame("db-0", [0.6, 0.6, 0.6]), frame("db-1", [0.8, 0.8, 0.8])],
+  };
+  raw.results.I = {
+    frames: [frame("db-0", [100, 200, 300]), frame("db-1", [700, 800, 900])],
+  };
+  raw.results.G = { frames: [frame("db-exporter-0", [10, 20, 30])] };
+  let nodes = parseGrafanaMetrics(raw, now).database.nodes;
+  assert.deepEqual(
+    nodes.map((n) => [
+      n.name,
+      n.cpuPercent,
+      n.memoryPercent,
+      n.memoryUsedBytes,
+    ]),
+    [
+      ["db-0", 30, 60, 300],
+      ["db-1", 20, 80, 900],
+    ],
+  );
+  assert.equal(nodes[0].cpuPoints.length, 3);
+  assert.equal(nodes[0].cpuAt, now);
+  raw.results.A.frames.push(frame("db-1", [0.6, 0.7, 0.8]));
+  raw.results.I.frames.pop();
+  nodes = parseGrafanaMetrics(raw, now).database.nodes;
+  assert.equal(nodes[1].cpuPercent, null);
+  assert.equal(nodes[1].memoryPercent, 80);
+  assert.equal(nodes[1].memoryUsedBytes, null);
+  raw.results.A.frames = [];
+  raw.results.H.frames = [];
+  raw.results.I.frames = [];
+  assert.deepEqual(parseGrafanaMetrics(raw, now).database.nodes, []);
+});
 test("two native cards for one project reuse the same collected result", async (t) => {
   let posts = 0;
   const a = widget(),

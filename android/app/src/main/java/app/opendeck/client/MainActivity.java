@@ -1006,6 +1006,27 @@ public class MainActivity extends Activity {
                 : "normal");
   }
 
+  private String grafanaNodeDescription(JSONObject data) {
+    JSONObject database = data == null ? null : data.optJSONObject("database");
+    JSONArray nodes = database == null ? null : database.optJSONArray("nodes");
+    StringBuilder description = new StringBuilder();
+    if (nodes != null)
+      for (int i = 0; i < Math.min(nodes.length(), 5); i++) {
+        JSONObject node = nodes.optJSONObject(i);
+        if (node == null) continue;
+        description
+            .append(", ")
+            .append(node.optString("name"))
+            .append(" CPU ")
+            .append(metricPercent(metric(node, "cpuPercent")))
+            .append(" MEM ")
+            .append(metricPercent(metric(node, "memoryPercent")))
+            .append(" · ")
+            .append(metricGiB(metric(node, "memoryUsedBytes")));
+      }
+    return description.toString();
+  }
+
   private String grafanaNumber(JSONObject data, String key, boolean percent) {
     double value = metric(data == null ? null : data.optJSONObject(key), "value");
     return percent
@@ -1183,11 +1204,14 @@ public class MainActivity extends Activity {
                     : database.optBoolean("ready") ? "정상" : "확인 필요");
           }
           TextView nodeTitle = new TextView(this);
-          nodeTitle.setText(system ? "서비스별 시스템 CPU" : "노드별 DB CPU");
+          nodeTitle.setText(system ? "서비스별 시스템 CPU" : "노드별 DB CPU · MEM");
           nodeTitle.setTextSize(12);
           nodeTitle.setIncludeFontPadding(false);
           nodes.addView(nodeTitle);
-          JSONArray rows = cpu == null ? null : cpu.optJSONArray("nodes");
+          JSONArray rows =
+              system
+                  ? (cpu == null ? null : cpu.optJSONArray("nodes"))
+                  : (database == null ? null : database.optJSONArray("nodes"));
           if (rows != null)
             for (int i = 0; i < rows.length(); i++) {
               JSONObject row = rows.optJSONObject(i);
@@ -1199,14 +1223,30 @@ public class MainActivity extends Activity {
               name.setPadding(0, (int) dp(9), 0, 0);
               nodes.addView(name);
               TextView value = new TextView(this);
-              value.setText(metricPercent(metric(row, "value")));
+              value.setText(metricPercent(metric(row, system ? "value" : "cpuPercent")));
               value.setTextSize(22);
               value.setIncludeFontPadding(false);
               value.setTypeface(font, android.graphics.Typeface.BOLD);
               nodes.addView(value);
               styleOSText(name);
               styleOSText(value);
-              value.setTextColor(monitorValueColor(widget, "cpu", metric(row, "value")));
+              value.setTextColor(
+                  monitorValueColor(widget, "cpu", metric(row, system ? "value" : "cpuPercent")));
+              if (!system) {
+                TextView memory = new TextView(this);
+                memory.setText(
+                    "MEM "
+                        + metricPercent(metric(row, "memoryPercent"))
+                        + " · "
+                        + metricGiB(metric(row, "memoryUsedBytes"))
+                        + " 사용");
+                memory.setTextSize(14);
+                memory.setIncludeFontPadding(false);
+                nodes.addView(memory);
+                styleOSText(memory);
+                memory.setTextColor(
+                    monitorValueColor(widget, "memory", metric(row, "memoryPercent")));
+              }
             }
           styleOSText(nodeTitle);
           updated.setText(
@@ -3112,6 +3152,7 @@ public class MainActivity extends Activity {
                             + grafanaNumber(data, "tps", false)
                             + ", QPS "
                             + grafanaNumber(data, "qps", false))
+                    + (server ? "" : grafanaNodeDescription(data))
                     + ", 길게 눌러 프로젝트 변경");
           }
           if (tile.getVisibility() == View.VISIBLE) tile.invalidate();
@@ -3820,84 +3861,94 @@ public class MainActivity extends Activity {
                 : color("#788fa7"),
             true);
       } else {
-        JSONObject cpu = data.optJSONObject("cpu"),
-            mem = data.optJSONObject("memory"),
-            tps = data.optJSONObject("tps"),
-            qps = data.optJSONObject("qps");
-        RectF left = new RectF(r.left, r.top, r.centerX(), r.bottom),
-            right = new RectF(r.centerX(), r.top, r.right, r.bottom);
+        JSONObject database = data.optJSONObject("database");
+        JSONArray nodes = database == null ? null : database.optJSONArray("nodes");
+        int count = nodes == null ? 0 : nodes.length(), shown = Math.min(count, 4);
         float base = style == null ? 44 : style.optInt("valueSize", 44);
-        monitorText(c, "CPU", left, r.top + dp(92), 14, muted);
+        RectF nameColumn = new RectF(r.left, r.top, r.left + r.width() * .29f, r.bottom),
+            cpuColumn = new RectF(nameColumn.right, r.top, r.left + r.width() * .66f, r.bottom),
+            memColumn = new RectF(cpuColumn.right, r.top, r.right, r.bottom);
+        monitorText(c, "노드별 사용량 · CPU 한도 대비", r, r.top + dp(66), 11, muted);
+        monitorText(c, "노드", nameColumn, r.top + dp(101), 12, muted);
+        monitorText(c, "CPU", cpuColumn, r.top + dp(101), 13, text);
+        monitorText(c, "MEM", memColumn, r.top + dp(101), 12, muted);
+        float rowsTop = r.top + dp(117), rowsBottom = r.bottom - dp(151);
+        float rowHeight = (rowsBottom - rowsTop) / Math.max(3, shown);
+        if (count == 0) {
+          monitorText(c, "DB 노드 지표 수집 없음", r, rowsTop + dp(44), 18, muted);
+        }
+        for (int i = 0; i < shown; i++) {
+          JSONObject node = nodes.optJSONObject(i);
+          if (node == null) continue;
+          float top = rowsTop + i * rowHeight;
+          double cpuValue = metric(node, "cpuPercent"), memoryValue = metric(node, "memoryPercent");
+          monitorText(c, node.optString("name", "노드"), nameColumn, top + dp(28), 15, text);
+          monitorNumber(
+              c,
+              metricPercent(cpuValue),
+              cpuColumn,
+              top + dp(30),
+              base * .68f,
+              monitorValueColor(widget, "cpu", cpuValue));
+          monitorNumber(
+              c,
+              metricPercent(memoryValue),
+              memColumn,
+              top + dp(30),
+              base * .55f,
+              monitorValueColor(widget, "memory", memoryValue));
+          monitorText(
+              c,
+              metricGiB(metric(node, "memoryUsedBytes")) + " 사용",
+              memColumn,
+              top + dp(53),
+              12,
+              muted);
+          grafanaTrend(
+              c,
+              node.optJSONArray("cpuPoints"),
+              new RectF(
+                  cpuColumn.left + dp(20),
+                  top + dp(44),
+                  cpuColumn.right - dp(20),
+                  top + rowHeight - dp(15)),
+              monitorValueColor(widget, "cpu", cpuValue) == monitorColor("normal")
+                  ? color("#788fa7")
+                  : monitorValueColor(widget, "cpu", cpuValue),
+              true);
+          line(
+              c,
+              r.left + dp(20),
+              top + rowHeight,
+              r.right - dp(20),
+              top + rowHeight,
+              lineColor,
+              dp(1));
+        }
+        if (count > shown) {
+          monitorText(
+              c, "외 " + (count - shown) + "개 노드 · 눌러서 전체 보기", r, rowsBottom + dp(17), 11, muted);
+        } else {
+          monitorText(c, "노드별 CPU 추이 · 최근 1시간", r, rowsBottom + dp(17), 10, muted);
+        }
+        RectF totalLeft = new RectF(r.left, r.top, r.centerX(), r.bottom),
+            totalRight = new RectF(r.centerX(), r.top, r.right, r.bottom);
+        monitorText(c, "전체 TPS · 커밋/초", totalLeft, r.bottom - dp(106), 11, muted);
         monitorNumber(
             c,
-            metricPercent(metric(cpu, "value")),
-            left,
-            r.top + dp(156),
-            base,
-            monitorColor(widget, "cpu"));
-        monitorText(c, "노드 최대 · 한도 대비", left, r.top + dp(181), 11, muted);
-        monitorText(c, "MEM", right, r.top + dp(92), 13, muted);
-        monitorNumber(
-            c,
-            metricPercent(metric(mem, "value")),
-            right,
-            r.top + dp(156),
-            base * .75f,
-            monitorColor(widget, "memory"));
-        monitorText(
-            c, metricGiB(metric(mem, "usedBytes")) + " 사용", right, r.top + dp(181), 11, muted);
-        monitorCapacity(
-            c,
-            widget,
-            "cpu",
-            metric(cpu, "value"),
-            new RectF(left.left + dp(20), r.top + dp(202), left.right - dp(20), r.top + dp(208)));
-        monitorCapacity(
-            c,
-            widget,
-            "memory",
-            metric(mem, "value"),
-            new RectF(right.left + dp(20), r.top + dp(202), right.right - dp(20), r.top + dp(208)));
-        line(
-            c,
-            r.left + dp(20),
-            r.top + dp(235),
-            r.right - dp(20),
-            r.top + dp(235),
-            lineColor,
-            dp(1));
-        monitorText(c, "TPS", left, r.top + dp(270), 12, muted);
-        monitorNumber(
-            c,
-            metric(tps, "value") >= 0
-                ? String.format(Locale.KOREA, "%,.1f", metric(tps, "value"))
-                : "—",
-            left,
-            r.top + dp(310),
-            base * .60f,
+            grafanaNumber(data, "tps", false),
+            totalLeft,
+            r.bottom - dp(72),
+            base * .5f,
             monitorColor(widget, "tps"));
-        monitorText(c, "커밋/초", left, r.top + dp(336), 11, muted);
-        monitorText(c, "QPS", right, r.top + dp(270), 12, muted);
+        monitorText(c, "전체 QPS · 쿼리/초", totalRight, r.bottom - dp(106), 11, muted);
         monitorNumber(
             c,
-            metric(qps, "value") >= 0
-                ? String.format(Locale.KOREA, "%,.0f", metric(qps, "value"))
-                : "—",
-            right,
-            r.top + dp(310),
-            base * .60f,
+            grafanaNumber(data, "qps", false),
+            totalRight,
+            r.bottom - dp(72),
+            base * .5f,
             monitorColor(widget, "qps"));
-        monitorText(c, "쿼리/초", right, r.top + dp(336), 11, muted);
-        float chartTop = r.top + dp(386);
-        monitorText(c, "CPU 추이 · 최근 1시간", r, chartTop - dp(15), 11, muted);
-        grafanaTrend(
-            c,
-            cpu == null ? null : cpu.optJSONArray("points"),
-            new RectF(r.left + dp(20), chartTop, r.right - dp(20), r.bottom - dp(84)),
-            monitorLevel(widget, "cpu").equals("normal")
-                ? color("#788fa7")
-                : monitorColor(widget, "cpu"),
-            true);
       }
       line(
           c,

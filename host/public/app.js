@@ -495,20 +495,28 @@ function updateLive() {
               (data.collection?.healthy ?? 0) +
               "/" +
               (data.collection?.total ?? 0)
-            : "DB CPU " +
-              pct(data.cpu.value) +
-              "\nTPS " +
-              (data.tps.value == null
-                ? "수집 없음"
-                : data.tps.value.toFixed(2)) +
-              " · QPS " +
-              (data.qps?.value == null ? "—" : data.qps.value.toFixed(2)) +
-              "\nMEM " +
-              pct(data.memory?.value) +
-              " · " +
-              (data.memory?.usedBytes == null
-                ? "—"
-                : (data.memory.usedBytes / 1073741824).toFixed(1) + " GiB")
+            : (data.database?.nodes?.length
+                ? data.database.nodes
+                    .slice(0, 5)
+                    .map(
+                      (node) =>
+                        node.name +
+                        "  CPU " +
+                        pct(node.cpuPercent) +
+                        "  MEM " +
+                        pct(node.memoryPercent) +
+                        " · " +
+                        (node.memoryUsedBytes == null
+                          ? "—"
+                          : (node.memoryUsedBytes / 1073741824).toFixed(1) +
+                            " GiB"),
+                    )
+                    .join("\n")
+                : "DB 노드 지표 수집 없음") +
+              "\n전체 TPS " +
+              (data.tps.value == null ? "—" : data.tps.value.toFixed(2)) +
+              " · 전체 QPS " +
+              (data.qps?.value == null ? "—" : data.qps.value.toFixed(2))
           : data?.message || "지표 조회 대기");
       c.querySelector(".system-reading").style.whiteSpace = "pre-line";
     }

@@ -106,6 +106,25 @@ export function parseGrafanaMetrics(data, now = Date.now()) {
     return matched.length === 1 ? matched[0].value : null;
   };
   const exporters = up.filter((row) => row.job === "mariadb-exporter");
+  const one = (rows, name) => {
+    const matches = rows.filter((row) => row.name === name);
+    return matches.length === 1 ? matches[0] : null;
+  };
+  const nodeNames = [
+    ...new Set([...cpu, ...memory, ...memoryBytes].map((row) => row.name)),
+  ]
+    .filter((name) => !["DB", "Value", "TPS", "QPS"].includes(name))
+    .sort((a, b) => a.localeCompare(b, undefined, { numeric: true }))
+    .slice(0, 64);
+  const nodes = nodeNames.map((name) => ({
+    name,
+    cpuPercent: one(cpu, name)?.value ?? null,
+    cpuPoints: one(cpu, name)?.points ?? [],
+    memoryPercent: one(memory, name)?.value ?? null,
+    memoryUsedBytes: usedBytes(name),
+    cpuAt: one(cpu, name)?.at ?? null,
+    memoryAt: one(memory, name)?.at ?? null,
+  }));
   return {
     status: "ready",
     capturedAt: now,
@@ -143,6 +162,7 @@ export function parseGrafanaMetrics(data, now = Date.now()) {
       points: trend(memory, "max"),
     },
     database: {
+      nodes,
       ready: ready.length
         ? ready[0].value === 1 && !exporters.some((r) => r.value < 1)
         : null,
