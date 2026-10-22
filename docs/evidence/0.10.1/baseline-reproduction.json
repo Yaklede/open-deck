@@ -1,0 +1,37 @@
+{
+  "version": "0.10.0",
+  "environment": "Mac native app + Android API 34 tablet emulator",
+  "checkedAt": "2026-10-22T15:01:40.047283+00:00",
+  "failures": [
+    {
+      "case": "Android clock format changed with Mac device panel open",
+      "android": "12h",
+      "serverPersisted": "12h",
+      "macOpenPanel": "24h",
+      "result": "stale control; no reopen or refresh performed"
+    },
+    {
+      "case": "Mac changed font scale while Android display settings stayed open",
+      "macAndServer": 110,
+      "androidOpenPanelLabel": "100%",
+      "result": "stale control; no reopen performed"
+    },
+    {
+      "case": "Mac footer Save settings after editing device font scale",
+      "editedValue": 115,
+      "serverPersistedValue": 110,
+      "uiReportedSaved": true,
+      "result": "device edit discarded instead of saved"
+    },
+    {
+      "case": "Mac applies a different field from a stale open device form",
+      "androidSavedTimeFormat": "24h",
+      "macChangedOnly": "textScale=120",
+      "serverAfterMacApply": {
+        "timeFormat": "12h",
+        "textScale": 120
+      },
+      "result": "stale Mac settings overwrote Android clock format"
+    }
+  ]
+}

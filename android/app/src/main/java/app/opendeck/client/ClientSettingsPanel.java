@@ -10,11 +10,27 @@ import android.view.Gravity;
 import android.widget.*;
 import java.util.Map;
 import java.util.function.Consumer;
+import java.util.function.Supplier;
 
 /** Native, scrollable settings forms. The deck remains a native Canvas surface. */
 final class ClientSettingsPanel {
   private static final java.util.Set<AlertDialog> openDialogs =
       java.util.Collections.newSetFromMap(new java.util.WeakHashMap<>());
+  private static final java.util.Set<ClientSettingsPanel> openPanels =
+      java.util.Collections.newSetFromMap(new java.util.WeakHashMap<>());
+
+  static void refreshOpenPanels() {
+    for (ClientSettingsPanel panel : new java.util.ArrayList<>(openPanels)) {
+      for (SettingsControlBinding binding : panel.bindings) binding.refresh();
+      if (panel.reopen != null
+          && !panel.theme.equals(String.valueOf(panel.host.value("theme")))
+          && panel.bindings.stream().noneMatch(SettingsControlBinding::isEditing)) {
+        for (AlertDialog child : panel.childDialogs) child.dismiss();
+        panel.dialog.dismiss();
+        panel.content.post(panel.reopen);
+      }
+    }
+  }
 
   static boolean dismissForLocaleChange() {
     boolean visible = false;
@@ -39,10 +55,27 @@ final class ClientSettingsPanel {
   private final LinearLayout content;
   private final AlertDialog dialog;
   private final int ink, muted, surface, accent;
+  private final java.util.List<SettingsControlBinding> bindings = new java.util.ArrayList<>();
+  private final java.util.List<AlertDialog> childDialogs = new java.util.ArrayList<>();
+  private final String theme;
+  private Runnable reopen;
+
+  ClientSettingsPanel onThemeChanged(Runnable reopen) {
+    this.reopen = reopen;
+    return this;
+  }
+
+  private SettingsControlBinding bind(Supplier<Object> model, Consumer<Object> render) {
+    SettingsControlBinding binding = new SettingsControlBinding(model, render);
+    bindings.add(binding);
+    binding.refresh();
+    return binding;
+  }
 
   ClientSettingsPanel(Context owner, Host host, String title, String description) {
     this.host = host;
     String mode = String.valueOf(host.value("theme"));
+    theme = mode;
     boolean light =
         mode.equals("light")
             || mode.equals("system")
@@ -132,41 +165,78 @@ final class ClientSettingsPanel {
     LinearLayout row = row(title, subtitle);
     Switch view = new Switch(context);
     view.setContentDescription(title);
-    view.setChecked(Boolean.TRUE.equals(host.value(key)));
     row.addView(view);
-    view.setOnCheckedChangeListener((button, enabled) -> host.save(key, enabled));
+    SettingsControlBinding binding =
+        bind(() -> host.value(key), value -> view.setChecked(Boolean.TRUE.equals(value)));
+    view.setOnCheckedChangeListener(
+        (button, enabled) -> binding.change(enabled, value -> host.save(key, value)));
     row.setOnClickListener(v -> view.setChecked(!view.isChecked()));
   }
 
   void choices(String key, String title, Map<String, ?> choices) {
-    String current = String.valueOf(host.value(key));
-    String[] labels = choices.keySet().toArray(new String[0]);
-    Object[] values = choices.values().toArray();
-    int selected = 0;
-    for (int i = 0; i < values.length; i++)
-      if (String.valueOf(values[i]).equals(current)) selected = i;
+    choices(key, title, () -> choices);
+  }
+
+  void choices(String key, String title, Supplier<Map<String, ?>> source) {
     LinearLayout row = row(title, "");
-    TextView value = text(labels[selected] + "  ›", 14, accent);
+    TextView value = text("", 14, accent);
     row.addView(value);
+    AlertDialog[] picker = new AlertDialog[1];
+    Object[][] pickerValues = new Object[1][];
+    SettingsControlBinding binding =
+        bind(
+            () -> new ChoiceSelection(host.value(key), new java.util.LinkedHashMap<>(source.get())),
+            selection -> {
+              ChoiceSelection selected = (ChoiceSelection) selection;
+              Object current = selected.value();
+              String label = String.valueOf(current);
+              for (Map.Entry<String, ?> entry : selected.choices().entrySet())
+                if (java.util.Objects.equals(entry.getValue(), current)) label = entry.getKey();
+              value.setText(label + "  ›");
+              if (picker[0] != null && picker[0].isShowing()) {
+                ListView list = picker[0].getListView();
+                pickerValues[0] = selected.choices().values().toArray();
+                list.setAdapter(
+                    new ArrayAdapter<>(
+                        context,
+                        android.R.layout.select_dialog_singlechoice,
+                        selected.choices().keySet().toArray(new String[0])));
+                list.clearChoices();
+                for (int i = 0; i < pickerValues[0].length; i++)
+                  if (java.util.Objects.equals(pickerValues[0][i], current))
+                    list.setItemChecked(i, true);
+              }
+            });
     row.setOnClickListener(
         v -> {
-          int checked = 0;
+          Map<String, ?> choices = source.get();
+          String[] labels = choices.keySet().toArray(new String[0]);
+          Object[] values = choices.values().toArray();
+          int checked = -1;
           for (int i = 0; i < values.length; i++)
             if (values[i].equals(host.value(key))) checked = i;
-          new AlertDialog.Builder(context)
-              .setTitle(title)
-              .setSingleChoiceItems(
-                  labels,
-                  checked,
-                  (d, index) -> {
-                    host.save(key, values[index]);
-                    value.setText(labels[index] + "  ›");
-                    d.dismiss();
-                  })
-              .setNegativeButton(L10n.text("취소"), null)
-              .show();
+          pickerValues[0] = values;
+          picker[0] =
+              new AlertDialog.Builder(context)
+                  .setTitle(title)
+                  .setSingleChoiceItems(
+                      labels,
+                      checked,
+                      (d, index) -> {
+                        if (index < pickerValues[0].length)
+                          binding.change(
+                              pickerValues[0][index], selected -> host.save(key, selected));
+                        d.dismiss();
+                      })
+                  .setNegativeButton(L10n.text("취소"), null)
+                  .show();
+          openDialogs.add(picker[0]);
+          childDialogs.add(picker[0]);
+          picker[0].setOnDismissListener(d -> openDialogs.remove((AlertDialog) d));
         });
   }
+
+  private record ChoiceSelection(Object value, Map<String, ?> choices) {}
 
   void slider(String key, String title, int min, int max, int step, String unit) {
     LinearLayout row = row(title, "");
@@ -177,18 +247,28 @@ final class ClientSettingsPanel {
     SeekBar seek = new SeekBar(context);
     seek.setContentDescription(title);
     seek.setMax((max - min) / step);
-    seek.setProgress((((Number) host.value(key)).intValue() - min) / step);
     row.addView(seek, new LinearLayout.LayoutParams(-1, dp(42)));
+    SettingsControlBinding binding =
+        bind(
+            () -> host.value(key),
+            value -> {
+              seek.setProgress((((Number) value).intValue() - min) / step);
+              current.setText(value + unit);
+            });
     seek.setOnSeekBarChangeListener(
         new SeekBar.OnSeekBarChangeListener() {
           public void onProgressChanged(SeekBar s, int progress, boolean user) {
-            current.setText((min + progress * step) + unit);
+            if (user) current.setText((min + progress * step) + unit);
           }
 
-          public void onStartTrackingTouch(SeekBar s) {}
+          public void onStartTrackingTouch(SeekBar s) {
+            binding.beginEdit();
+          }
 
           public void onStopTrackingTouch(SeekBar s) {
-            host.save(key, min + s.getProgress() * step);
+            binding.change(min + s.getProgress() * step, value -> host.save(key, value));
+            binding.endEdit();
+            refreshOpenPanels();
           }
         });
   }
@@ -197,6 +277,18 @@ final class ClientSettingsPanel {
     LinearLayout row = row(title, subtitle);
     TextView arrow = text("›", 21, accent);
     row.addView(arrow);
+    row.setOnClickListener(
+        v -> {
+          dialog.dismiss();
+          run.run();
+        });
+  }
+
+  void action(String title, Supplier<String> subtitle, Runnable run) {
+    LinearLayout row = row(title, " ");
+    TextView description = (TextView) ((LinearLayout) row.getChildAt(0)).getChildAt(1);
+    bind(() -> subtitle.get(), value -> description.setText(String.valueOf(value)));
+    row.addView(text("›", 21, accent));
     row.setOnClickListener(
         v -> {
           dialog.dismiss();
@@ -237,7 +329,12 @@ final class ClientSettingsPanel {
   void show() {
     dialog.show();
     openDialogs.add(dialog);
-    dialog.setOnDismissListener(d -> openDialogs.remove(dialog));
+    openPanels.add(this);
+    dialog.setOnDismissListener(
+        d -> {
+          openDialogs.remove(dialog);
+          openPanels.remove(this);
+        });
     if (dialog.getWindow() != null) {
       int width =
           Math.min(dp(660), context.getResources().getDisplayMetrics().widthPixels - dp(32));

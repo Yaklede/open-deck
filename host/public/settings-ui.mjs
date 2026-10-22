@@ -1,6 +1,7 @@
 import { editorLockStatus, showEditorLock } from "./editor-lock.mjs";
 import { renderMigration } from "./migration-ui.mjs";
 import { downloadFile } from "./downloads.mjs";
+import { DeviceDrafts, deviceDefaults } from "./device-drafts.mjs";
 import { renderAccountSecurity, renderVaultSecurity } from "./security-ui.mjs";
 import { t as translate, locales, setLocale, locale } from "./i18n.mjs";
 const el = (tag, text, cls) => {
@@ -80,6 +81,76 @@ export function createSettingsCenter({
     dirty = false,
     language = "ko",
     renderGeneration = 0;
+  const deviceDrafts = new DeviceDrafts();
+  const deviceBindings = new Map(),
+    deviceCards = new Map();
+  let deviceRendering = false,
+    deviceSnapshotSequence = 0;
+  const hasChanges = () => dirty || deviceDrafts.dirty;
+  const editingDeviceControl = () =>
+    content?.contains(document.activeElement) &&
+    document.activeElement.matches("input,select,textarea");
+  const changedStatus = () => {
+    if (status)
+      status.textContent = hasChanges()
+        ? t("저장하지 않은 변경", "Unsaved changes")
+        : "";
+  };
+  function syncDeviceControls() {
+    if (!dialog?.open || active !== "devices" || deviceRendering) return;
+    const latest = deviceDrafts.list();
+    const idsChanged =
+      latest.length !== deviceCards.size ||
+      latest.some((d) => !deviceCards.has(d.id));
+    if (idsChanged && !editingDeviceControl()) {
+      run(render)();
+      return;
+    }
+    for (const device of latest) {
+      const card = deviceCards.get(device.id);
+      if (!card) continue;
+      card.title.textContent = device.name;
+      card.online.textContent = device.online
+        ? t("연결됨", "Online")
+        : t("연결 대기", "Offline");
+      card.online.className = device.online
+        ? "device-online"
+        : "device-offline";
+      card.model.textContent = device.model || "";
+      card.model.hidden = !device.model;
+      card.version.textContent = device.appVersion
+        ? "Open Deck " + device.appVersion
+        : "";
+      card.version.hidden = !device.appVersion;
+      card.updatePages?.();
+      for (const binding of deviceBindings.get(device.id)?.values() || []) {
+        const { input, read } = binding;
+        if (input === document.activeElement) continue;
+        const value = read();
+        if (input.type === "checkbox") input.checked = Boolean(value);
+        else if (input.value !== String(value ?? "")) input.value = value ?? "";
+        binding.lastCaptured =
+          input.type === "checkbox" ? input.checked : input.value;
+      }
+    }
+  }
+  function receiveDevices(devices) {
+    if (!Array.isArray(devices)) return;
+    deviceSnapshotSequence++;
+    deviceDrafts.ingest(devices, { replace: true });
+    syncDeviceControls();
+  }
+  async function saveDeviceChanges(id) {
+    const patches = id
+      ? [deviceDrafts.patch(id)].filter(Boolean)
+      : deviceDrafts.pending();
+    for (const patch of patches) {
+      const result = await api("/api/admin/devices", "PUT", patch);
+      deviceDrafts.acknowledge(patch, result.device);
+    }
+    syncDeviceControls();
+    changedStatus();
+  }
   const t = (ko, en) => translate(ko, en, language);
   const error = (e) => {
     if (!status) {
@@ -212,6 +283,8 @@ export function createSettingsCenter({
   async function render() {
     const generation = ++renderGeneration;
     content.replaceChildren();
+    deviceBindings.clear();
+    deviceCards.clear();
     categories();
     const sectionName = t(...labels[active]);
     content.append(el("h2", sectionName));
@@ -801,426 +874,550 @@ export function createSettingsCenter({
       }
       await renderVaultSecurity(securityContext);
     } else if (active === "devices") {
-      const data = await api("/api/admin/info");
-      if (generation !== renderGeneration) return;
-      const adbSection = section(
-        "USB로 앱 설치 · 업데이트",
-        "Install or update over USB",
-      );
-      action(
-        adbSection,
-        "연결된 Android 기기 확인",
-        "Find attached Android devices",
-        async () => {
-          const adb = await api("/api/admin/usb");
-          for (const d of adb.devices || []) {
-            const r = el("div", undefined, "backup-row");
-            r.append(el("strong", (d.model || d.serial) + " · " + d.state));
-            action(r, "최신 APK 설치", "Install latest APK", async () => {
+      deviceRendering = true;
+      try {
+        const sequence = deviceSnapshotSequence;
+        const data = await api("/api/admin/info");
+        if (generation !== renderGeneration) return;
+        if (sequence === deviceSnapshotSequence)
+          deviceDrafts.ingest(data.devices, { replace: true });
+        const adbSection = section(
+          "USB로 앱 설치 · 업데이트",
+          "Install or update over USB",
+        );
+        action(
+          adbSection,
+          "연결된 Android 기기 확인",
+          "Find attached Android devices",
+          async () => {
+            const adb = await api("/api/admin/usb");
+            for (const d of adb.devices || []) {
+              const r = el("div", undefined, "backup-row");
+              r.append(el("strong", (d.model || d.serial) + " · " + d.state));
+              action(r, "최신 APK 설치", "Install latest APK", async () => {
+                if (
+                  !confirm(
+                    t(
+                      "이 기기에 최신 Open Deck 앱을 설치할까요? 설정은 유지됩니다.",
+                      "Install the latest Open Deck app on this device? Settings are preserved.",
+                    ),
+                  )
+                )
+                  return;
+                status.textContent = t(
+                  "서명된 APK를 확인하고 설치하는 중…",
+                  "Checking and installing the signed APK…",
+                );
+                await api("/api/admin/companion", "POST", { serial: d.serial });
+                status.textContent = t(
+                  "앱 설치 완료",
+                  "App installation complete",
+                );
+              });
+              adbSection.append(r);
+            }
+          },
+        );
+        if (!deviceDrafts.list().length)
+          note(
+            content,
+            "아직 페어링한 태블릿이 없어요.",
+            "No paired tablets yet.",
+          );
+        for (const device of deviceDrafts.list()) {
+          const s = section(device.name, device.name),
+            id = device.id;
+          const ds = new Proxy(
+            {},
+            {
+              get: (_, key) =>
+                deviceDrafts.view(id)?.settings[key] ?? deviceDefaults[key],
+              set: (_, key, value) => {
+                deviceDrafts.set(id, key, value);
+                return true;
+              },
+            },
+          );
+          const bindings = new Map();
+          deviceBindings.set(id, bindings);
+          const deviceRow = (
+            parent,
+            key,
+            ko,
+            en,
+            value,
+            onChange,
+            options = {},
+          ) => {
+            const input = row(
+              parent,
+              ko,
+              en,
+              value,
+              (value) => {
+                onChange(value);
+                changedStatus();
+              },
+              { ...options, transient: true },
+            );
+            const read = () =>
+              key === "name" ? deviceDrafts.view(id)?.name : (ds[key] ?? value);
+            const binding = {
+              input,
+              read,
+              lastCaptured:
+                input.type === "checkbox" ? input.checked : input.value,
+            };
+            bindings.set(key, binding);
+            const captureChange = input.onchange;
+            const capture = () => {
+              const raw =
+                input.type === "checkbox" ? input.checked : input.value;
+              if (raw === binding.lastCaptured) return;
+              binding.lastCaptured = raw;
+              captureChange();
+            };
+            input.onchange = capture;
+            // Capture typed values before Cmd+S, category changes, or incoming SSE.
+            if (input.tagName === "INPUT" && input.type !== "checkbox")
+              input.oninput = capture;
+            input.addEventListener("blur", () =>
+              queueMicrotask(syncDeviceControls),
+            );
+            return input;
+          };
+          const meta = el("div", undefined, "device-meta");
+          const online = el(
+            "span",
+            device.online ? t("연결됨", "Online") : t("연결 대기", "Offline"),
+            device.online ? "device-online" : "device-offline",
+          );
+          const model = el("span", device.model || "");
+          const version = el(
+            "span",
+            device.appVersion ? "Open Deck " + device.appVersion : "",
+          );
+          model.hidden = !device.model;
+          version.hidden = !device.appVersion;
+          meta.append(online, model, version);
+          s.append(meta);
+          deviceCards.set(id, {
+            title: s.querySelector("h3"),
+            online,
+            model,
+            version,
+          });
+          deviceRow(s, "name", "기기 이름", "Device name", device.name, (v) =>
+            deviceDrafts.set(id, "name", v),
+          );
+          let startSelect;
+          deviceRow(
+            s,
+            "profileId",
+            "시작 프로필",
+            "Startup profile",
+            ds.profileId || "",
+            (v) => {
+              ds.profileId = v;
+              ds.startPageId = "";
+              if (startSelect) {
+                startSelect.replaceChildren();
+                const profile = getConfig().profiles.find(
+                  (p) => p.id === (v || getConfig().defaultProfileId),
+                );
+                for (const [id, name] of [
+                  ["", t("프로필 기본 페이지", "Profile default")],
+                  ...getConfig()
+                    .pages.filter((p) => profile?.pageIds.includes(p.id))
+                    .map((p) => [p.id, p.name]),
+                ]) {
+                  const option = el("option", name);
+                  option.value = id;
+                  startSelect.append(option);
+                }
+              }
+            },
+            {
+              choices: {
+                "": ["기본 프로필", "Default profile"],
+                ...Object.fromEntries(
+                  (getConfig().profiles || []).map((p) => [p.id, p.name]),
+                ),
+              },
+            },
+          );
+          startSelect = deviceRow(
+            s,
+            "startPageId",
+            "시작 페이지",
+            "Startup page",
+            ds.startPageId || "",
+            (v) => (ds.startPageId = v),
+            {
+              choices: {
+                "": ["프로필 기본 페이지", "Profile default"],
+                ...Object.fromEntries(
+                  getConfig()
+                    .pages.filter((p) =>
+                      getConfig()
+                        .profiles.find(
+                          (x) =>
+                            x.id ===
+                            (ds.profileId || getConfig().defaultProfileId),
+                        )
+                        ?.pageIds.includes(p.id),
+                    )
+                    .map((p) => [p.id, p.name]),
+                ),
+              },
+            },
+          );
+          for (const [key, ko, en, def] of [
+            ["awake", "화면 켜짐 유지", "Keep screen awake", true],
+            [
+              "settingsButtonHidden",
+              "설정 버튼 숨기기",
+              "Hide settings button",
+              false,
+            ],
+            ["showHeader", "상단 상태 표시", "Show status header", true],
+            ["showNavigation", "하단 탭 표시", "Show bottom tabs", true],
+            ["rememberPage", "마지막 페이지 기억", "Remember last page", true],
+            ["haptics", "터치 진동", "Touch vibration", true],
+            ["sound", "터치 소리", "Touch sound", false],
+            ["swipeEnabled", "좌우 스와이프", "Page swipes", true],
+            ["reducedMotion", "움직임 줄이기", "Reduce motion", false],
+            ["osNotifications", "OS 알림", "OS notifications", true],
+            [
+              "monitorNotifications",
+              "모니터 경고 알림",
+              "Monitor alerts",
+              true,
+            ],
+            ["fullscreen", "전체 화면", "Fullscreen", true],
+            [
+              "fixedVibration",
+              "진동 시간 직접 설정",
+              "Custom vibration duration",
+              false,
+            ],
+            [
+              "firstTouchWakes",
+              "첫 터치는 화면만 깨우기",
+              "First touch only wakes screen",
+              true,
+            ],
+            [
+              "notificationBanner",
+              "앱 내 알림 배너",
+              "In-app notification banner",
+              true,
+            ],
+          ])
+            deviceRow(s, key, ko, en, ds[key] ?? def, (v) => (ds[key] = v), {
+              type: "checkbox",
+            });
+          deviceRow(
+            s,
+            "orientation",
+            "화면 방향",
+            "Orientation",
+            ds.orientation || "auto",
+            (v) => (ds.orientation = v),
+            {
+              choices: {
+                auto: ["자동", "Automatic"],
+                landscape: ["가로", "Landscape"],
+                portrait: ["세로", "Portrait"],
+              },
+            },
+          );
+          deviceRow(
+            s,
+            "theme",
+            "앱 테마",
+            "App theme",
+            ds.theme || "dark",
+            (v) => (ds.theme = v),
+            {
+              choices: {
+                dark: ["어둡게", "Dark"],
+                light: ["밝게", "Light"],
+                system: ["시스템에 맞춤", "System"],
+              },
+            },
+          );
+          deviceRow(
+            s,
+            "renderMode",
+            "렌더링 모드",
+            "Rendering mode",
+            ds.renderMode || "standard",
+            (v) => (ds.renderMode = v),
+            {
+              choices: {
+                standard: ["기본", "Standard"],
+                simple: ["간소화", "Simple"],
+              },
+            },
+          );
+          deviceRow(
+            s,
+            "iconResolution",
+            "이미지 해상도",
+            "Image resolution",
+            String(ds.iconResolution || 0),
+            (v) => (ds.iconResolution = Number(v)),
+            {
+              choices: {
+                0: ["자동", "Automatic"],
+                128: "128 px",
+                256: "256 px",
+                512: "512 px",
+              },
+            },
+          );
+          deviceRow(
+            s,
+            "timeFormat",
+            "시간 형식",
+            "Time format",
+            ds.timeFormat || "24h",
+            (v) => (ds.timeFormat = v),
+            {
+              choices: {
+                "24h": ["24시간", "24-hour"],
+                "12h": ["12시간", "12-hour"],
+              },
+            },
+          );
+          deviceRow(
+            s,
+            "vibrationMs",
+            "진동 길이 (ms)",
+            "Vibration duration (ms)",
+            ds.vibrationMs || 40,
+            (v) => (ds.vibrationMs = v),
+            { type: "number", min: 20, max: 200 },
+          );
+          deviceRow(
+            s,
+            "dimPercent",
+            "화면 보호 밝기 (%)",
+            "Screensaver brightness (%)",
+            ds.dimPercent || 10,
+            (v) => (ds.dimPercent = v),
+            { type: "number", min: 5, max: 50 },
+          );
+          deviceRow(
+            s,
+            "brightness",
+            "밝기 (−1: 시스템)",
+            "Brightness (−1: system)",
+            ds.brightness ?? -1,
+            (v) => (ds.brightness = v),
+            { type: "number", min: -1, max: 100 },
+          );
+          deviceRow(
+            s,
+            "textScale",
+            "글자 크기 (%)",
+            "Text size (%)",
+            ds.textScale ?? 100,
+            (v) => (ds.textScale = v),
+            { type: "number", min: 80, max: 160 },
+          );
+          deviceRow(
+            s,
+            "screenSaverMinutes",
+            "화면 보호 대기 (분, 0: 끔)",
+            "Screensaver delay (minutes, 0: off)",
+            ds.screenSaverMinutes || 0,
+            (v) => (ds.screenSaverMinutes = v),
+            { type: "number", min: 0, max: 120 },
+          );
+          deviceRow(
+            s,
+            "screenSaverMode",
+            "화면 보호 모드",
+            "Screensaver mode",
+            ds.screenSaverMode || "dim",
+            (v) => (ds.screenSaverMode = v),
+            { choices: { dim: ["어둡게", "Dim"], clock: ["시계", "Clock"] } },
+          );
+          deviceCards.get(id).updatePages = () => {
+            if (startSelect === document.activeElement) return;
+            const profile = getConfig().profiles.find(
+              (p) => p.id === (ds.profileId || getConfig().defaultProfileId),
+            );
+            const choices = [
+              ["", t("프로필 기본 페이지", "Profile default")],
+              ...getConfig()
+                .pages.filter((p) => profile?.pageIds.includes(p.id))
+                .map((p) => [p.id, p.name]),
+            ];
+            if (
+              JSON.stringify(
+                [...startSelect.options].map((o) => [o.value, o.textContent]),
+              ) !== JSON.stringify(choices)
+            ) {
+              startSelect.replaceChildren(
+                ...choices.map(([value, title]) => {
+                  const option = el("option", title);
+                  option.value = value;
+                  return option;
+                }),
+              );
+            }
+          };
+          const grouping = [
+            {
+              ko: "화면 · 성능",
+              en: "Display & performance",
+              labels: [
+                "화면 켜짐 유지",
+                "Keep screen awake",
+                "상단 상태 표시",
+                "Show status header",
+                "전체 화면",
+                "Fullscreen",
+                "화면 방향",
+                "Orientation",
+                "앱 테마",
+                "App theme",
+                "렌더링 모드",
+                "Rendering mode",
+                "이미지 해상도",
+                "Image resolution",
+                "시간 형식",
+                "Time format",
+                "밝기 (−1: 시스템)",
+                "Brightness (−1: system)",
+                "글자 크기 (%)",
+                "Text size (%)",
+              ],
+            },
+            {
+              ko: "터치 · 페이지 이동",
+              en: "Touch & navigation",
+              labels: [
+                "설정 버튼 숨기기",
+                "Hide settings button",
+                "하단 탭 표시",
+                "Show bottom tabs",
+                "마지막 페이지 기억",
+                "Remember last page",
+                "터치 진동",
+                "Touch vibration",
+                "터치 소리",
+                "Touch sound",
+                "좌우 스와이프",
+                "Page swipes",
+                "움직임 줄이기",
+                "Reduce motion",
+                "진동 시간 직접 설정",
+                "Custom vibration duration",
+                "진동 길이 (ms)",
+                "Vibration duration (ms)",
+              ],
+            },
+            {
+              ko: "화면 보호",
+              en: "Screensaver",
+              labels: [
+                "첫 터치는 화면만 깨우기",
+                "First touch only wakes screen",
+                "화면 보호 밝기 (%)",
+                "Screensaver brightness (%)",
+                "화면 보호 대기 (분, 0: 끔)",
+                "Screensaver delay (minutes, 0: off)",
+                "화면 보호 모드",
+                "Screensaver mode",
+              ],
+            },
+            {
+              ko: "알림",
+              en: "Notifications",
+              labels: [
+                "OS 알림",
+                "OS notifications",
+                "모니터 경고 알림",
+                "Monitor alerts",
+                "앱 내 알림 배너",
+                "In-app notification banner",
+              ],
+            },
+          ];
+          const deviceRows = [...s.querySelectorAll(":scope > .settings-row")];
+          for (const group of grouping) {
+            const details = el("details", undefined, "device-settings-group");
+            details.append(el("summary", t(group.ko, group.en)));
+            const translatedLabels = group.labels
+              .filter((_, i) => i % 2 === 0)
+              .map((source, i) => t(source, group.labels[i * 2 + 1]));
+            for (const deviceRow of deviceRows) {
+              const label = deviceRow
+                .querySelector("input,select")
+                ?.getAttribute("aria-label");
+              if (translatedLabels.includes(label)) details.append(deviceRow);
+            }
+            s.append(details);
+          }
+          note(
+            s,
+            "설정 버튼을 숨겨도 상단을 길게 눌러 다시 열 수 있어요.",
+            "Long-press the top area to reopen Settings when its button is hidden.",
+          );
+          action(
+            s,
+            "기기에 적용",
+            "Apply to device",
+            async () => {
+              await saveDeviceChanges(device.id);
+              status.textContent = t(
+                "태블릿에 적용했습니다.",
+                "Applied to tablet.",
+              );
+              if (hasChanges()) changedStatus();
+            },
+            "primary",
+          );
+          action(
+            s,
+            "화면 보호 지금 시작",
+            "Start screensaver now",
+            async () => {
+              await api("/api/admin/devices/screensaver", "POST", {
+                id: device.id,
+              });
+              status.textContent = t(
+                "화면 보호를 시작했습니다.",
+                "Screensaver requested.",
+              );
+            },
+          );
+          action(
+            s,
+            "페어링 해제",
+            "Remove pairing",
+            async () => {
               if (
                 !confirm(
                   t(
-                    "이 기기에 최신 Open Deck 앱을 설치할까요? 설정은 유지됩니다.",
-                    "Install the latest Open Deck app on this device? Settings are preserved.",
+                    "이 태블릿의 연결 권한을 해제할까요?",
+                    "Remove this tablet’s pairing?",
                   ),
                 )
               )
                 return;
-              status.textContent = t(
-                "서명된 APK를 확인하고 설치하는 중…",
-                "Checking and installing the signed APK…",
-              );
-              await api("/api/admin/companion", "POST", { serial: d.serial });
-              status.textContent = t(
-                "앱 설치 완료",
-                "App installation complete",
-              );
-            });
-            adbSection.append(r);
-          }
-        },
-      );
-      if (!data.devices.length)
-        note(
-          content,
-          "아직 페어링한 태블릿이 없어요.",
-          "No paired tablets yet.",
-        );
-      for (const device of data.devices) {
-        const s = section(device.name, device.name),
-          ds = { ...(device.settings || {}) };
-        const meta = el("div", undefined, "device-meta");
-        meta.append(
-          el(
-            "span",
-            device.online ? t("연결됨", "Online") : t("연결 대기", "Offline"),
-            device.online ? "device-online" : "device-offline",
-          ),
-        );
-        if (device.model) meta.append(el("span", device.model));
-        if (device.appVersion)
-          meta.append(el("span", "Open Deck " + device.appVersion));
-        s.append(meta);
-        let name = device.name;
-        row(s, "기기 이름", "Device name", name, (v) => (name = v));
-        let startSelect;
-        row(
-          s,
-          "시작 프로필",
-          "Startup profile",
-          ds.profileId || "",
-          (v) => {
-            ds.profileId = v;
-            ds.startPageId = "";
-            if (startSelect) {
-              startSelect.replaceChildren();
-              const profile = getConfig().profiles.find(
-                (p) => p.id === (v || getConfig().defaultProfileId),
-              );
-              for (const [id, name] of [
-                ["", t("프로필 기본 페이지", "Profile default")],
-                ...getConfig()
-                  .pages.filter((p) => profile?.pageIds.includes(p.id))
-                  .map((p) => [p.id, p.name]),
-              ]) {
-                const option = el("option", name);
-                option.value = id;
-                startSelect.append(option);
-              }
-            }
-          },
-          {
-            choices: {
-              "": ["기본 프로필", "Default profile"],
-              ...Object.fromEntries(
-                (getConfig().profiles || []).map((p) => [p.id, p.name]),
-              ),
+              await api("/api/admin/revoke", "POST", { id: device.id });
+              await render();
             },
-          },
-        );
-        startSelect = row(
-          s,
-          "시작 페이지",
-          "Startup page",
-          ds.startPageId || "",
-          (v) => (ds.startPageId = v),
-          {
-            choices: {
-              "": ["프로필 기본 페이지", "Profile default"],
-              ...Object.fromEntries(
-                getConfig()
-                  .pages.filter((p) =>
-                    getConfig()
-                      .profiles.find(
-                        (x) =>
-                          x.id ===
-                          (ds.profileId || getConfig().defaultProfileId),
-                      )
-                      ?.pageIds.includes(p.id),
-                  )
-                  .map((p) => [p.id, p.name]),
-              ),
-            },
-          },
-        );
-        for (const [key, ko, en, def] of [
-          ["awake", "화면 켜짐 유지", "Keep screen awake", true],
-          [
-            "settingsButtonHidden",
-            "설정 버튼 숨기기",
-            "Hide settings button",
-            false,
-          ],
-          ["showHeader", "상단 상태 표시", "Show status header", true],
-          ["showNavigation", "하단 탭 표시", "Show bottom tabs", true],
-          ["rememberPage", "마지막 페이지 기억", "Remember last page", true],
-          ["haptics", "터치 진동", "Touch vibration", true],
-          ["sound", "터치 소리", "Touch sound", false],
-          ["swipeEnabled", "좌우 스와이프", "Page swipes", true],
-          ["reducedMotion", "움직임 줄이기", "Reduce motion", false],
-          ["osNotifications", "OS 알림", "OS notifications", true],
-          ["monitorNotifications", "모니터 경고 알림", "Monitor alerts", true],
-          ["fullscreen", "전체 화면", "Fullscreen", true],
-          [
-            "fixedVibration",
-            "진동 시간 직접 설정",
-            "Custom vibration duration",
-            false,
-          ],
-          [
-            "firstTouchWakes",
-            "첫 터치는 화면만 깨우기",
-            "First touch only wakes screen",
-            true,
-          ],
-          [
-            "notificationBanner",
-            "앱 내 알림 배너",
-            "In-app notification banner",
-            true,
-          ],
-        ])
-          row(s, ko, en, ds[key] ?? def, (v) => (ds[key] = v), {
-            type: "checkbox",
-          });
-        row(
-          s,
-          "화면 방향",
-          "Orientation",
-          ds.orientation || "auto",
-          (v) => (ds.orientation = v),
-          {
-            choices: {
-              auto: ["자동", "Automatic"],
-              landscape: ["가로", "Landscape"],
-              portrait: ["세로", "Portrait"],
-            },
-          },
-        );
-        row(
-          s,
-          "앱 테마",
-          "App theme",
-          ds.theme || "dark",
-          (v) => (ds.theme = v),
-          {
-            choices: {
-              dark: ["어둡게", "Dark"],
-              light: ["밝게", "Light"],
-              system: ["시스템에 맞춤", "System"],
-            },
-          },
-        );
-        row(
-          s,
-          "렌더링 모드",
-          "Rendering mode",
-          ds.renderMode || "standard",
-          (v) => (ds.renderMode = v),
-          {
-            choices: {
-              standard: ["기본", "Standard"],
-              simple: ["간소화", "Simple"],
-            },
-          },
-        );
-        row(
-          s,
-          "이미지 해상도",
-          "Image resolution",
-          String(ds.iconResolution || 0),
-          (v) => (ds.iconResolution = Number(v)),
-          {
-            choices: {
-              0: ["자동", "Automatic"],
-              128: "128 px",
-              256: "256 px",
-              512: "512 px",
-            },
-          },
-        );
-        row(
-          s,
-          "시간 형식",
-          "Time format",
-          ds.timeFormat || "24h",
-          (v) => (ds.timeFormat = v),
-          {
-            choices: {
-              "24h": ["24시간", "24-hour"],
-              "12h": ["12시간", "12-hour"],
-            },
-          },
-        );
-        row(
-          s,
-          "진동 길이 (ms)",
-          "Vibration duration (ms)",
-          ds.vibrationMs || 40,
-          (v) => (ds.vibrationMs = v),
-          { type: "number", min: 20, max: 200 },
-        );
-        row(
-          s,
-          "화면 보호 밝기 (%)",
-          "Screensaver brightness (%)",
-          ds.dimPercent || 10,
-          (v) => (ds.dimPercent = v),
-          { type: "number", min: 5, max: 50 },
-        );
-        row(
-          s,
-          "밝기 (−1: 시스템)",
-          "Brightness (−1: system)",
-          ds.brightness ?? -1,
-          (v) => (ds.brightness = v),
-          { type: "number", min: -1, max: 100 },
-        );
-        row(
-          s,
-          "글자 크기 (%)",
-          "Text size (%)",
-          ds.textScale ?? 100,
-          (v) => (ds.textScale = v),
-          { type: "number", min: 80, max: 160 },
-        );
-        row(
-          s,
-          "화면 보호 대기 (분, 0: 끔)",
-          "Screensaver delay (minutes, 0: off)",
-          ds.screenSaverMinutes || 0,
-          (v) => (ds.screenSaverMinutes = v),
-          { type: "number", min: 0, max: 120 },
-        );
-        row(
-          s,
-          "화면 보호 모드",
-          "Screensaver mode",
-          ds.screenSaverMode || "dim",
-          (v) => (ds.screenSaverMode = v),
-          { choices: { dim: ["어둡게", "Dim"], clock: ["시계", "Clock"] } },
-        );
-        const grouping = [
-          {
-            ko: "화면 · 성능",
-            en: "Display & performance",
-            labels: [
-              "화면 켜짐 유지",
-              "Keep screen awake",
-              "상단 상태 표시",
-              "Show status header",
-              "전체 화면",
-              "Fullscreen",
-              "화면 방향",
-              "Orientation",
-              "앱 테마",
-              "App theme",
-              "렌더링 모드",
-              "Rendering mode",
-              "이미지 해상도",
-              "Image resolution",
-              "시간 형식",
-              "Time format",
-              "밝기 (−1: 시스템)",
-              "Brightness (−1: system)",
-              "글자 크기 (%)",
-              "Text size (%)",
-            ],
-          },
-          {
-            ko: "터치 · 페이지 이동",
-            en: "Touch & navigation",
-            labels: [
-              "설정 버튼 숨기기",
-              "Hide settings button",
-              "하단 탭 표시",
-              "Show bottom tabs",
-              "마지막 페이지 기억",
-              "Remember last page",
-              "터치 진동",
-              "Touch vibration",
-              "터치 소리",
-              "Touch sound",
-              "좌우 스와이프",
-              "Page swipes",
-              "움직임 줄이기",
-              "Reduce motion",
-              "진동 시간 직접 설정",
-              "Custom vibration duration",
-              "진동 길이 (ms)",
-              "Vibration duration (ms)",
-            ],
-          },
-          {
-            ko: "화면 보호",
-            en: "Screensaver",
-            labels: [
-              "첫 터치는 화면만 깨우기",
-              "First touch only wakes screen",
-              "화면 보호 밝기 (%)",
-              "Screensaver brightness (%)",
-              "화면 보호 대기 (분, 0: 끔)",
-              "Screensaver delay (minutes, 0: off)",
-              "화면 보호 모드",
-              "Screensaver mode",
-            ],
-          },
-          {
-            ko: "알림",
-            en: "Notifications",
-            labels: [
-              "OS 알림",
-              "OS notifications",
-              "모니터 경고 알림",
-              "Monitor alerts",
-              "앱 내 알림 배너",
-              "In-app notification banner",
-            ],
-          },
-        ];
-        const deviceRows = [...s.querySelectorAll(":scope > .settings-row")];
-        for (const group of grouping) {
-          const details = el("details", undefined, "device-settings-group");
-          details.append(el("summary", t(group.ko, group.en)));
-          for (const deviceRow of deviceRows) {
-            const label = deviceRow
-              .querySelector("input,select")
-              ?.getAttribute("aria-label");
-            if (group.labels.includes(label)) details.append(deviceRow);
-          }
-          s.append(details);
-        }
-        note(
-          s,
-          "설정 버튼을 숨겨도 상단을 길게 눌러 다시 열 수 있어요.",
-          "Long-press the top area to reopen Settings when its button is hidden.",
-        );
-        action(
-          s,
-          "기기에 적용",
-          "Apply to device",
-          async () => {
-            await api("/api/admin/devices", "PUT", {
-              id: device.id,
-              name,
-              settings: ds,
-            });
-            status.textContent = t(
-              "태블릿에 적용했습니다.",
-              "Applied to tablet.",
-            );
-            dirty = false;
-          },
-          "primary",
-        );
-        action(s, "화면 보호 지금 시작", "Start screensaver now", async () => {
-          await api("/api/admin/devices/screensaver", "POST", {
-            id: device.id,
-          });
-          status.textContent = t(
-            "화면 보호를 시작했습니다.",
-            "Screensaver requested.",
+            "danger",
           );
-        });
-        action(
-          s,
-          "페어링 해제",
-          "Remove pairing",
-          async () => {
-            if (
-              !confirm(
-                t(
-                  "이 태블릿의 연결 권한을 해제할까요?",
-                  "Remove this tablet’s pairing?",
-                ),
-              )
-            )
-              return;
-            await api("/api/admin/revoke", "POST", { id: device.id });
-            await render();
-          },
-          "danger",
-        );
+        }
+      } finally {
+        deviceRendering = false;
       }
     } else if (active === "backups") {
       await renderVaultSecurity(
@@ -1797,8 +1994,10 @@ export function createSettingsCenter({
     draft = structuredClone(response.settings);
     language = draft.appearance.language;
     dirty = false;
+    deviceDrafts.discard();
     await applyAppearance(draft);
     await render();
+    changedStatus();
   }
   async function open(category = "appearance") {
     active = labels[category] ? category : "appearance";
@@ -1832,7 +2031,7 @@ export function createSettingsCenter({
     close.setAttribute("aria-label", "닫기");
     close.onclick = () => {
       if (
-        !dirty ||
+        !hasChanges() ||
         confirm(
           t("저장하지 않은 설정을 버릴까요?", "Discard unsaved settings?"),
         )
@@ -1844,6 +2043,9 @@ export function createSettingsCenter({
     const body = el("div", undefined, "settings-body");
     nav = el("nav", undefined, "settings-nav");
     content = el("div", undefined, "settings-content");
+    content.addEventListener("focusout", () =>
+      queueMicrotask(syncDeviceControls),
+    );
     body.append(nav, content);
     dialog.append(body);
     const footer = el("div", undefined, "settings-footer");
@@ -1856,15 +2058,20 @@ export function createSettingsCenter({
       "설정 저장",
       "Save settings",
       async () => {
-        const r = await api("/api/admin/settings", "PUT", draft);
-        draft = r.settings || draft;
-        response.settings = draft;
-        language = draft.appearance.language;
-        dirty = false;
-        await applyAppearance(draft);
-        native("applySettings");
+        if (dirty) {
+          const r = await api("/api/admin/settings", "PUT", draft);
+          draft = r.settings || draft;
+          response.settings = draft;
+          language = draft.appearance.language;
+          dirty = false;
+          await applyAppearance(draft);
+          native("applySettings");
+        }
+        await saveDeviceChanges();
         await render();
-        status.textContent = t("설정을 저장했습니다.", "Settings saved.");
+        status.textContent = hasChanges()
+          ? t("저장하지 않은 변경", "Unsaved changes")
+          : t("설정을 저장했습니다.", "Settings saved.");
       },
       "primary",
     );
@@ -1878,7 +2085,7 @@ export function createSettingsCenter({
     });
     dialog.addEventListener("cancel", (e) => {
       if (
-        dirty &&
+        hasChanges() &&
         !confirm(
           t("저장하지 않은 설정을 버릴까요?", "Discard unsaved settings?"),
         )
@@ -1887,6 +2094,8 @@ export function createSettingsCenter({
     });
     dialog.addEventListener("close", () => {
       applyAppearance(response?.settings);
+      dirty = false;
+      deviceDrafts.discard();
       dialog.remove();
       query = "";
     });
@@ -1897,8 +2106,11 @@ export function createSettingsCenter({
   return {
     open: run(() => open()),
     openCategory: (category) => run(() => open(category))(),
+    receiveSnapshot: (snapshot) => receiveDevices(snapshot.devices),
+    hasChanges,
     initialize: async () => {
       response = await api("/api/admin/settings");
+      language = response.settings.appearance.language;
       await applyAppearance(response.settings);
       matchMedia("(prefers-color-scheme: light)").addEventListener(
         "change",

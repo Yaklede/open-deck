@@ -68,12 +68,13 @@ public class MainActivity extends Activity {
   private final Set<String> deliveredNotifications = new HashSet<>();
   private Thread events;
   private SharedPreferences prefs;
-  private final Map<String, Object> clientSettings = ClientSettingsPolicy.defaults();
-  private final Map<String, Object> pendingSettings = new LinkedHashMap<>();
+  private final ClientSettingsSync settingsSync = new ClientSettingsSync();
+  private final Map<String, Object> clientSettings = settingsSync.values();
+  private final Map<String, Object> pendingSettings = settingsSync.pending();
   private final ExecutorService settingRequests = Executors.newSingleThreadExecutor();
   private final ArrayDeque<String> connectionLog = new ArrayDeque<>();
   private String deviceName = Build.MANUFACTURER + " " + Build.MODEL;
-  private long settingsRevision = -1, lastInteraction = SystemClock.elapsedRealtime();
+  private long lastInteraction = SystemClock.elapsedRealtime();
   private boolean idleDimmed, cornerConsumed, firstConfig = true;
   private final WakeInteractionGuard wakeGuard = new WakeInteractionGuard();
   private long lastScreenSaverAt;
@@ -2080,6 +2081,7 @@ public class MainActivity extends Activity {
 
   @Override
   public void onDestroy() {
+    pairingGeneration++;
     stopped = true;
     connected = false;
     disconnectEvents();
@@ -2301,6 +2303,8 @@ public class MainActivity extends Activity {
       }
       List<String> candidates = endpoints();
       base = candidates.get(endpoint % candidates.size());
+      long connectionGeneration = pairingGeneration;
+      String streamToken = token;
       boolean switchToWifi = false;
       HttpURLConnection c = null;
       try {
@@ -2308,18 +2312,21 @@ public class MainActivity extends Activity {
         eventConnection = c;
         c.setConnectTimeout(2500);
         c.setReadTimeout(6000);
-        c.setRequestProperty("Authorization", "Bearer " + token);
-        if (c.getResponseCode() == 401) {
+        c.setRequestProperty("Authorization", "Bearer " + streamToken);
+        int responseStatus = c.getResponseCode();
+        if (connectionGeneration != pairingGeneration) continue;
+        if (responseStatus == 401) {
           token = "";
           prefs.edit().remove("token").apply();
           ui.post(
               () -> {
+                if (connectionGeneration != pairingGeneration) return;
                 resetDeviceIdentity();
                 pairScreen();
               });
           return;
         }
-        if (c.getResponseCode() != 200) throw new IOException("Host unavailable");
+        if (responseStatus != 200) throw new IOException("Host unavailable");
         streamOpenedAt = SystemClock.elapsedRealtime();
         connected = true;
         connectionError = "";
@@ -2333,6 +2340,7 @@ public class MainActivity extends Activity {
             new BufferedReader(new InputStreamReader(c.getInputStream(), StandardCharsets.UTF_8))) {
           String line;
           while (!stopped && (line = reader.readLine()) != null) {
+            if (connectionGeneration != pairingGeneration) break;
             if (line.startsWith("data: ")) {
               JSONObject snapshot = new JSONObject(line.substring(6));
               lastEventAt = SystemClock.elapsedRealtime();
@@ -2347,6 +2355,7 @@ public class MainActivity extends Activity {
               String configJson = cfg == null ? null : cfg.toString();
               ui.post(
                   () -> {
+                    if (connectionGeneration != pairingGeneration) return;
                     boolean changed = cfg != null && !renderedConfig.equals(configJson);
                     if (cfg != null) config = cfg;
                     receiveDeviceSettings(snapshot.optJSONObject("device"));
@@ -2442,7 +2451,8 @@ public class MainActivity extends Activity {
       for (String url : wifiUrls) if (validWifiUrl(url)) urls.add(url);
       urls.sort((a, b) -> Boolean.compare(!a.startsWith("https:"), !b.startsWith("https:")));
     }
-    if (!"wifi".equals(transport) || urls.isEmpty()) urls.add(("http://127.0.0.1:" + BuildConfig.USB_PORT));
+    if (!"wifi".equals(transport) || urls.isEmpty())
+      urls.add(("http://127.0.0.1:" + BuildConfig.USB_PORT));
     return urls;
   }
 
@@ -2857,10 +2867,8 @@ public class MainActivity extends Activity {
       return;
     }
     // One settings request changes both values. There is no intermediate profile with a stale page.
-    clientSettings.put("profileId", target);
-    clientSettings.put("startPageId", requestedNavigationPage);
-    pendingSettings.put("profileId", target);
-    pendingSettings.put("startPageId", requestedNavigationPage);
+    settingsSync.queue("profileId", target);
+    settingsSync.queue("startPageId", requestedNavigationPage);
     navigationProfileRequested = true;
     persistClientSettings();
     flushDeviceSettings();
@@ -3131,44 +3139,40 @@ public class MainActivity extends Activity {
     return dp(settingBool("showNavigation") ? 46 : 12);
   }
 
+  private Map<String, Object> settingsMap(JSONObject object) {
+    Map<String, Object> result = new LinkedHashMap<>();
+    if (object != null)
+      for (String key : clientSettings.keySet())
+        if (object.has(key)) result.put(key, object.opt(key));
+    return result;
+  }
+
   private void loadClientSettings() {
-    clientSettings.put("awake", prefs.getBoolean("awake", true));
     deviceName = prefs.getString("deviceName", deviceName);
     lastScreenSaverAt = prefs.getLong("lastScreenSaverAt", 0);
+    Map<String, Object> saved = new LinkedHashMap<>(), pending = new LinkedHashMap<>();
+    saved.put("awake", prefs.getBoolean("awake", true));
     try {
-      JSONObject saved = new JSONObject(prefs.getString("clientSettings", "{}"));
-      for (String key : new ArrayList<>(clientSettings.keySet()))
-        if (saved.has(key)) {
-          try {
-            clientSettings.put(key, ClientSettingsPolicy.validate(key, saved.get(key)));
-          } catch (Exception ignored) {
-          }
-        }
-      JSONObject pending = new JSONObject(prefs.getString("pendingClientSettings", "{}"));
-      for (String key : clientSettings.keySet())
-        if (pending.has(key)) {
-          try {
-            pendingSettings.put(key, ClientSettingsPolicy.validate(key, pending.get(key)));
-          } catch (Exception ignored) {
-          }
-        }
+      saved.putAll(settingsMap(new JSONObject(prefs.getString("clientSettings", "{}"))));
     } catch (Exception ignored) {
     }
+    try {
+      pending.putAll(settingsMap(new JSONObject(prefs.getString("pendingClientSettings", "{}"))));
+    } catch (Exception ignored) {
+    }
+    settingsSync.restore(saved, pending);
   }
 
   private void resetDeviceIdentity() {
     pairingGeneration++;
     settingsSyncRunning = false;
     settingsSyncRetryAt = 0;
-    settingsRevision = -1;
+    settingsSync.resetRemote();
     deviceMetadataSent = false;
     requestedNavigationPage = "";
     navigationProfileRequested = false;
     lastScreenSaverAt = 0;
-    clientSettings.put("profileId", "");
-    clientSettings.put("startPageId", "");
-    pendingSettings.remove("profileId");
-    pendingSettings.remove("startPageId");
+    settingsSync.clearProfile();
     prefs.edit().remove("lastScreenSaverAt").apply();
     persistClientSettings();
   }
@@ -3184,14 +3188,10 @@ public class MainActivity extends Activity {
   }
 
   private void saveClientSetting(String key, Object value) {
-    Object validated = ClientSettingsPolicy.validate(key, value);
-    if (Objects.equals(clientSettings.get(key), validated)) return;
-    clientSettings.put(key, validated);
-    pendingSettings.put(key, validated);
+    if (!settingsSync.edit(key, value)) return;
     if (key.equals("allowInsecureWifi")) reconnect(transport);
     if (key.equals("profileId")) {
-      clientSettings.put("startPageId", "");
-      pendingSettings.put("startPageId", "");
+      settingsSync.queue("startPageId", "");
       requestedNavigationPage = profileDefaultPage();
       navigationProfileRequested = true;
     } else if (key.equals("startPageId")) {
@@ -3217,7 +3217,7 @@ public class MainActivity extends Activity {
         || !connected
         || token.isEmpty()
         || SystemClock.elapsedRealtime() < settingsSyncRetryAt) return;
-    Map<String, Object> patch = new LinkedHashMap<>(pendingSettings);
+    ClientSettingsSync.Patch patch = settingsSync.snapshot();
     long generation = pairingGeneration;
     String pairedToken = token;
     settingsSyncRunning = true;
@@ -3227,7 +3227,7 @@ public class MainActivity extends Activity {
           try {
             JSONObject body =
                 new JSONObject()
-                    .put("settings", new JSONObject(patch))
+                    .put("settings", new JSONObject(patch.values))
                     .put("model", Build.MODEL)
                     .put("appVersion", appVersion());
             JSONObject response =
@@ -3236,9 +3236,7 @@ public class MainActivity extends Activity {
                 () -> {
                   if (generation != pairingGeneration) return;
                   deviceMetadataSent = true;
-                  for (Map.Entry<String, Object> item : patch.entrySet())
-                    if (Objects.equals(pendingSettings.get(item.getKey()), item.getValue()))
-                      pendingSettings.remove(item.getKey());
+                  settingsSync.acknowledge(patch);
                   persistClientSettings();
                   settingsSyncRunning = false;
                   receiveDeviceSettings(response.optJSONObject("device"));
@@ -3259,39 +3257,35 @@ public class MainActivity extends Activity {
   private void receiveDeviceSettings(JSONObject device) {
     if (device == null) return;
     long revision = device.optLong("settingsRevision", 0);
-    if (ClientSettingsPolicy.acceptRevision(revision, settingsRevision)) {
-      JSONObject remote = device.optJSONObject("settings");
-      String previousProfile = settingString("profileId"),
-          previousStartPage = settingString("startPageId");
-      boolean changed = false;
-      if (remote != null)
-        for (String key : clientSettings.keySet()) {
-          if (!remote.has(key) || pendingSettings.containsKey(key)) continue;
-          try {
-            Object value = ClientSettingsPolicy.validate(key, remote.get(key));
-            if (!Objects.equals(clientSettings.get(key), value)) {
-              clientSettings.put(key, value);
-              changed = true;
-            }
-          } catch (Exception ignored) {
-          }
-        }
-      settingsRevision = revision;
-      if (device.has("name")) deviceName = device.optString("name", deviceName);
-      persistClientSettings();
-      if (!previousProfile.equals(settingString("profileId"))
-          || !previousStartPage.equals(settingString("startPageId"))) {
-        if (requestedNavigationPage.isEmpty()) {
-          requestedNavigationPage =
-              settingString("startPageId").isEmpty()
-                  ? profileDefaultPage()
-                  : settingString("startPageId");
-          navigationProfileRequested = true;
-        }
-        resolveRequestedNavigation();
-      }
-      if (changed) applyClientSettings();
+    String previousProfile = settingString("profileId"),
+        previousStartPage = settingString("startPageId");
+    boolean previousInsecureWifi = settingBool("allowInsecureWifi");
+    boolean newer = ClientSettingsPolicy.acceptRevision(revision, settingsSync.revision());
+    boolean changed = settingsSync.receive(settingsMap(device.optJSONObject("settings")), revision);
+    if (config.optJSONArray("profiles") != null
+        && settingsSync.reconcileNavigation(
+            profilePageCatalog(), config.optString("defaultProfileId"))) {
+      requestedNavigationPage = "";
+      navigationProfileRequested = false;
+      changed = true;
+      recordConnection("settings-navigation-reset", "profile-or-page-removed");
     }
+    if (newer && device.has("name")) deviceName = device.optString("name", deviceName);
+    persistClientSettings();
+    if (!previousProfile.equals(settingString("profileId"))
+        || !previousStartPage.equals(settingString("startPageId"))) {
+      if (requestedNavigationPage.isEmpty()) {
+        requestedNavigationPage =
+            settingString("startPageId").isEmpty()
+                ? profileDefaultPage()
+                : settingString("startPageId");
+        navigationProfileRequested = true;
+      }
+      resolveRequestedNavigation();
+    }
+    if (changed) applyClientSettings();
+    if (previousInsecureWifi != settingBool("allowInsecureWifi")) reconnect(transport);
+    ClientSettingsPanel.refreshOpenPanels();
     long screenSaverAt = device.optLong("screenSaverAt");
     if (screenSaverAt > lastScreenSaverAt) {
       lastScreenSaverAt = screenSaverAt;
@@ -3325,6 +3319,7 @@ public class MainActivity extends Activity {
     if (getRequestedOrientation() != rotation) setRequestedOrientation(rotation);
     immersive();
     applyBrightness();
+    ClientSettingsPanel.refreshOpenPanels();
     if (deck != null) {
       deck.rebuild();
       deck.updateState();
@@ -3462,7 +3457,7 @@ public class MainActivity extends Activity {
         + L10n.text("\n설정 동기화: ")
         + (pendingSettings.isEmpty() ? L10n.text("완료") : L10n.text("연결 후 재시도 예정"))
         + L10n.text("\n설정 버전: ")
-        + settingsRevision
+        + settingsSync.revision()
         + "\n\n"
         + String.join("\n", connectionLog);
   }
@@ -3492,7 +3487,8 @@ public class MainActivity extends Activity {
   private void settings() {
     wakeDisplay();
     ClientSettingsPanel p =
-        panel(L10n.text("Open Deck · 설정"), L10n.text("이 태블릿의 설정은 자동 저장됩니다. 맥의 기기 설정과도 연결됩니다."));
+        panel(L10n.text("Open Deck · 설정"), L10n.text("이 태블릿의 설정은 자동 저장됩니다. 맥의 기기 설정과도 연결됩니다."))
+            .onThemeChanged(this::settings);
     p.action(L10n.text("화면 · 밝기"), L10n.text("테마, 회전, 글자 크기와 렌더링"), this::displaySettings);
     p.action(L10n.text("터치 · 페이지 이동"), L10n.text("진동, 효과음, 제스처와 메뉴 표시"), this::inputSettings);
     p.action(L10n.text("화면 보호"), L10n.text("유휴 밝기, 시계와 첫 터치 동작"), this::idleSettings);
@@ -3509,7 +3505,9 @@ public class MainActivity extends Activity {
   }
 
   private void displaySettings() {
-    ClientSettingsPanel p = panel(L10n.text("화면 · 밝기"), L10n.text("덱의 페이지 색상과 배치는 맥 편집기에서 설정합니다."));
+    ClientSettingsPanel p =
+        panel(L10n.text("화면 · 밝기"), L10n.text("덱의 페이지 색상과 배치는 맥 편집기에서 설정합니다."))
+            .onThemeChanged(this::displaySettings);
     Map<String, Object> languageChoices = new LinkedHashMap<>();
     for (Map.Entry<String, String> language : LocalePolicy.languages().entrySet())
       languageChoices.put(
@@ -3556,7 +3554,8 @@ public class MainActivity extends Activity {
 
   private void inputSettings() {
     ClientSettingsPanel p =
-        panel(L10n.text("터치 · 페이지 이동"), L10n.text("버튼을 숨겨도 오른쪽 위 모서리 길게 누르기로 설정에 접근할 수 있습니다."));
+        panel(L10n.text("터치 · 페이지 이동"), L10n.text("버튼을 숨겨도 오른쪽 위 모서리 길게 누르기로 설정에 접근할 수 있습니다."))
+            .onThemeChanged(this::inputSettings);
     p.toggle("haptics", L10n.text("터치 진동"), L10n.text("Android 터치 진동 설정을 따릅니다."));
     p.toggle("fixedVibration", L10n.text("고정 길이 진동"), L10n.text("짧은 진동이 잘 느껴지지 않는 기기에 사용합니다."));
     p.slider("vibrationMs", L10n.text("진동 길이"), 20, 200, 10, " ms");
@@ -3572,8 +3571,8 @@ public class MainActivity extends Activity {
 
   private void idleSettings() {
     ClientSettingsPanel p =
-        panel(
-            L10n.text("화면 보호"), L10n.text("설정한 시간 동안 사용하지 않으면 앱 밝기를 낮춥니다. 앱을 벗어나면 기기 밝기로 돌아갑니다."));
+        panel(L10n.text("화면 보호"), L10n.text("설정한 시간 동안 사용하지 않으면 앱 밝기를 낮춥니다. 앱을 벗어나면 기기 밝기로 돌아갑니다."))
+            .onThemeChanged(this::idleSettings);
     p.choices(
         "screenSaverMinutes",
         L10n.text("사용하지 않을 때"),
@@ -3609,56 +3608,40 @@ public class MainActivity extends Activity {
 
   private void startupSettings() {
     ClientSettingsPanel p =
-        panel(L10n.text("프로필 · 시작 페이지"), L10n.text("프로필은 맥에서 만들고 이 태블릿에서 선택할 수 있습니다."));
-    JSONArray profiles = config.optJSONArray("profiles");
-    Map<String, Object> profileChoices = choices(L10n.text("맥 기본 프로필 따르기"), "");
-    if (profiles != null)
-      for (int i = 0; i < profiles.length(); i++) {
-        JSONObject profile = profiles.optJSONObject(i);
-        if (profile != null) profileChoices.put(profile.optString("name"), profile.optString("id"));
-      }
-    String profileName = L10n.text("맥 기본 프로필 따르기");
-    for (Map.Entry<String, Object> entry : profileChoices.entrySet())
-      if (entry.getValue().equals(settingString("profileId"))) profileName = entry.getKey();
-    p.action(L10n.text("사용할 프로필"), profileName, this::chooseProfile);
+        panel(L10n.text("프로필 · 시작 페이지"), L10n.text("프로필은 맥에서 만들고 이 태블릿에서 선택할 수 있습니다."))
+            .onThemeChanged(this::startupSettings);
+    p.choices("profileId", L10n.text("사용할 프로필"), this::currentProfileChoices);
     p.toggle("rememberPage", L10n.text("마지막 페이지 기억"), L10n.text("앱을 다시 열 때 마지막으로 사용한 페이지를 보여줍니다."));
-    JSONArray pages = config.optJSONArray("pages");
-    Map<String, Object> pageChoices = choices(L10n.text("프로필 첫 페이지"), "");
-    if (pages != null)
-      for (int i = 0; i < pages.length(); i++) {
-        JSONObject page = pages.optJSONObject(i);
-        pageChoices.put(page.optString("name"), page.optString("id"));
-      }
-    p.choices("startPageId", L10n.text("시작 페이지"), pageChoices);
+    p.choices("startPageId", L10n.text("시작 페이지"), this::currentStartPageChoices);
     p.action(L10n.text("페이지 이동"), L10n.text("숨긴 하단 버튼 대신 여기서 이동할 수 있습니다."), this::choosePage);
     if (!connected) p.note(L10n.text("현재 연결이 끊겨 있어 프로필 변경은 다시 연결되면 적용됩니다."));
     p.show();
   }
 
-  private void chooseProfile() {
+  private Map<String, ?> currentProfileChoices() {
+    Map<String, Object> choices = choices(L10n.text("맥 기본 프로필 따르기"), "");
     JSONArray profiles = config.optJSONArray("profiles");
-    List<String> names = new ArrayList<>(), ids = new ArrayList<>();
-    names.add(L10n.text("맥 기본 프로필 따르기"));
-    ids.add("");
     if (profiles != null)
       for (int i = 0; i < profiles.length(); i++) {
         JSONObject profile = profiles.optJSONObject(i);
-        if (profile != null) {
-          names.add(profile.optString("name"));
-          ids.add(profile.optString("id"));
-        }
+        if (profile != null) choices.put(profile.optString("name"), profile.optString("id"));
       }
-    new AlertDialog.Builder(L10n.context(this))
-        .setTitle(L10n.text("사용할 프로필"))
-        .setSingleChoiceItems(
-            names.toArray(new String[0]),
-            Math.max(0, ids.indexOf(settingString("profileId"))),
-            (dialog, index) -> {
-              saveClientSetting("profileId", ids.get(index));
-              dialog.dismiss();
-            })
-        .setNegativeButton(L10n.text("취소"), null)
-        .show();
+    return choices;
+  }
+
+  private Map<String, ?> currentStartPageChoices() {
+    Map<String, Object> choices = choices(L10n.text("프로필 첫 페이지"), "");
+    String profile = settingString("profileId");
+    if (profile.isEmpty()) profile = config.optString("defaultProfileId");
+    List<String> allowed = profilePageCatalog().getOrDefault(profile, Collections.emptyList());
+    JSONArray pages = config.optJSONArray("pages");
+    if (pages != null)
+      for (int i = 0; i < pages.length(); i++) {
+        JSONObject page = pages.optJSONObject(i);
+        if (page != null && allowed.contains(page.optString("id")))
+          choices.put(page.optString("name"), page.optString("id"));
+      }
+    return choices;
   }
 
   private void choosePage() {
@@ -3675,7 +3658,8 @@ public class MainActivity extends Activity {
 
   private void deviceSettings() {
     ClientSettingsPanel p =
-        panel(L10n.text("연결 · 기기 이름"), L10n.text("Wi-Fi는 최초 USB 등록 때 확인한 인증서로 암호화 연결합니다."));
+        panel(L10n.text("연결 · 기기 이름"), L10n.text("Wi-Fi는 최초 USB 등록 때 확인한 인증서로 암호화 연결합니다."))
+            .onThemeChanged(this::deviceSettings);
     p.action(
         L10n.text("연결 방식 · 주소"),
         L10n.text("현재 ")
@@ -3693,7 +3677,7 @@ public class MainActivity extends Activity {
         L10n.text("지금 다시 연결"), L10n.text("설정과 마지막 데이터는 그대로 유지합니다."), () -> reconnect(transport));
     p.action(
         L10n.text("기기 이름"),
-        deviceName,
+        () -> deviceName,
         () -> {
           ClientSettingsPanel input = panel(L10n.text("기기 이름"), "");
           input.input(
@@ -3705,19 +3689,21 @@ public class MainActivity extends Activity {
                   throw new IllegalArgumentException(L10n.text("1~80자로 입력하세요."));
                 if (!connected)
                   throw new IllegalArgumentException(L10n.text("맥에 연결된 후 이름을 변경하세요."));
+                long generation = pairingGeneration;
+                String pairedToken = token;
                 settingRequests.execute(
                     () -> {
+                      if (generation != pairingGeneration) return;
                       try {
                         JSONObject response =
-                            request(
+                            requestWithToken(
                                 "/api/device/settings",
                                 "PUT",
                                 new JSONObject().put("name", name),
-                                true);
+                                pairedToken);
                         ui.post(
                             () -> {
-                              deviceName = name;
-                              persistClientSettings();
+                              if (generation != pairingGeneration) return;
                               receiveDeviceSettings(response.optJSONObject("device"));
                             });
                       } catch (Exception e) {
@@ -3755,7 +3741,8 @@ public class MainActivity extends Activity {
 
   private void notificationSettings() {
     ClientSettingsPanel p =
-        panel(L10n.text("알림"), L10n.text("이 태블릿에서 받을 알림을 선택합니다. 맥의 수집과 임계치 설정은 유지됩니다."));
+        panel(L10n.text("알림"), L10n.text("이 태블릿에서 받을 알림을 선택합니다. 맥의 수집과 임계치 설정은 유지됩니다."))
+            .onThemeChanged(this::notificationSettings);
     p.toggle("osNotifications", L10n.text("Jimin OS 알림"), L10n.text("일정 시작, 할 일 마감과 업무 요청"));
     p.toggle("monitorNotifications", L10n.text("시스템 · DB 경고"), L10n.text("Grafana 임계치 초과와 정상 복구"));
     p.toggle("notificationBanner", L10n.text("앱 안에서 경고 배너"), L10n.text("덱 위에 모니터 경고를 잠시 표시합니다."));
@@ -3772,13 +3759,14 @@ public class MainActivity extends Activity {
   private void diagnosticSettings() {
     ClientSettingsPanel p =
         panel(
-            L10n.text("정보 · 진단 · 초기화"),
-            "Open Deck "
-                + appVersion()
-                + L10n.text(" · MIT · 무료\nAndroid ")
-                + Build.VERSION.RELEASE
-                + " · "
-                + Build.MODEL);
+                L10n.text("정보 · 진단 · 초기화"),
+                "Open Deck "
+                    + appVersion()
+                    + L10n.text(" · MIT · 무료\nAndroid ")
+                    + Build.VERSION.RELEASE
+                    + " · "
+                    + Build.MODEL)
+            .onThemeChanged(this::diagnosticSettings);
     p.action(
         L10n.text("연결 진단 보기"),
         pendingSettings.isEmpty() ? L10n.text("기기 설정 동기화 완료") : L10n.text("일부 설정은 연결 후 다시 저장합니다."),
@@ -3820,8 +3808,8 @@ public class MainActivity extends Activity {
                       Map<String, Object> defaults = ClientSettingsPolicy.defaults();
                       defaults.remove("profileId");
                       defaults.remove("startPageId");
-                      clientSettings.putAll(defaults);
-                      pendingSettings.putAll(defaults);
+                      for (Map.Entry<String, Object> item : defaults.entrySet())
+                        settingsSync.queue(item.getKey(), item.getValue());
                       persistClientSettings();
                       wakeDisplay();
                       applyClientSettings();

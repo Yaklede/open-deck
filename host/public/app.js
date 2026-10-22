@@ -2410,7 +2410,7 @@ document.addEventListener("keydown", (e) => {
   }
 });
 window.onbeforeunload = (e) => {
-  if (dirty) {
+  if (dirty || settingsCenter.hasChanges()) {
     e.preventDefault();
     e.returnValue = "";
   }
@@ -2452,6 +2452,7 @@ try {
   };
   events.addEventListener("snapshot", (e) => {
     const snapshot = JSON.parse(e.data);
+    settingsCenter.receiveSnapshot(snapshot);
     state = snapshot.state;
     applyAppearanceVariables(state.variables);
     if (

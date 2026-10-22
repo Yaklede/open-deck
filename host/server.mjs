@@ -136,9 +136,17 @@ export function createHost({
           screenSaverAt: d.screenSaverAt || 0,
         }
       : null;
-  const snapshot = (d = null) => ({
+  const adminDevices = () =>
+    devices.map((d) => ({
+      ...safeDevice(d),
+      ...(d.model ? { model: d.model } : {}),
+      ...(d.appVersion ? { appVersion: d.appVersion } : {}),
+      online: [...streams].some((s) => s.openDeckDeviceId === d.id),
+    }));
+  const snapshot = (d = null, admin = false) => ({
     config: deviceConfig(config, d),
     device: safeDevice(d),
+    ...(admin ? { devices: adminDevices() } : {}),
     state: engine.state(),
     network: network(),
   });
@@ -147,6 +155,8 @@ export function createHost({
     attempts = new Map();
   const broadcast = () => {
     const common = { state: engine.state(), network: network() };
+    const deviceList = adminDevices(),
+      deviceStamp = JSON.stringify(deviceList);
     for (const s of streams) {
       if (
         !s.openDeckDeviceId &&
@@ -172,6 +182,10 @@ export function createHost({
       }
       const revision = configRevision + ":" + (d?.settingsRevision || 0);
       const data = { ...common, device: safeDevice(d) };
+      if (!s.openDeckDeviceId && s.openDeckDevices !== deviceStamp) {
+        data.devices = deviceList;
+        s.openDeckDevices = deviceStamp;
+      }
       if (s.openDeckRevision !== revision) {
         data.config = deviceConfig(config, d);
         s.openDeckRevision = revision;
@@ -498,6 +512,7 @@ export function createHost({
           pin = String(crypto.randomInt(100000, 1000000));
           pinExpires = Date.now() + 600000;
           diagnostics.log("info", "device.paired", { count: devices.length });
+          broadcast();
           return send(res, 200, { token, name: config.name });
         }
         if (u.pathname.startsWith("/api/admin") && !admin)
@@ -964,10 +979,7 @@ export function createHost({
           return send(res, 200, {
             pin,
             pinExpires,
-            devices: devices.map(({ hash, ...d }) => ({
-              ...d,
-              online: [...streams].some((s) => s.openDeckDeviceId === d.id),
-            })),
+            devices: adminDevices(),
             config,
             network: network(),
             recovery: { ...recovery },
@@ -1096,7 +1108,7 @@ export function createHost({
           return;
         }
         if (req.method === "GET" && u.pathname === "/api/snapshot")
-          return send(res, 200, snapshot(device(req)));
+          return send(res, 200, snapshot(device(req), admin));
         if (req.method === "GET" && u.pathname === "/api/events") {
           res.writeHead(200, {
             "Content-Type": "text/event-stream",
@@ -1115,7 +1127,10 @@ export function createHost({
             transport: lan ? "wifi" : "usb",
           });
           broadcast();
-          req.on("close", () => streams.delete(res));
+          req.on("close", () => {
+            streams.delete(res);
+            broadcast();
+          });
           return;
         }
         if (
@@ -1223,6 +1238,7 @@ export function createHost({
             "/monitor-layout.mjs",
             "/monitor-rules.mjs",
             "/settings-ui.mjs",
+            "/device-drafts.mjs",
             "/editor-lock.mjs",
             "/profile-tools.mjs",
             "/profiles.mjs",
