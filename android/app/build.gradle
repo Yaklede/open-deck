@@ -5,7 +5,7 @@ if(signingFile.exists()) signingFile.withInputStream { signingValues.load(it) }
 android {
     namespace 'app.opendeck.client'
     compileSdk 35
-    defaultConfig { applicationId 'app.opendeck.client'; minSdk 26; targetSdk 35; versionCode 13; versionName '0.8.4' }
+    defaultConfig { applicationId 'app.opendeck.client'; minSdk 26; targetSdk 35; versionCode 14; versionName '0.8.5' }
     if(signingFile.exists()) signingConfigs { release { storeFile file(signingValues.storeFile); storePassword signingValues.storePassword; keyAlias signingValues.keyAlias; keyPassword signingValues.keyPassword } }
     buildTypes { release { minifyEnabled false; if(signingFile.exists()) signingConfig signingConfigs.release } }
     compileOptions { sourceCompatibility JavaVersion.VERSION_17; targetCompatibility JavaVersion.VERSION_17 }

@@ -620,6 +620,24 @@ function updateLive() {
                   x.title,
               )
               .join("\n") || "다가오는 일정이 없어요.";
+        if (data) {
+          const stale =
+            provider.status !== "connected" ||
+            Date.now() - data.updatedAt >= 45000;
+          const stamp = new Date(data.updatedAt).toLocaleString("ko-KR", {
+            month: "numeric",
+            day: "numeric",
+            hour: "2-digit",
+            minute: "2-digit",
+            second: "2-digit",
+          });
+          target.textContent =
+            (stale ? "이전 데이터 · 자동 재연결 중" : "최신 데이터") +
+            " · " +
+            stamp +
+            " 수집\n" +
+            target.textContent;
+        }
       }
     }
     if (w.type === "todo")
@@ -2213,9 +2231,13 @@ function updateEcosystemStatus() {
   status.textContent =
     p?.status === "connected"
       ? "연결됨 · 일정과 업무 요청을 동기화하고 있어요."
-      : p?.enabled
-        ? "연결 대기 · 맥에서 Jimin OS 앱을 열어 주세요."
-        : "연결 전";
+      : p?.data
+        ? "이전 데이터 · " +
+          new Date(p.data.updatedAt).toLocaleTimeString("ko-KR") +
+          " 수집 · 자동으로 다시 연결하고 있어요."
+        : p?.enabled
+          ? "자동으로 다시 연결하고 있어요. 맥에서 Jimin OS 앱과 로그인을 확인해 주세요."
+          : "연결 전";
 }
 function renderEcosystem() {
   const box = $("#ecosystem");

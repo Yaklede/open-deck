@@ -35,3 +35,17 @@ Android retains one pending request privately. Reopening a write action first of
 Drag left/right across page content to reveal the adjacent page. The active and neighboring page views, including their backgrounds and own theme, track the finger 1:1 during the gesture. The selected page is persisted only after a committed settle. A slow release commits after 30% of the page width; a deliberate fling can commit earlier, while a fling back cancels. Short drags and cancelled/multi-touch gestures return to the original page. The first/last page resists outward dragging instead of wrapping.
 
 Release settling lasts 120–280ms according to remaining distance and velocity and can be grabbed again without jumping. Horizontal and vertical gestures lock independently, sliders retain their drag, and dialogs do not participate in page swipes. Bottom navigation retains a 240ms directional slide. Cached native views and display lists are reused; dragging does not capture full-screen bitmaps or rebuild layouts per frame. Android's disabled-animation setting skips release settling while direct manipulation still follows the finger. Backgrounding, configuration changes and rotation cancel an unfinished drag safely.
+
+
+## Refresh recovery and source age
+
+The companion keeps the last successful OS snapshot in memory when the backend or local bridge is unavailable. `data.updatedAt` remains the collection completion time; attempted refreshes never advance it. Provider `freshness` separates the collection time, last attempt, next retry, bridge reachability and failure reason. A failed refresh or a collection older than 45 seconds displays **이전 데이터 · 재연결 중**, the collection time and elapsed age. Cached schedules, tasks and requests remain readable; writes and reminders require a current successful collection. A successful read restores normal status automatically.
+
+Jimin OS retries failed reads after 2, 5, 10 and at most 30 seconds, coalesces concurrent triggers, and refreshes after online/focus/visibility recovery. Open Deck re-reads the private descriptor on each attempt; bridge failures back off from 3 to 15 seconds. Existing encrypted Wi-Fi and USB reconnection remain available.
+
+Diagnostics contain allowlisted route names, HTTP status, timeout/network category, elapsed duration, collection/retry times and recovery. No credentials, query strings, response bodies or personal task contents are logged. Owner-only JSONL logs rotate at 256 KiB with one previous file:
+
+- Jimin OS: `~/Library/Application Support/io.jimin.os/open-deck-sync.jsonl`
+- Open Deck: `~/Library/Application Support/OpenDeck/jimin-os-sync.jsonl`
+
+No cached OS content is persisted to these logs.

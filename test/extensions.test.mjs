@@ -95,8 +95,9 @@ test("bridge accepts only owned private regular descriptor files and loopback be
   );
   fs.chmodSync(h.bridgePath, 0o644);
   await h.p.poll();
-  assert.equal(h.p.status, "disconnected");
-  assert.equal(h.p.data, null);
+  assert.equal(h.p.status, "stale");
+  assert(h.p.data);
+  assert.equal(h.p.state().freshness.state, "stale");
   fs.chmodSync(h.bridgePath, 0o600);
   fs.renameSync(h.bridgePath, h.bridgePath + ".real");
   fs.symlinkSync(h.bridgePath + ".real", h.bridgePath);
@@ -417,4 +418,73 @@ test("known version conflicts are failed receipts while missing receipts remain 
     mutationId: id,
     status: "not-found",
   });
+});
+
+test("last collection survives upstream errors and bridge outages, ages honestly and reconnects automatically", async (t) => {
+  let now = Date.now();
+  const h = setup(t, { clock: () => now });
+  const first = {
+    ...snapshot(),
+    updatedAt: now,
+    tasks: [{ id, title: "Retained task", version: 1 }],
+  };
+  h.setData(first);
+  await h.p.poll();
+  assert.equal(h.p.state().freshness.state, "fresh");
+  now += 15000;
+  h.setData({
+    ...first,
+    connected: false,
+    sync: {
+      state: "retrying",
+      failures: 1,
+      retryAt: now + 2000,
+      error: {
+        route: "/v1/home",
+        code: "timeout",
+        httpStatus: 0,
+        durationMs: 6000,
+        token: "PRIVATE_TOKEN",
+      },
+    },
+  });
+  await h.p.poll();
+  assert.equal(h.p.status, "stale");
+  assert.equal(h.p.data.tasks[0].title, "Retained task");
+  assert.equal(h.p.data.updatedAt, first.updatedAt);
+  assert.equal(h.p.state().freshness.bridgeConnected, true);
+  await assert.rejects(() => h.p.mutate({ operation: "complete-task" }));
+  fs.renameSync(h.bridgePath, h.bridgePath + ".saved");
+  await h.p.poll();
+  assert.equal(h.p.data.updatedAt, first.updatedAt);
+  assert.equal(h.p.state().freshness.bridgeConnected, false);
+  const tries = h.calls.length;
+  await h.p.poll();
+  assert.equal(h.calls.length, tries);
+  now += 16000;
+  fs.renameSync(h.bridgePath + ".saved", h.bridgePath);
+  h.setData({ ...first, updatedAt: now });
+  await h.p.poll();
+  assert.equal(h.p.status, "connected");
+  assert.equal(h.p.state().freshness.failures, 0);
+  assert.equal(h.p.data.updatedAt, now);
+  // A live bridge returning the same old sample must not keep it fresh.
+  now += 50000;
+  await h.p.poll();
+  assert.equal(h.p.state().freshness.state, "stale");
+  const file = path.join(h.dir, "jimin-os-sync.jsonl");
+  const log = fs.readFileSync(file, "utf8");
+  assert(log.includes('"route":"/v1/home"'));
+  assert(log.includes('"event":"recovered"'));
+  assert(!log.includes("PRIVATE_") && !log.includes("Retained task"));
+  assert.equal(fs.statSync(file).mode & 0o077, 0);
+});
+test("older upstream empty failure snapshots cannot erase cached data", async (t) => {
+  const h = setup(t);
+  await h.p.poll();
+  const at = h.p.data.updatedAt;
+  h.setData({ ...snapshot(), connected: false });
+  await h.p.poll();
+  assert.equal(h.p.data.updatedAt, at);
+  assert.equal(h.p.state().freshness.state, "stale");
 });

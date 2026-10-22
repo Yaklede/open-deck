@@ -10,6 +10,10 @@ public final class DataFreshness {
     return age >= staleAfter ? STALE : age >= warnAfter ? DELAYED : FRESH;
   }
 
+  public static boolean osFresh(long now, long collectedAt, boolean providerConnected) {
+    return providerConnected && classify(now, collectedAt, 45000, 45000) == FRESH;
+  }
+
   public static boolean streamFresh(boolean connected, long elapsed, long lastEvent) {
     return connected && lastEvent > 0 && elapsed >= lastEvent && elapsed - lastEvent < 8000;
   }

@@ -14,12 +14,18 @@ const rows = (v) =>
     : [];
 const date = (v) =>
   typeof v === "string" && Number.isFinite(Date.parse(v)) ? v : "";
-export function sanitizeSnapshot(s) {
+export function sanitizeSnapshot(
+  s,
+  { allowStale = false, now = Date.now() } = {},
+) {
   if (
     s?.schemaVersion !== 1 ||
-    s.connected !== true ||
+    (s.connected !== true &&
+      !(allowStale && s.connected === false && s.sync?.state === "retrying")) ||
     !Number.isFinite(s.updatedAt) ||
-    Math.abs(Date.now() - s.updatedAt) > 120000
+    s.updatedAt <= 0 ||
+    s.updatedAt > now + 30000 ||
+    (!allowStale && now - s.updatedAt > 120000)
   )
     throw Error("Jimin OS에서 서버 연결을 확인해 주세요.");
   return {
@@ -107,6 +113,14 @@ export class JiminOS {
     this.status = "disconnected";
     this.data = null;
     this.error = "";
+    this.failures = 0;
+    this.nextAttemptAt = 0;
+    this.backendRetryAt = 0;
+    this.lastAttemptAt = 0;
+    this.bridgeConnected = false;
+    this.reason = "waiting";
+    this.lastDiagnostic = "";
+    this.lastDiagnosticAt = 0;
     this.busy = false;
     this.closed = false;
     this.seen = new Set();
@@ -125,6 +139,22 @@ export class JiminOS {
       status: this.status,
       error: this.error,
       data: this.data,
+      freshness: {
+        state:
+          this.status === "connected" &&
+          this.data &&
+          this.clock() - this.data.updatedAt < 45000
+            ? "fresh"
+            : this.data
+              ? "stale"
+              : "unavailable",
+        collectedAt: this.data?.updatedAt || 0,
+        lastAttemptAt: this.lastAttemptAt,
+        retryAt: this.nextAttemptAt || this.backendRetryAt,
+        failures: this.failures,
+        bridgeConnected: this.bridgeConnected,
+        reason: this.reason,
+      },
       enabled: this.getOptions().enabled === true,
     };
   }
@@ -177,12 +207,63 @@ export class JiminOS {
         "Jimin OS에서 연결 상태를 확인한 뒤 다시 눌러 주세요.",
       );
       failure.code = code;
+      failure.httpStatus = res.status;
       throw failure;
     }
     const raw = await res.text();
     if (raw.length > 131072)
       throw Error("Jimin OS에서 전달한 정보가 너무 커요.");
     return JSON.parse(raw);
+  }
+  diagnostic(event, detail = {}) {
+    detail = detail && typeof detail === "object" ? detail : {};
+    const entry = {
+      at: this.clock(),
+      event,
+      reason: this.reason,
+      failures: this.failures,
+      collectedAt: this.data?.updatedAt || 0,
+      retryAt: this.nextAttemptAt || this.backendRetryAt,
+      route: [
+        "/v1/home",
+        "/v1/schedule-entries",
+        "/v1/scheduled-work",
+      ].includes(detail.route)
+        ? detail.route
+        : "snapshot",
+      code: ["http", "timeout", "network", "unavailable"].includes(detail.code)
+        ? detail.code
+        : "unavailable",
+      httpStatus: Number.isInteger(detail.httpStatus)
+        ? Math.max(0, Math.min(599, detail.httpStatus))
+        : 0,
+      durationMs: Number.isFinite(detail.durationMs)
+        ? Math.max(0, Math.min(120000, detail.durationMs))
+        : 0,
+    };
+    const signature = JSON.stringify([
+      event,
+      entry.reason,
+      entry.route,
+      entry.code,
+      entry.httpStatus,
+    ]);
+    if (
+      signature === this.lastDiagnostic &&
+      this.clock() - this.lastDiagnosticAt < 60000
+    )
+      return;
+    this.lastDiagnostic = signature;
+    this.lastDiagnosticAt = this.clock();
+    try {
+      fs.mkdirSync(this.dir, { recursive: true, mode: 0o700 });
+      const file = path.join(this.dir, "jimin-os-sync.jsonl");
+      if (fs.existsSync(file) && fs.statSync(file).size > 262144)
+        fs.renameSync(file, file + ".previous");
+      fs.appendFileSync(file, JSON.stringify(entry) + "\n", { mode: 0o600 });
+    } catch {
+      /* Diagnostics must never interrupt reconnection. */
+    }
   }
   async poll() {
     if (this.closed || this.busy) return;
@@ -191,21 +272,73 @@ export class JiminOS {
         this.data = null;
         this.status = "disabled";
         this.error = "";
+        this.failures = 0;
+        this.nextAttemptAt = 0;
         this.onChange();
       }
       return;
     }
+    if (this.clock() < this.nextAttemptAt) return;
     this.busy = true;
+    this.lastAttemptAt = this.clock();
     try {
-      const next = sanitizeSnapshot(await this.request("snapshot"));
-      this.data = next;
-      this.status = "connected";
-      this.error = "";
-      this.reminders(next);
-    } catch {
-      this.status = "disconnected";
-      this.error = "Jimin OS 앱을 열어 연결 상태를 확인해 주세요.";
-      this.data = null;
+      const raw = await this.request("snapshot");
+      this.bridgeConnected = true;
+      this.backendRetryAt = Number.isFinite(raw.sync?.retryAt)
+        ? raw.sync.retryAt
+        : 0;
+      const next = sanitizeSnapshot(raw, {
+        allowStale: true,
+        now: this.clock(),
+      });
+      const fresh =
+        raw.connected === true &&
+        raw.sync?.state !== "retrying" &&
+        this.clock() - next.updatedAt < 45000;
+      if (!this.data || next.updatedAt >= this.data.updatedAt) this.data = next;
+      if (!fresh) {
+        this.status = "stale";
+        this.reason = raw.connected ? "collection_delayed" : "backend_retrying";
+        this.error =
+          "이전 데이터를 보여주고 있어요. 자동으로 다시 연결하고 있어요.";
+        this.failures = Math.max(
+          this.failures,
+          Number(raw.sync?.failures) || 1,
+        );
+        this.nextAttemptAt = 0; // Keep reading the live bridge while Jimin OS retries its server.
+        this.diagnostic("refresh_failed", raw.sync?.error);
+      } else {
+        if (this.status !== "connected") {
+          this.reason = "fresh";
+          this.diagnostic("recovered");
+        }
+        this.status = "connected";
+        this.reason = "fresh";
+        this.error = "";
+        this.failures = 0;
+        this.nextAttemptAt = 0;
+        this.backendRetryAt = 0;
+        this.reminders(next);
+      }
+    } catch (cause) {
+      this.bridgeConnected = false;
+      this.failures++;
+      this.status = this.data ? "stale" : "disconnected";
+      this.reason = "bridge_unavailable";
+      this.error = this.data
+        ? "이전 데이터를 보여주고 있어요. 자동으로 다시 연결하고 있어요."
+        : "Jimin OS에 다시 연결하고 있어요. 맥에서 앱과 로그인을 확인해 주세요.";
+      this.nextAttemptAt =
+        this.clock() +
+        Math.min(15000, 3000 * 2 ** Math.min(this.failures - 1, 3));
+      this.diagnostic("refresh_failed", {
+        code: ["TimeoutError", "AbortError"].includes(cause?.name)
+          ? "timeout"
+          : "unavailable",
+        httpStatus: cause?.httpStatus,
+        durationMs: this.clock() - this.lastAttemptAt,
+      });
+      // Keep the last successful collection and its original timestamp.
     } finally {
       this.busy = false;
       if (!this.closed) this.onChange();
@@ -329,7 +462,7 @@ export class JiminOS {
       !this.getOptions().enabled ||
       this.status !== "connected" ||
       !this.data ||
-      Date.now() - this.data.updatedAt > 120000
+      this.clock() - this.data.updatedAt >= 45000
     )
       throw Error("Jimin OS 연결을 확인한 뒤 다시 시도해 주세요.");
     if (

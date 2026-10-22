@@ -194,6 +194,30 @@ public class MainActivity extends Activity {
     return p == null ? null : p.optJSONObject("data");
   }
 
+  private boolean osFresh() {
+    JSONObject provider = osProvider(), data = osData();
+    return streamFresh()
+        && provider != null
+        && data != null
+        && provider.optString("status").equals("connected")
+        && DataFreshness.osFresh(hostNow(), data.optLong("updatedAt"), true);
+  }
+
+  private String osSyncNotice() {
+    JSONObject data = osData();
+    if (data == null) return "OS 연결 대기 · 자동 재연결 중";
+    long at = data.optLong("updatedAt"), seconds = Math.max(0, (hostNow() - at) / 1000);
+    String age =
+        seconds < 60
+            ? seconds + "초 전"
+            : seconds < 3600 ? seconds / 60 + "분 전" : seconds / 3600 + "시간 전";
+    return (osFresh() ? "OS 최신" : "OS 이전 데이터 · 재연결 중")
+        + " · "
+        + osDate(at, "M/d HH:mm:ss")
+        + " 수집 · "
+        + age;
+  }
+
   private JSONArray osRows(String key) {
     JSONObject data = osData();
     JSONArray rows = data == null ? null : data.optJSONArray(key);
@@ -1534,7 +1558,9 @@ public class MainActivity extends Activity {
     }
     AlertDialog.Builder dialog =
         osDialog()
-            .setTitle(tasksOnly ? "할 일" : day == null ? "다가오는 일정" : day + " 일정")
+            .setTitle(
+                (tasksOnly ? "할 일" : day == null ? "다가오는 일정" : day + " 일정")
+                    + (osFresh() ? "" : " · 이전 데이터"))
             .setNegativeButton("닫기", null);
     if (!tasksOnly && osCan("scheduleCreate"))
       dialog.setPositiveButton("일정 추가", (a, b) -> osCreateSchedule(widget, day));
@@ -1548,14 +1574,17 @@ public class MainActivity extends Activity {
                 osDialog()
                     .setTitle(e.optString("title"))
                     .setMessage(
-                        e.has("startsAt")
-                            ? osDate(instant(e.optString("startsAt")), "M월 d일 EEEE HH:mm")
-                                + " – "
-                                + osDate(instant(e.optString("endsAt")), "M/d HH:mm")
-                            : "마감 · "
-                                + (instant(e.optString("dueAt")) == 0
-                                    ? "없음"
-                                    : osDate(instant(e.optString("dueAt")), "M월 d일 EEEE HH:mm")))
+                        osSyncNotice()
+                            + "\n\n"
+                            + (e.has("startsAt")
+                                ? osDate(instant(e.optString("startsAt")), "M월 d일 EEEE HH:mm")
+                                    + " – "
+                                    + osDate(instant(e.optString("endsAt")), "M/d HH:mm")
+                                : "마감 · "
+                                    + (instant(e.optString("dueAt")) == 0
+                                        ? "없음"
+                                        : osDate(
+                                            instant(e.optString("dueAt")), "M월 d일 EEEE HH:mm"))))
                     .setNeutralButton(
                         "맥에서 열기",
                         (a, b) ->
@@ -1574,7 +1603,7 @@ public class MainActivity extends Activity {
   private boolean osCan(String capability) {
     JSONObject data = osData();
     JSONObject caps = data == null ? null : data.optJSONObject("capabilities");
-    return connected && caps != null && caps.optBoolean(capability);
+    return osFresh() && caps != null && caps.optBoolean(capability);
   }
 
   private boolean osNativeButton(JSONObject widget) {
@@ -1689,7 +1718,10 @@ public class MainActivity extends Activity {
     if (!osCan("scheduleCreate")) {
       osDialog()
           .setTitle("일정 추가 연결 대기")
-          .setMessage("맥의 Jimin OS와 Open Deck을 최신 버전으로 열고 연결을 확인해 주세요.")
+          .setMessage(
+              osData() != null
+                  ? "이전 데이터를 보여주고 있어요. 자동으로 다시 연결한 뒤 일정을 추가할 수 있어요.\n\n" + osSyncNotice()
+                  : "Jimin OS에 다시 연결하고 있어요. 맥에서 앱과 로그인을 확인해 주세요.")
           .setPositiveButton("확인", null)
           .show();
       return;
@@ -2677,7 +2709,7 @@ public class MainActivity extends Activity {
       "화면 켜짐 유지: " + (prefs.getBoolean("awake", true) ? "켜짐" : "꺼짐"),
       "연결 방식 · Wi-Fi / USB",
       "연결 초기화",
-      "Open Deck 0.8.4 · MIT · 무료"
+      "Open Deck 0.8.5 · MIT · 무료"
     };
     new AlertDialog.Builder(this)
         .setTitle("Open Deck")
@@ -3218,7 +3250,9 @@ public class MainActivity extends Activity {
       String status =
           connected
               + base
-              + String.valueOf(osProvider() == null ? null : osProvider().optString("status"));
+              + String.valueOf(osProvider() == null ? null : osProvider().optString("status"))
+              + ":"
+              + hostNow() / 5000;
       if (!status.equals(headerStatus)) {
         headerStatus = status;
         invalidate();
@@ -3295,6 +3329,8 @@ public class MainActivity extends Activity {
                             : freshnessNotice(tile.widget, data))
                         + ", 길게 눌러 프로젝트 변경");
           }
+          if (tile.widget.optString("provider").equals("jimin-os"))
+            tile.setContentDescription(tile.widget.optString("label") + ", " + osSyncNotice());
           if (tile.getVisibility() == View.VISIBLE) tile.invalidate();
         }
         float alpha =
@@ -3306,10 +3342,18 @@ public class MainActivity extends Activity {
       }
     }
 
+    long osHeaderBucket = -1;
+
     void tick() {
+      if (pageId.equals("jimin-os-page") && hostNow() / 5000 != osHeaderBucket) {
+        osHeaderBucket = hostNow() / 5000;
+        invalidate();
+      }
       for (Tile tile : cachedTiles.values()) {
         if (tile.getVisibility() != View.VISIBLE) continue;
-        if ((tile.type.equals("grafana") || tile.type.equals("system"))
+        if ((tile.type.equals("grafana")
+                || tile.type.equals("system")
+                || tile.widget.optString("provider").equals("jimin-os"))
             && tile.freshnessBucket != hostNow() / 5000) {
           tile.freshnessBucket = hostNow() / 5000;
           tile.invalidate();
@@ -3435,14 +3479,18 @@ public class MainActivity extends Activity {
           c,
           streamFresh()
               ? (base.startsWith("https:") ? "Wi-Fi · 암호화 연결됨" : "USB · 연결됨")
-                  + (pageId.equals("jimin-os-page")
-                      ? (osData() == null ? "  · OS 연결 대기" : "  · OS 동기화됨")
-                      : "")
-              : "맥에 다시 연결하는 중…",
+                  + (pageId.equals("jimin-os-page") ? "  · " + osSyncNotice() : "")
+              : "맥에 다시 연결하는 중…"
+                  + (pageId.equals("jimin-os-page") && osData() != null
+                      ? " · " + osSyncNotice()
+                      : ""),
           dp(18),
           dp(49),
           10,
-          color(streamFresh() ? "#70c9a8" : "#ff7d8b"),
+          color(
+              !streamFresh()
+                  ? "#ff7d8b"
+                  : pageId.equals("jimin-os-page") && !osFresh() ? "#efbd73" : "#70c9a8"),
           Paint.Align.LEFT);
       label(c, "⚙", getWidth() - dp(18), dp(40), 24, color("#879dbd"), Paint.Align.RIGHT);
       if (tiles.isEmpty())
@@ -4811,6 +4859,9 @@ public class MainActivity extends Activity {
       String type = widget.optString("type");
       int ink = color("#dfe7f1"), muted = color("#8291a3");
       monitorText(c, widget.optString("label"), r, r.top + dp(32), 16, ink);
+      if (!osFresh() && !type.equals("notification-feed"))
+        label(
+            c, "이전 데이터", r.right - dp(20), r.top + dp(32), 10, color("#efbd73"), Paint.Align.RIGHT);
       if (type.equals("notification-feed")) {
         JSONArray feed = osNotificationFeed();
         int count = 0;
