@@ -45,7 +45,7 @@ References: [Apple CPU accounting](https://github.com/apple-oss-distributions/xn
 
 ## Thresholds and tablet alerts
 
-In the Mac widget editor, expand **임계치 · 태블릿 알림** and save changes. CPU, memory, TPS, QPS and connection rules can use an upper or lower threshold. CPU defaults to warning at 80% and critical at 90%; memory defaults to 85%/95%. TPS, QPS and connection thresholds start disabled because their useful limits depend on the workload. DB not-ready and failed scrape targets also indicate critical status. Green, amber and red distinguish normal, warning and critical values in the main cards, detail values and trend lines; missing/stale samples stay unknown.
+In the Mac widget editor, expand **임계치 · 태블릿 알림** and save changes. CPU, memory, TPS, QPS and connection rules can use an upper or lower threshold. CPU defaults to warning at 80% and critical at 90%; memory defaults to 85%/95%. TPS, QPS and connection thresholds start disabled because their useful limits depend on the workload. DB not-ready and failed scrape targets also indicate critical status. Normal numeric values use neutral text; a small green status badge indicates normal collection. Amber and red highlight warning and critical values and trends, while missing/stale samples stay unknown.
 
 Color follows the current observation immediately. Notifications wait for the configured hold duration (default 60 seconds), repeat no more than once per cooldown (default 600 seconds) while the same condition persists, and report sustained recovery. A brief spike or missing data resets the hold. Projects are tracked independently. Turning notification delivery off preserves color classification. The editor includes a clearly labeled test notification; paired devices cannot call that admin endpoint.
 
@@ -54,3 +54,12 @@ While the tablet app is connected, new monitor events produce a private Android 
 The main DB card directly shows CPU, MEM, TPS and QPS. Memory displays both percentage and actual GiB, using the byte series for the same highest-utilization DB node. Missing or ambiguous byte series remain unavailable; bytes are never inferred from percentage. The source dashboard's optional memory-byte panel uses the existing Cloud Monitoring container memory-used counter grouped by cluster/pod. Mac memory likewise shows actual used/total GiB and percentage.
 
 Monitor titles use the saved widget label rather than hardcoded text. The editor's title/text-size and separate numeric-size controls are delivered with the normal configuration revision; use **변경 저장** to publish edits to connected tablets without restarting the app. Page names also follow the saved configuration.
+
+
+## Visual hierarchy
+
+The monitor leads with system CPU as its largest figure. The DB card puts CPU and memory above the smaller TPS/QPS readings and retains a CPU history graph. The saved numeric-size setting controls the scale while preserving these relative priorities. Metric labels, numeric values, captions, bars and graphs use the same 20dp left/right inset; corresponding rows share their baseline.
+
+Service/job rows, DB node values and connections remain in the detail dialogs. The supporting Mac strip shows CPU, memory percentage/GiB and actionable warnings, with storage, thermal and network details available on tap. Normal colors are quiet; status badges and exceptional states carry color.
+
+The OS template uses a calendar, a central schedule/task summary, and smaller request/notification cards. Schedule creation, tasks and the assistant are primary actions; requests, scheduled work, meetings and refresh are secondary actions. All original actions remain available. OS notification history excludes separate monitor notifications, which still arrive through the tablet notification channel and in-app banner. Existing Workspace pages are preserved.

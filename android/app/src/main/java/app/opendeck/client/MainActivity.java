@@ -984,7 +984,7 @@ public class MainActivity extends Activity {
     return color(
         level.equals("critical")
             ? "#ff7d8b"
-            : level.equals("warning") ? "#efbd73" : level.equals("normal") ? "#83cbb9" : "#9bafbd");
+            : level.equals("warning") ? "#efbd73" : level.equals("normal") ? "#e2e8f0" : "#8291a3");
   }
 
   private int monitorColor(JSONObject widget, String key) {
@@ -1298,6 +1298,16 @@ public class MainActivity extends Activity {
     };
   }
 
+  private JSONArray osNotificationFeed() {
+    JSONArray source = state.optJSONArray("notifications"), result = new JSONArray();
+    if (source != null)
+      for (int i = 0; i < source.length(); i++) {
+        JSONObject row = source.optJSONObject(i);
+        if (row != null && !row.optString("kind").equals("monitor")) result.put(row);
+      }
+    return result;
+  }
+
   private void osList(JSONObject widget, String day) {
     String type = widget.optString("type");
     if (type.equals("inbox")) {
@@ -1305,7 +1315,7 @@ public class MainActivity extends Activity {
       return;
     }
     if (type.equals("notification-feed")) {
-      JSONArray feed = state.optJSONArray("notifications");
+      JSONArray feed = osNotificationFeed();
       StringBuilder text = new StringBuilder();
       if (feed != null)
         for (int i = feed.length() - 1; i >= 0; i--) {
@@ -3618,98 +3628,130 @@ public class MainActivity extends Activity {
     }
 
     void drawMacSummary(Canvas c, JSONObject widget, RectF r) {
-      int text = color(themeValue("text")), muted = color("#9bafbd");
-      JSONObject style = widget.optJSONObject("style");
-      float titleSize = style == null ? 18 : style.optInt("textSize", 18),
-          numberSize = style == null ? 28 : Math.min(36, style.optInt("valueSize", 28));
-      systemLabel(c, widget.optString("label", "내 Mac"), r, r.top + dp(27), titleSize, muted);
+      int muted = color("#8291a3"), ink = color("#dce4ee");
+      float split = r.left + r.width() * .20f, middle = r.left + r.width() * .53f;
+      RectF title = new RectF(r.left, r.top, split, r.bottom),
+          readings = new RectF(split, r.top, middle, r.bottom),
+          issues = new RectF(middle, r.top, r.right, r.bottom);
+      systemLabel(c, template(widget.optString("label", "내 Mac")), title, r.top + dp(28), 14, ink);
+      systemLabel(c, "상세 보기 ›", title, r.top + dp(51), 11, muted);
       JSONObject data = macSystem();
       if (data == null) {
-        systemLabel(c, "맥 상태 연결 대기", r, r.top + dp(66), 24, text);
+        systemLabel(c, "맥 상태 연결 대기", readings, r.top + dp(36), 16, muted);
         return;
       }
-      JSONObject cpu = data.optJSONObject("cpu"),
-          mem = data.optJSONObject("memory"),
-          disk = data.optJSONObject("disk"),
-          power = data.optJSONObject("power"),
-          net = data.optJSONObject("network");
+      JSONObject cpu = data.optJSONObject("cpu"), mem = data.optJSONObject("memory");
       double used = metric(mem, "usedBytes"), total = metric(mem, "totalBytes");
-      String[] names = {"CPU", "MEM", "저장 공간", "전원·발열", "네트워크"};
-      String[] values = {
-        metricPercent(metric(cpu, "percent")),
-        metricPercent(total > 0 ? 100 * used / total : Double.NaN),
-        metricBytes(metric(disk, "availableBytes")),
-        metricPercent(metric(power, "batteryPercent")),
-        "↓ " + metricBytes(metric(net, "rxBytesPerSecond")) + "/s"
-      };
-      String[] sub = {
-        data.optInt("logicalCores") + "코어",
-        metricGiB(used) + " / " + metricGiB(total),
-        "여유 · 전체 " + metricBytes(metric(disk, "totalBytes")),
-        "발열 " + thermalText(power == null ? "" : power.optString("thermal")),
-        "↑ " + metricBytes(metric(net, "txBytesPerSecond")) + "/s"
-      };
-      for (int i = 0; i < 5; i++) {
-        RectF cell =
-            new RectF(
-                r.left + r.width() * i / 5, r.top, r.left + r.width() * (i + 1) / 5, r.bottom);
-        int valueColor =
-            i == 0 ? monitorColor(widget, "cpu") : i == 1 ? monitorColor(widget, "memory") : text;
-        systemLabel(c, names[i], cell, r.top + dp(53), 14, muted);
-        systemLabel(c, values[i], cell, r.top + dp(85), numberSize, valueColor);
-        systemLabel(c, sub[i], cell, r.top + dp(107), 12, muted);
-      }
-      List<String> warnings = systemWarnings(data);
       systemLabel(
           c,
-          warnings.isEmpty() ? "정상 · 눌러서 상세 탭 보기" : String.join(" · ", warnings) + " · 상세 보기",
-          r,
-          r.bottom - dp(12),
-          11,
-          color(warnings.isEmpty() ? "#83cbb9" : "#efbd73"));
+          "CPU " + metricPercent(metric(cpu, "percent")),
+          readings,
+          r.top + dp(30),
+          18,
+          monitorColor(widget, "cpu"));
+      systemLabel(
+          c,
+          "MEM "
+              + metricPercent(total > 0 ? 100 * used / total : Double.NaN)
+              + " · "
+              + metricGiB(used),
+          readings,
+          r.top + dp(53),
+          13,
+          monitorColor(widget, "memory"));
+      List<String> warnings = new ArrayList<>();
+      for (String key : new String[] {"cpu", "memory"}) {
+        String level = monitorLevel(widget, key);
+        if (level.equals("critical") || level.equals("warning"))
+          warnings.add(
+              (key.equals("cpu") ? "CPU" : "MEM") + " " + (level.equals("critical") ? "위험" : "주의"));
+      }
+      warnings.addAll(systemWarnings(data));
+      String level =
+          monitorHealth(widget) == null ? "unknown" : monitorHealth(widget).optString("level");
+      int warningColor = level.equals("critical") ? monitorColor(level) : color("#efbd73");
+      String summary =
+          warnings.isEmpty()
+              ? "추가로 확인할 문제 없음"
+              : String.join(" · ", warnings.subList(0, Math.min(2, warnings.size())));
+      systemLabel(
+          c, summary, issues, r.top + dp(30), 13, warnings.isEmpty() ? muted : warningColor);
+      systemLabel(c, "저장 공간 · 전원 · 네트워크는 상세에서", issues, r.top + dp(53), 11, muted);
     }
 
-    void grafanaMetric(
-        Canvas c,
-        JSONObject widget,
-        JSONObject data,
-        String key,
-        String name,
-        String suffix,
-        RectF cell,
-        float top) {
-      JSONObject metric = data.optJSONObject(key);
-      double value = MainActivity.this.metric(metric, "value");
-      boolean percent = key.equals("cpu") || key.equals("memory");
-      String number =
-          percent
-              ? metricPercent(value)
-              : Double.isFinite(value) ? String.format(Locale.KOREA, "%,.2f", value) : "—";
-      JSONObject style = widget.optJSONObject("style");
-      float numberSize = style == null ? 36 : style.optInt("valueSize", 36);
-      systemLabel(c, name, cell, top, 17, color("#9bafbd"));
-      systemLabel(c, number, cell, top + dp(40), numberSize, monitorColor(widget, key));
-      systemLabel(
+    void monitorBadge(Canvas c, RectF r, String level, String normal) {
+      String text =
+          level.equals("critical")
+              ? "위험"
+              : level.equals("warning") ? "주의" : level.equals("normal") ? normal : "확인 중";
+      int ink = level.equals("normal") ? color("#93b7a7") : monitorColor(level);
+      paint.setTypeface(font);
+      paint.setTextSize(dp(11));
+      float width = paint.measureText(text) + dp(29),
+          right = r.right - dp(20),
+          top = r.top + dp(17);
+      paint.setColor(
+          color(
+              level.equals("critical")
+                  ? "#38272e"
+                  : level.equals("warning")
+                      ? "#352e23"
+                      : level.equals("normal") ? "#23332f" : "#26303b"));
+      c.drawRoundRect(new RectF(right - width, top, right, top + dp(25)), dp(12), dp(12), paint);
+      paint.setColor(ink);
+      c.drawCircle(right - width + dp(11), top + dp(12.5f), dp(2.5f), paint);
+      label(c, text, right - dp(9), top + dp(17), 11, ink, Paint.Align.RIGHT);
+    }
+
+    void monitorCapacity(Canvas c, JSONObject widget, String key, double value, RectF rect) {
+      paint.setColor(color("#2c3846"));
+      c.drawRoundRect(rect, dp(3), dp(3), paint);
+      if (!Double.isFinite(value)) return;
+      String level = monitorLevel(widget, key);
+      paint.setColor(
+          level.equals("warning") || level.equals("critical")
+              ? monitorColor(level)
+              : color("#657b92"));
+      c.drawRoundRect(
+          new RectF(
+              rect.left,
+              rect.top,
+              rect.left + rect.width() * (float) Math.max(0, Math.min(1, value / 100)),
+              rect.bottom),
+          dp(3),
+          dp(3),
+          paint);
+    }
+
+    void monitorText(Canvas c, String value, RectF rect, float y, float size, int ink) {
+      label(
           c,
-          key.equals("memory")
-              ? metricGiB(MainActivity.this.metric(metric, "usedBytes")) + " 사용"
-              : suffix,
-          cell,
-          top + dp(63),
-          13,
-          color("#9bafbd"));
+          ellipsize(value, rect.width() - dp(40), size),
+          rect.left + dp(20),
+          y,
+          size,
+          ink,
+          Paint.Align.LEFT);
+    }
+
+    void monitorNumber(Canvas c, String value, RectF rect, float y, float size, int ink) {
+      paint.setTypeface(font);
+      paint.setTextSize(dp(size));
+      float width = paint.measureText(value), available = rect.width() - dp(40);
+      float fitted = width > available ? size * available / width : size;
+      label(c, value, rect.left + dp(20), y, fitted, ink, Paint.Align.LEFT);
     }
 
     void drawGrafana(Canvas c, JSONObject widget, RectF r) {
       boolean server = widget.optString("metric").equals("system");
-      int accent = color(widget.optString("color", server ? "#86b6ef" : "#83cbb9")),
-          text = color(themeValue("text")),
-          muted = color("#9bafbd");
-      JSONObject style = widget.optJSONObject("style"), health = monitorHealth(widget);
+      int text = color("#e8edf4"), muted = color("#8291a3"), lineColor = color("#303d4b");
+      JSONObject style = widget.optJSONObject("style"),
+          health = monitorHealth(widget),
+          data = grafanaData(widget);
       String level = health == null ? "unknown" : health.optString("level", "unknown");
       if (level.equals("critical") || level.equals("warning")) {
         paint.setStyle(Paint.Style.STROKE);
-        paint.setStrokeWidth(dp(2));
+        paint.setStrokeWidth(dp(1.5f));
         paint.setColor(monitorColor(level));
         c.drawRoundRect(
             new RectF(r.left + dp(1), r.top + dp(1), r.right - dp(1), r.bottom - dp(1)),
@@ -3718,126 +3760,160 @@ public class MainActivity extends Activity {
             paint);
         paint.setStyle(Paint.Style.FILL);
       }
-      systemLabel(
+      RectF heading = new RectF(r.left, r.top, r.right - dp(90), r.bottom);
+      monitorText(
           c,
-          template(widget.optString("label", server ? "시스템 상태" : "DB 상태")),
-          r,
-          r.top + dp(29),
-          style == null ? 18 : style.optInt("textSize", 18),
-          accent);
-      JSONObject data = grafanaData(widget);
+          template(widget.optString("label", server ? "서버 상태" : "데이터베이스")),
+          heading,
+          r.top + dp(34),
+          style == null ? 16 : style.optInt("textSize", 16),
+          text);
+      monitorBadge(c, r, level, "정상");
       if (data == null || !data.optString("status").equals("ready")) {
-        systemLabel(
+        monitorText(c, "지표 연결 확인", r, r.top + dp(116), 24, text);
+        monitorText(
             c,
-            data != null && data.optString("status").equals("error") ? "지표 연결 확인" : "지표 조회 중",
+            data == null ? "최신 데이터를 기다리고 있어요" : data.optString("message", "지표를 조회하고 있어요"),
             r,
-            r.top + dp(100),
-            28,
-            text);
-        systemLabel(
-            c,
-            data == null ? "맥에서 Grafana 연결을 확인해 주세요" : data.optString("message", "잠시 후 자동으로 표시돼요"),
-            r,
-            r.top + dp(132),
-            14,
+            r.top + dp(148),
+            12,
             muted);
       } else if (server) {
-        JSONObject system = data.optJSONObject("system"),
+        JSONObject cpu = data.optJSONObject("system"),
             collection = data.optJSONObject("collection");
-        systemLabel(c, "CPU · 시스템 최대 보고값", r, r.top + dp(69), 17, muted);
-        systemLabel(
+        double value = metric(cpu, "value");
+        monitorText(c, "시스템 CPU", r, r.top + dp(92), 13, muted);
+        monitorNumber(
             c,
-            metricPercent(metric(system, "value")),
+            metricPercent(value),
             r,
-            r.top + dp(118),
-            style == null ? 44 : style.optInt("valueSize", 44),
+            r.top + dp(153),
+            style == null ? 56 : style.optInt("valueSize", 56),
             monitorColor(widget, "cpu"));
+        monitorCapacity(
+            c,
+            widget,
+            "cpu",
+            value,
+            new RectF(r.left + dp(20), r.top + dp(182), r.right - dp(20), r.top + dp(188)));
         int healthy = collection == null ? 0 : collection.optInt("healthy"),
             total = collection == null ? 0 : collection.optInt("total");
-        systemLabel(
+        JSONArray services = cpu == null ? null : cpu.optJSONArray("nodes");
+        String collected = total > 0 ? "수집 " + healthy + " / " + total : "수집 대상 없음";
+        monitorText(
             c,
-            total > 0 ? "수집 정상 " + healthy + " / " + total : "수집 대상 없음",
+            collected + " · 서비스 " + (services == null ? 0 : services.length()) + "개",
             r,
-            r.top + dp(151),
-            16,
-            monitorColor(widget, "collection"));
-        JSONArray nodes = system == null ? null : system.optJSONArray("nodes");
-        if (nodes != null)
-          for (int i = 0; i < Math.min(4, nodes.length()); i++) {
-            JSONObject row = nodes.optJSONObject(i);
-            float y = r.top + dp(191 + i * 28);
-            systemLabel(
-                c,
-                row.optString("name"),
-                new RectF(r.left, r.top, r.right - dp(85), r.bottom),
-                y,
-                14,
-                muted);
-            label(
-                c,
-                metricPercent(metric(row, "value")),
-                r.right - dp(16),
-                y,
-                17,
-                monitorValueColor(widget, "cpu", metric(row, "value")),
-                Paint.Align.RIGHT);
-          }
-        float chartTop = Math.max(r.top + dp(301), r.bottom - dp(118));
-        systemLabel(c, "최근 1시간 · CPU", r, chartTop - dp(8), 12, muted);
+            r.top + dp(217),
+            12,
+            monitorLevel(widget, "collection").equals("critical")
+                ? monitorColor("critical")
+                : muted);
+        float chartTop = r.top + dp(285);
+        monitorText(c, "CPU 추이 · 최근 1시간", r, chartTop - dp(15), 11, muted);
         grafanaTrend(
             c,
-            system == null ? null : system.optJSONArray("points"),
-            new RectF(r.left + dp(16), chartTop, r.right - dp(16), r.bottom - dp(64)),
-            monitorColor(widget, "cpu"),
+            cpu == null ? null : cpu.optJSONArray("points"),
+            new RectF(r.left + dp(20), chartTop, r.right - dp(20), r.bottom - dp(84)),
+            level.equals("critical") || level.equals("warning")
+                ? monitorColor(widget, "cpu")
+                : color("#788fa7"),
             true);
       } else {
-        JSONObject database = data.optJSONObject("database"), tps = data.optJSONObject("tps");
-        String status =
-            level.equals("critical")
-                ? "위험"
-                : level.equals("warning") ? "주의" : level.equals("normal") ? "정상" : "상태 확인 중";
-        systemLabel(c, "DB " + status, r, r.top + dp(58), 15, monitorColor(level));
+        JSONObject cpu = data.optJSONObject("cpu"),
+            mem = data.optJSONObject("memory"),
+            tps = data.optJSONObject("tps"),
+            qps = data.optJSONObject("qps");
         RectF left = new RectF(r.left, r.top, r.centerX(), r.bottom),
             right = new RectF(r.centerX(), r.top, r.right, r.bottom);
-        grafanaMetric(c, widget, data, "cpu", "CPU", "노드 최대 · 할당 한도 대비", left, r.top + dp(88));
-        grafanaMetric(c, widget, data, "memory", "MEM", "", right, r.top + dp(88));
-        grafanaMetric(c, widget, data, "tps", "TPS", "커밋/초 · 5분 평균", left, r.top + dp(193));
-        grafanaMetric(c, widget, data, "qps", "QPS", "쿼리/초 · 전체 노드", right, r.top + dp(193));
-        float chartTop = Math.max(r.top + dp(301), r.bottom - dp(118));
-        double connections = metric(database, "connections");
-        systemLabel(
+        float base = style == null ? 44 : style.optInt("valueSize", 44);
+        monitorText(c, "CPU", left, r.top + dp(92), 14, muted);
+        monitorNumber(
             c,
-            "연결 "
-                + (Double.isFinite(connections)
-                    ? String.format(Locale.KOREA, "%,.0f", connections)
-                    : "—")
-                + " · 최근 1시간 TPS",
-            r,
-            chartTop - dp(8),
-            12,
-            monitorColor(widget, "connections"));
+            metricPercent(metric(cpu, "value")),
+            left,
+            r.top + dp(156),
+            base,
+            monitorColor(widget, "cpu"));
+        monitorText(c, "노드 최대 · 한도 대비", left, r.top + dp(181), 11, muted);
+        monitorText(c, "MEM", right, r.top + dp(92), 13, muted);
+        monitorNumber(
+            c,
+            metricPercent(metric(mem, "value")),
+            right,
+            r.top + dp(156),
+            base * .75f,
+            monitorColor(widget, "memory"));
+        monitorText(
+            c, metricGiB(metric(mem, "usedBytes")) + " 사용", right, r.top + dp(181), 11, muted);
+        monitorCapacity(
+            c,
+            widget,
+            "cpu",
+            metric(cpu, "value"),
+            new RectF(left.left + dp(20), r.top + dp(202), left.right - dp(20), r.top + dp(208)));
+        monitorCapacity(
+            c,
+            widget,
+            "memory",
+            metric(mem, "value"),
+            new RectF(right.left + dp(20), r.top + dp(202), right.right - dp(20), r.top + dp(208)));
+        line(
+            c,
+            r.left + dp(20),
+            r.top + dp(235),
+            r.right - dp(20),
+            r.top + dp(235),
+            lineColor,
+            dp(1));
+        monitorText(c, "TPS", left, r.top + dp(270), 12, muted);
+        monitorNumber(
+            c,
+            metric(tps, "value") >= 0
+                ? String.format(Locale.KOREA, "%,.1f", metric(tps, "value"))
+                : "—",
+            left,
+            r.top + dp(310),
+            base * .60f,
+            monitorColor(widget, "tps"));
+        monitorText(c, "커밋/초", left, r.top + dp(336), 11, muted);
+        monitorText(c, "QPS", right, r.top + dp(270), 12, muted);
+        monitorNumber(
+            c,
+            metric(qps, "value") >= 0
+                ? String.format(Locale.KOREA, "%,.0f", metric(qps, "value"))
+                : "—",
+            right,
+            r.top + dp(310),
+            base * .60f,
+            monitorColor(widget, "qps"));
+        monitorText(c, "쿼리/초", right, r.top + dp(336), 11, muted);
+        float chartTop = r.top + dp(386);
+        monitorText(c, "CPU 추이 · 최근 1시간", r, chartTop - dp(15), 11, muted);
         grafanaTrend(
             c,
-            tps == null ? null : tps.optJSONArray("points"),
-            new RectF(r.left + dp(16), chartTop, r.right - dp(16), r.bottom - dp(64)),
-            monitorColor(widget, "tps"),
-            false);
+            cpu == null ? null : cpu.optJSONArray("points"),
+            new RectF(r.left + dp(20), chartTop, r.right - dp(20), r.bottom - dp(84)),
+            monitorLevel(widget, "cpu").equals("normal")
+                ? color("#788fa7")
+                : monitorColor(widget, "cpu"),
+            true);
       }
       line(
           c,
-          r.left + dp(16),
-          r.bottom - dp(47),
-          r.right - dp(16),
-          r.bottom - dp(47),
-          color("#36505e"),
+          r.left + dp(20),
+          r.bottom - dp(51),
+          r.right - dp(20),
+          r.bottom - dp(51),
+          lineColor,
           dp(1));
-      systemLabel(
+      monitorText(
           c,
-          grafanaProject(widget).optString("label", "프로젝트 선택") + "   변경 ▾",
+          server ? "CPU 상세 보기 ›" : grafanaProject(widget).optString("label", "프로젝트 선택") + "   ▾",
           r,
-          r.bottom - dp(18),
-          16,
-          accent);
+          r.bottom - dp(21),
+          13,
+          muted);
     }
 
     void drawWidget(Canvas c, JSONObject w, RectF r) {
@@ -3850,6 +3926,10 @@ public class MainActivity extends Activity {
       paint.setColor(color(style.optString("background", themeValue("surface"))));
       paint.setStyle(Paint.Style.FILL);
       c.drawRoundRect(r, radius, radius, paint);
+      if (type.equals("button") && style.optString("presentation").equals("os-action")) {
+        drawOSAction(c, w, r, style);
+        return;
+      }
       if (type.equals("button") || type.equals("page") || style.optInt("borderWidth", 0) > 0) {
         paint.setStyle(Paint.Style.STROKE);
         paint.setStrokeWidth(dp(style.optInt("borderWidth", 1)));
@@ -4234,88 +4314,119 @@ public class MainActivity extends Activity {
       }
     }
 
-    void drawOSSummary(Canvas c, JSONObject w, RectF r, int accent) {
-      String type = w.optString("type");
-      float left = r.left + dp(20), top = r.top + dp(28);
+    void drawOSAction(Canvas c, JSONObject widget, RectF r, JSONObject style) {
+      boolean primary = style.optString("emphasis").equals("primary");
+      int ink = color(primary ? "#dfe7f1" : "#94a4b6");
+      drawIcon(
+          c,
+          widget.optString("icon", "tasks"),
+          r.left + dp(28),
+          r.centerY(),
+          dp(20),
+          color(primary ? "#9bb8d6" : "#778a9e"));
+      RectF title = new RectF(r.left + dp(35), r.top, r.right - dp(24), r.bottom);
+      monitorText(
+          c,
+          template(widget.optString("label")),
+          title,
+          r.centerY() + dp(5),
+          style.optInt("textSize", primary ? 15 : 13),
+          ink);
+      label(c, "›", r.right - dp(18), r.centerY() + dp(5), 14, color("#6f8399"), Paint.Align.RIGHT);
+    }
+
+    void drawOSSummary(Canvas c, JSONObject widget, RectF r, int accent) {
+      String type = widget.optString("type");
+      int ink = color("#dfe7f1"), muted = color("#8291a3");
+      monitorText(c, widget.optString("label"), r, r.top + dp(32), 16, ink);
       if (type.equals("notification-feed")) {
-        JSONArray feed = state.optJSONArray("notifications");
-        drawIcon(
-            c,
-            "bell",
-            r.centerX(),
-            r.top + r.height() * .34f,
-            Math.min(r.width(), r.height()) * .28f,
-            accent);
-        label(
-            c,
-            "알림" + (feed == null || feed.length() == 0 ? "" : " · " + feed.length()),
-            r.centerX(),
-            r.bottom - dp(17),
-            13,
-            color(themeValue("text")),
-            Paint.Align.CENTER);
+        JSONArray feed = osNotificationFeed();
+        int count = 0;
+        for (int i = feed.length() - 1; i >= 0 && count < 2; i--) {
+          JSONObject row = feed.optJSONObject(i);
+          if (row == null) continue;
+          float y = r.top + dp(75 + count * 52);
+          monitorText(c, row.optString("title"), r, y, 12, ink);
+          monitorText(c, osDate(row.optLong("createdAt"), "M/d HH:mm"), r, y + dp(20), 10, muted);
+          count++;
+        }
+        if (count == 0) monitorText(c, "새 알림이 없어요", r, r.top + dp(83), 12, muted);
         return;
       }
-      label(c, w.optString("label"), left, top, 14, accent, Paint.Align.LEFT);
       if (osData() == null) {
-        label(
-            c, "Jimin OS 연결을 기다리고 있어요", left, top + dp(36), 12, color("#8ba4af"), Paint.Align.LEFT);
+        monitorText(c, "Jimin OS 연결 대기", r, r.top + dp(82), 13, muted);
         return;
       }
-      JSONArray rows = osRows(type.equals("inbox") ? "inbox" : "events");
-      float y = top + dp(33);
-      int count = 0;
       if (type.equals("inbox")) {
         JSONObject counts = osData().optJSONObject("counts");
-        String summary =
-            "새 요청 "
-                + (counts == null ? 0 : counts.optInt("requests"))
-                + "   업데이트 "
-                + (counts == null ? 0 : counts.optInt("updates"));
-        label(c, summary, left, y, 19, color(themeValue("text")), Paint.Align.LEFT);
-        y += dp(33);
-      }
-      for (int i = 0; i < rows.length() && count < 3; i++) {
-        JSONObject item = rows.optJSONObject(i);
-        if (!type.equals("inbox") && instant(item.optString("endsAt")) < hostNow()) continue;
-        if (y > r.bottom - dp(22)) break;
-        String title = item.optString("title");
-        if (!type.equals("inbox"))
-          title = osDate(instant(item.optString("startsAt")), "M/d HH:mm") + "  " + title;
-        paint.setTextSize(dp(13));
-        label(
+        int requests = counts == null ? -1 : counts.optInt("requests"),
+            updates = counts == null ? -1 : counts.optInt("updates");
+        monitorNumber(
             c,
-            ellipsize(title, r.width() - dp(40), 13),
-            left,
-            y,
-            13,
-            color(themeValue("text")),
-            Paint.Align.LEFT);
-        y += dp(30);
-        count++;
+            requests < 0 ? "—" : requests + "건",
+            r,
+            r.top + dp(91),
+            requests > 0 ? 30 : 24,
+            requests > 0 ? color("#efbd73") : ink);
+        monitorText(
+            c, "새 요청 · 업데이트 " + (updates < 0 ? "—" : updates), r, r.top + dp(118), 11, muted);
+        JSONArray rows = osRows("inbox");
+        if (rows.length() > 0)
+          monitorText(c, rows.optJSONObject(0).optString("title"), r, r.top + dp(153), 12, ink);
+        monitorText(c, "업무 요청 확인 ›", r, r.bottom - dp(19), 11, muted);
+        return;
       }
-      if (count == 0)
-        label(
+      monitorText(c, "예정 일정", r, r.top + dp(65), 11, muted);
+      JSONArray events = osRows("events");
+      String today = osDate(hostNow(), "yyyy-MM-dd");
+      int shown = 0;
+      for (int i = 0; i < events.length() && shown < 3; i++) {
+        JSONObject event = events.optJSONObject(i);
+        if (event == null || instant(event.optString("endsAt")) < hostNow()) continue;
+        long start = instant(event.optString("startsAt"));
+        float y = r.top + dp(99 + shown * 44);
+        RectF time = new RectF(r.left, r.top, r.left + dp(108), r.bottom),
+            title = new RectF(r.left + dp(95), r.top, r.right, r.bottom);
+        monitorText(
             c,
-            type.equals("inbox") ? "확인할 새 업무 요청이 없어요" : "다가오는 일정이 없어요",
-            left,
+            osDate(start, today.equals(osDate(start, "yyyy-MM-dd")) ? "HH:mm" : "M/d HH:mm"),
+            time,
             y,
             12,
-            color("#8ba4af"),
-            Paint.Align.LEFT);
-      if (type.equals("inbox")) {
-        JSONArray routines = osRows("routines");
-        String next = "";
-        for (int i = 0; i < routines.length(); i++) {
-          JSONObject rule = routines.optJSONObject(i);
-          if (rule.optBoolean("enabled") && instant(rule.optString("nextRunAt")) > 0) {
-            next = "예약 업무 · " + osDate(instant(rule.optString("nextRunAt")), "M/d HH:mm");
-            break;
-          }
-        }
-        if (!next.isEmpty())
-          label(c, next, left, r.bottom - dp(14), 10, color("#8ba4af"), Paint.Align.LEFT);
+            muted);
+        monitorText(c, event.optString("title"), title, y, 14, ink);
+        shown++;
       }
+      if (shown == 0) monitorText(c, "예정된 일정이 없어요", r, r.top + dp(101), 13, muted);
+      line(
+          c,
+          r.left + dp(20),
+          r.top + dp(222),
+          r.right - dp(20),
+          r.top + dp(222),
+          color("#303d4b"),
+          dp(1));
+      JSONArray tasks = osRows("tasks");
+      monitorText(c, "할 일 · " + tasks.length() + "개", r, r.top + dp(253), 11, muted);
+      int count = 0;
+      for (int i = 0; i < tasks.length() && count < 2; i++) {
+        JSONObject task = tasks.optJSONObject(i);
+        if (task == null) continue;
+        long due = instant(task.optString("dueAt"));
+        boolean late = due > 0 && due < hostNow();
+        float y = r.top + dp(287 + count * 44);
+        monitorText(c, task.optString("title"), r, y, 14, ink);
+        monitorText(
+            c,
+            due == 0 ? "마감 없음" : (late ? "마감 지남 · " : "") + osDate(due, "M/d HH:mm"),
+            r,
+            y + dp(19),
+            10,
+            late ? color("#efbd73") : muted);
+        count++;
+      }
+      if (count == 0) monitorText(c, "남은 할 일이 없어요", r, r.top + dp(289), 13, muted);
+      monitorText(c, "일정과 할 일 확인 ›", r, r.bottom - dp(17), 11, muted);
     }
 
     void osCalendarTap(JSONObject w, RectF r, float x, float y) {
@@ -4642,7 +4753,8 @@ public class MainActivity extends Activity {
             else if (type.equals("page")) navigate(w.optString("targetPage"));
             else if (type.equals("system")) systemDetails(w);
             else if (type.equals("grafana")) {
-              if (y > rects.get(downIndex).bottom - dp(48)
+              if ((!w.optString("metric").equals("system")
+                      && y > rects.get(downIndex).bottom - dp(51))
                   || System.currentTimeMillis() - downAt > 650) grafanaChoose(w);
               else grafanaDetails(w);
             } else if (type.equals("todo")) todoDialog(w);
