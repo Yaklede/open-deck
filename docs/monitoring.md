@@ -22,12 +22,15 @@ Set the HTTPS dashboard URL, project variable name, project labels/values and de
 
 Grafana uses an Android browser Custom Tab and that browser's normal authentication session. It is a dashboard launcher, not embedded native Grafana charts. First use may need browser setup and Grafana login. Open Deck does not relay a Mac session, store a Grafana API token or bypass Grafana access controls. The native Mac cards work independently of Grafana availability.
 
+For a tablet-focused view, add `kiosk=1` to the configured URL to hide Grafana's management navigation. Project selection still comes from the native card; the dashboard also retains its variable selector in the verified Grafana version.
+
 For an existing Kubernetes/Galera deployment, the configured dashboard uses the existing Cloud Monitoring and Prometheus/Mimir data sources:
 
 - DB CPU: `kubernetes.io/container/cpu/limit_utilization`, filtered by the selected namespace and the database container, grouped by pod. It represents utilization relative to the container CPU limit.
 - DB TPS: `sum(rate(mysql_global_status_wsrep_local_commits{job="mariadb-exporter",namespace="$project"}[5m]))`. This is Galera local committed transactions per second, not QPS, read-only transactions or replicated transaction applications.
 - Separate panels cover readiness, memory, connections, QPS, service CPU/JVM heap, HTTP throughput, latency and 5xx errors.
+- DB memory sums evictable and non-evictable utilization within each cluster and pod so the gauge shows a node total rather than two identically named category gauges.
 
 Every panel is scoped to the selected project. A project without an exporter or database reports no data; it does not silently show another project's values or substitute zero. Grafana connections, project identifiers and deployment-specific dashboard definitions stay in private configuration.
 
-References: [Apple CPU accounting](https://github.com/apple-oss-distributions/xnu/blob/main/doc/observability/recount.md), [MariaDB Galera status variables](https://mariadb.com/docs/galera-cluster/reference/galera-cluster-status-variables).
+References: [Apple CPU accounting](https://github.com/apple-oss-distributions/xnu/blob/main/doc/observability/recount.md), [MariaDB Galera status variables](https://mariadb.com/docs/galera-cluster/reference/galera-cluster-status-variables), [Google Kubernetes system metrics](https://docs.cloud.google.com/monitoring/api/metrics_kubernetes).
