@@ -1,9 +1,9 @@
 {
   "schemaVersion": 1,
   "auditedAt": "2026-10-22T15:38:24.988Z",
-  "sourceRevision": "de0e76f",
-  "appVersion": "0.10.1",
-  "mode": "read-only source inventory; no emulator or physical-device interaction by this audit",
+  "sourceRevision": "452b0cfbaa0f22dc93fd23306c08f501f326ae9c",
+  "appVersion": "0.10.2",
+  "mode": "Read-only source inventory for the committed 0.10.2 app. The inventory does not certify live emulator runs.",
   "scope": "All fields in host/preferences schema and shared device schema, user-editable auxiliary account/vault settings, Android local preferences, and operation controls. Deck/page/widget/action/connector configuration is a separate editor domain.",
   "summary": {
     "sharedDeviceSettings": 30,
@@ -28,7 +28,8 @@
     "host/public/security-ui.mjs",
     "android/app/src/main/java/app/opendeck/client/ClientSettingsPolicy.java",
     "android/app/src/main/java/app/opendeck/client/MainActivity.java",
-    "android/app/src/main/java/app/opendeck/client/ClientSettingsPanel.java"
+    "android/app/src/main/java/app/opendeck/client/ClientSettingsPanel.java",
+    "android/app/src/main/java/app/opendeck/client/ProfileNavigation.java"
   ],
   "sharedSettings": [
     {
@@ -57,13 +58,13 @@
         "controlPresent": true,
         "source": {
           "file": "android/app/src/main/java/app/opendeck/client/MainActivity.java",
-          "line": 3547
+          "line": 3614
         }
       },
       "recommendedTest": {
         "macToAndroid": false,
         "androidToMac": true,
-        "method": "UI change; observe already-open opposite control and host persisted field; restart each app and both apps; compare values again",
+        "method": "UI change; observe already-open opposite control and host persisted field; verify A: both-app restart; B: offline Android restart followed by Mac return; compare values again",
         "status": "not-run-by-inventory"
       }
     },
@@ -93,13 +94,13 @@
         "controlPresent": true,
         "source": {
           "file": "android/app/src/main/java/app/opendeck/client/MainActivity.java",
-          "line": 3537
+          "line": 3604
         }
       },
       "recommendedTest": {
         "macToAndroid": "portrait",
         "androidToMac": "landscape",
-        "method": "UI change; observe already-open opposite control and host persisted field; restart each app and both apps; compare values again",
+        "method": "UI change; observe already-open opposite control and host persisted field; verify A: both-app restart; B: offline Android restart followed by Mac return; compare values again",
         "status": "not-run-by-inventory"
       }
     },
@@ -129,13 +130,13 @@
         "controlPresent": true,
         "source": {
           "file": "android/app/src/main/java/app/opendeck/client/MainActivity.java",
-          "line": 3532
+          "line": 3599
         }
       },
       "recommendedTest": {
         "macToAndroid": "light",
         "androidToMac": "dark",
-        "method": "UI change; observe already-open opposite control and host persisted field; restart each app and both apps; compare values again",
+        "method": "UI change; observe already-open opposite control and host persisted field; verify A: both-app restart; B: offline Android restart followed by Mac return; compare values again",
         "status": "not-run-by-inventory"
       },
       "notes": [
@@ -156,7 +157,7 @@
         "label": "언어",
         "controlPresent": true,
         "baselineControlPresent": false,
-        "remediation": "Added in current working tree; runtime UI test pending.",
+        "remediation": "Present in committed 0.10.2 source. Native emulator confirmation is tracked separately.",
         "source": {
           "file": "host/public/settings-ui.mjs",
           "line": 1197
@@ -170,13 +171,13 @@
         "controlPresent": true,
         "source": {
           "file": "android/app/src/main/java/app/opendeck/client/MainActivity.java",
-          "line": 3530
+          "line": 3597
         }
       },
       "recommendedTest": {
         "macToAndroid": "en",
         "androidToMac": "ko",
-        "method": "UI change; observe already-open opposite control and host persisted field; restart each app and both apps; compare values again",
+        "method": "UI change; observe already-open opposite control and host persisted field; verify A: both-app restart; B: offline Android restart followed by Mac return; compare values again",
         "status": "not-run-by-inventory"
       },
       "notes": [
@@ -198,7 +199,7 @@
         "label": "암호화하지 않는 Wi-Fi 허용",
         "controlPresent": true,
         "baselineControlPresent": false,
-        "remediation": "Added in current working tree; runtime UI test pending.",
+        "remediation": "Present in committed 0.10.2 source. Native emulator confirmation is tracked separately.",
         "source": {
           "file": "host/public/settings-ui.mjs",
           "line": 1215
@@ -212,13 +213,13 @@
         "controlPresent": true,
         "source": {
           "file": "android/app/src/main/java/app/opendeck/client/MainActivity.java",
-          "line": 3691
+          "line": 3759
         }
       },
       "recommendedTest": {
         "macToAndroid": true,
         "androidToMac": false,
-        "method": "UI change; observe already-open opposite control and host persisted field; restart each app and both apps; compare values again",
+        "method": "UI change; observe already-open opposite control and host persisted field; verify A: both-app restart; B: offline Android restart followed by Mac return; compare values again",
         "status": "not-run-by-inventory"
       },
       "notes": [
@@ -252,13 +253,13 @@
         "controlPresent": true,
         "source": {
           "file": "android/app/src/main/java/app/opendeck/client/MainActivity.java",
-          "line": 3558
+          "line": 3625
         }
       },
       "recommendedTest": {
         "macToAndroid": "12h",
         "androidToMac": "24h",
-        "method": "UI change; observe already-open opposite control and host persisted field; restart each app and both apps; compare values again",
+        "method": "UI change; observe already-open opposite control and host persisted field; verify A: both-app restart; B: offline Android restart followed by Mac return; compare values again",
         "status": "not-run-by-inventory"
       }
     },
@@ -288,13 +289,13 @@
         "controlPresent": true,
         "source": {
           "file": "android/app/src/main/java/app/opendeck/client/MainActivity.java",
-          "line": 3566
+          "line": 3633
         }
       },
       "recommendedTest": {
         "macToAndroid": "simple",
         "androidToMac": "standard",
-        "method": "UI change; observe already-open opposite control and host persisted field; restart each app and both apps; compare values again",
+        "method": "UI change; observe already-open opposite control and host persisted field; verify A: both-app restart; B: offline Android restart followed by Mac return; compare values again",
         "status": "not-run-by-inventory"
       }
     },
@@ -324,13 +325,13 @@
         "controlPresent": true,
         "source": {
           "file": "android/app/src/main/java/app/opendeck/client/MainActivity.java",
-          "line": 3546
+          "line": 3613
         }
       },
       "recommendedTest": {
         "macToAndroid": false,
         "androidToMac": true,
-        "method": "UI change; observe already-open opposite control and host persisted field; restart each app and both apps; compare values again",
+        "method": "UI change; observe already-open opposite control and host persisted field; verify A: both-app restart; B: offline Android restart followed by Mac return; compare values again",
         "status": "not-run-by-inventory"
       }
     },
@@ -360,13 +361,13 @@
         "controlPresent": true,
         "source": {
           "file": "android/app/src/main/java/app/opendeck/client/MainActivity.java",
-          "line": 3549
+          "line": 3616
         }
       },
       "recommendedTest": {
         "macToAndroid": 25,
         "androidToMac": 75,
-        "method": "UI change; observe already-open opposite control and host persisted field; restart each app and both apps; compare values again",
+        "method": "UI change; observe already-open opposite control and host persisted field; verify A: both-app restart; B: offline Android restart followed by Mac return; compare values again",
         "status": "not-run-by-inventory"
       }
     },
@@ -396,13 +397,13 @@
         "controlPresent": true,
         "source": {
           "file": "android/app/src/main/java/app/opendeck/client/MainActivity.java",
-          "line": 3556
+          "line": 3623
         }
       },
       "recommendedTest": {
         "macToAndroid": 120,
         "androidToMac": 140,
-        "method": "UI change; observe already-open opposite control and host persisted field; restart each app and both apps; compare values again",
+        "method": "UI change; observe already-open opposite control and host persisted field; verify A: both-app restart; B: offline Android restart followed by Mac return; compare values again",
         "status": "not-run-by-inventory"
       }
     },
@@ -432,13 +433,13 @@
         "controlPresent": true,
         "source": {
           "file": "android/app/src/main/java/app/opendeck/client/MainActivity.java",
-          "line": 3576
+          "line": 3643
         }
       },
       "recommendedTest": {
         "macToAndroid": false,
         "androidToMac": true,
-        "method": "UI change; observe already-open opposite control and host persisted field; restart each app and both apps; compare values again",
+        "method": "UI change; observe already-open opposite control and host persisted field; verify A: both-app restart; B: offline Android restart followed by Mac return; compare values again",
         "status": "not-run-by-inventory"
       },
       "notes": [
@@ -471,13 +472,13 @@
         "controlPresent": true,
         "source": {
           "file": "android/app/src/main/java/app/opendeck/client/MainActivity.java",
-          "line": 3577
+          "line": 3644
         }
       },
       "recommendedTest": {
         "macToAndroid": true,
         "androidToMac": false,
-        "method": "UI change; observe already-open opposite control and host persisted field; restart each app and both apps; compare values again",
+        "method": "UI change; observe already-open opposite control and host persisted field; verify A: both-app restart; B: offline Android restart followed by Mac return; compare values again",
         "status": "not-run-by-inventory"
       },
       "notes": [
@@ -510,13 +511,13 @@
         "controlPresent": true,
         "source": {
           "file": "android/app/src/main/java/app/opendeck/client/MainActivity.java",
-          "line": 3578
+          "line": 3645
         }
       },
       "recommendedTest": {
         "macToAndroid": 120,
         "androidToMac": 60,
-        "method": "UI change; observe already-open opposite control and host persisted field; restart each app and both apps; compare values again",
+        "method": "UI change; observe already-open opposite control and host persisted field; verify A: both-app restart; B: offline Android restart followed by Mac return; compare values again",
         "status": "not-run-by-inventory"
       },
       "notes": [
@@ -549,13 +550,13 @@
         "controlPresent": true,
         "source": {
           "file": "android/app/src/main/java/app/opendeck/client/MainActivity.java",
-          "line": 3579
+          "line": 3646
         }
       },
       "recommendedTest": {
         "macToAndroid": true,
         "androidToMac": false,
-        "method": "UI change; observe already-open opposite control and host persisted field; restart each app and both apps; compare values again",
+        "method": "UI change; observe already-open opposite control and host persisted field; verify A: both-app restart; B: offline Android restart followed by Mac return; compare values again",
         "status": "not-run-by-inventory"
       },
       "notes": [
@@ -588,13 +589,13 @@
         "controlPresent": true,
         "source": {
           "file": "android/app/src/main/java/app/opendeck/client/MainActivity.java",
-          "line": 3580
+          "line": 3647
         }
       },
       "recommendedTest": {
         "macToAndroid": false,
         "androidToMac": true,
-        "method": "UI change; observe already-open opposite control and host persisted field; restart each app and both apps; compare values again",
+        "method": "UI change; observe already-open opposite control and host persisted field; verify A: both-app restart; B: offline Android restart followed by Mac return; compare values again",
         "status": "not-run-by-inventory"
       }
     },
@@ -624,13 +625,13 @@
         "controlPresent": true,
         "source": {
           "file": "android/app/src/main/java/app/opendeck/client/MainActivity.java",
-          "line": 3581
+          "line": 3648
         }
       },
       "recommendedTest": {
         "macToAndroid": true,
         "androidToMac": false,
-        "method": "UI change; observe already-open opposite control and host persisted field; restart each app and both apps; compare values again",
+        "method": "UI change; observe already-open opposite control and host persisted field; verify A: both-app restart; B: offline Android restart followed by Mac return; compare values again",
         "status": "not-run-by-inventory"
       }
     },
@@ -660,13 +661,13 @@
         "controlPresent": true,
         "source": {
           "file": "android/app/src/main/java/app/opendeck/client/MainActivity.java",
-          "line": 3582
+          "line": 3649
         }
       },
       "recommendedTest": {
         "macToAndroid": false,
         "androidToMac": true,
-        "method": "UI change; observe already-open opposite control and host persisted field; restart each app and both apps; compare values again",
+        "method": "UI change; observe already-open opposite control and host persisted field; verify A: both-app restart; B: offline Android restart followed by Mac return; compare values again",
         "status": "not-run-by-inventory"
       }
     },
@@ -696,13 +697,13 @@
         "controlPresent": true,
         "source": {
           "file": "android/app/src/main/java/app/opendeck/client/MainActivity.java",
-          "line": 3583
+          "line": 3650
         }
       },
       "recommendedTest": {
         "macToAndroid": false,
         "androidToMac": true,
-        "method": "UI change; observe already-open opposite control and host persisted field; restart each app and both apps; compare values again",
+        "method": "UI change; observe already-open opposite control and host persisted field; verify A: both-app restart; B: offline Android restart followed by Mac return; compare values again",
         "status": "not-run-by-inventory"
       }
     },
@@ -732,13 +733,13 @@
         "controlPresent": true,
         "source": {
           "file": "android/app/src/main/java/app/opendeck/client/MainActivity.java",
-          "line": 3585
+          "line": 3652
         }
       },
       "recommendedTest": {
         "macToAndroid": true,
         "androidToMac": false,
-        "method": "UI change; observe already-open opposite control and host persisted field; restart each app and both apps; compare values again",
+        "method": "UI change; observe already-open opposite control and host persisted field; verify A: both-app restart; B: offline Android restart followed by Mac return; compare values again",
         "status": "not-run-by-inventory"
       },
       "notes": [
@@ -771,13 +772,13 @@
         "controlPresent": true,
         "source": {
           "file": "android/app/src/main/java/app/opendeck/client/MainActivity.java",
-          "line": 3594
+          "line": 3661
         }
       },
       "recommendedTest": {
         "macToAndroid": 1,
         "androidToMac": 2,
-        "method": "UI change; observe already-open opposite control and host persisted field; restart each app and both apps; compare values again",
+        "method": "UI change; observe already-open opposite control and host persisted field; verify A: both-app restart; B: offline Android restart followed by Mac return; compare values again",
         "status": "not-run-by-inventory"
       },
       "notes": [
@@ -810,13 +811,13 @@
         "controlPresent": true,
         "source": {
           "file": "android/app/src/main/java/app/opendeck/client/MainActivity.java",
-          "line": 3617
+          "line": 3684
         }
       },
       "recommendedTest": {
         "macToAndroid": "clock",
         "androidToMac": "dim",
-        "method": "UI change; observe already-open opposite control and host persisted field; restart each app and both apps; compare values again",
+        "method": "UI change; observe already-open opposite control and host persisted field; verify A: both-app restart; B: offline Android restart followed by Mac return; compare values again",
         "status": "not-run-by-inventory"
       },
       "notes": [
@@ -849,13 +850,13 @@
         "controlPresent": true,
         "source": {
           "file": "android/app/src/main/java/app/opendeck/client/MainActivity.java",
-          "line": 3620
+          "line": 3687
         }
       },
       "recommendedTest": {
         "macToAndroid": 25,
         "androidToMac": 15,
-        "method": "UI change; observe already-open opposite control and host persisted field; restart each app and both apps; compare values again",
+        "method": "UI change; observe already-open opposite control and host persisted field; verify A: both-app restart; B: offline Android restart followed by Mac return; compare values again",
         "status": "not-run-by-inventory"
       }
     },
@@ -885,13 +886,13 @@
         "controlPresent": true,
         "source": {
           "file": "android/app/src/main/java/app/opendeck/client/MainActivity.java",
-          "line": 3622
+          "line": 3689
         }
       },
       "recommendedTest": {
         "macToAndroid": false,
         "androidToMac": true,
-        "method": "UI change; observe already-open opposite control and host persisted field; restart each app and both apps; compare values again",
+        "method": "UI change; observe already-open opposite control and host persisted field; verify A: both-app restart; B: offline Android restart followed by Mac return; compare values again",
         "status": "not-run-by-inventory"
       },
       "notes": [
@@ -924,13 +925,13 @@
         "controlPresent": true,
         "source": {
           "file": "android/app/src/main/java/app/opendeck/client/MainActivity.java",
-          "line": 3634
+          "line": 3701
         }
       },
       "recommendedTest": {
         "macToAndroid": false,
         "androidToMac": true,
-        "method": "UI change; observe already-open opposite control and host persisted field; restart each app and both apps; compare values again",
+        "method": "UI change; observe already-open opposite control and host persisted field; verify A: both-app restart; B: offline Android restart followed by Mac return; compare values again",
         "status": "not-run-by-inventory"
       },
       "notes": [
@@ -963,13 +964,13 @@
         "controlPresent": true,
         "source": {
           "file": "android/app/src/main/java/app/opendeck/client/MainActivity.java",
-          "line": 3635
+          "line": 3702
         }
       },
       "recommendedTest": {
         "macToAndroid": "fixture-page-b",
         "androidToMac": "fixture-page-a",
-        "method": "UI change; observe already-open opposite control and host persisted field; restart each app and both apps; compare values again",
+        "method": "UI change; observe already-open opposite control and host persisted field; verify A: both-app restart; B: offline Android restart followed by Mac return; compare values again",
         "status": "not-run-by-inventory"
       },
       "notes": [
@@ -1002,13 +1003,13 @@
         "controlPresent": true,
         "source": {
           "file": "android/app/src/main/java/app/opendeck/client/MainActivity.java",
-          "line": 3633
+          "line": 3700
         }
       },
       "recommendedTest": {
         "macToAndroid": "fixture-profile-b",
         "androidToMac": "fixture-profile-a",
-        "method": "UI change; observe already-open opposite control and host persisted field; restart each app and both apps; compare values again",
+        "method": "UI change; observe already-open opposite control and host persisted field; verify A: both-app restart; B: offline Android restart followed by Mac return; compare values again",
         "status": "not-run-by-inventory"
       },
       "notes": [
@@ -1041,13 +1042,13 @@
         "controlPresent": true,
         "source": {
           "file": "android/app/src/main/java/app/opendeck/client/MainActivity.java",
-          "line": 3562
+          "line": 3629
         }
       },
       "recommendedTest": {
         "macToAndroid": 128,
         "androidToMac": 512,
-        "method": "UI change; observe already-open opposite control and host persisted field; restart each app and both apps; compare values again",
+        "method": "UI change; observe already-open opposite control and host persisted field; verify A: both-app restart; B: offline Android restart followed by Mac return; compare values again",
         "status": "not-run-by-inventory"
       }
     },
@@ -1077,13 +1078,13 @@
         "controlPresent": true,
         "source": {
           "file": "android/app/src/main/java/app/opendeck/client/MainActivity.java",
-          "line": 3766
+          "line": 3834
         }
       },
       "recommendedTest": {
         "macToAndroid": false,
         "androidToMac": true,
-        "method": "UI change; observe already-open opposite control and host persisted field; restart each app and both apps; compare values again",
+        "method": "UI change; observe already-open opposite control and host persisted field; verify A: both-app restart; B: offline Android restart followed by Mac return; compare values again",
         "status": "not-run-by-inventory"
       },
       "notes": [
@@ -1116,13 +1117,13 @@
         "controlPresent": true,
         "source": {
           "file": "android/app/src/main/java/app/opendeck/client/MainActivity.java",
-          "line": 3767
+          "line": 3835
         }
       },
       "recommendedTest": {
         "macToAndroid": false,
         "androidToMac": true,
-        "method": "UI change; observe already-open opposite control and host persisted field; restart each app and both apps; compare values again",
+        "method": "UI change; observe already-open opposite control and host persisted field; verify A: both-app restart; B: offline Android restart followed by Mac return; compare values again",
         "status": "not-run-by-inventory"
       },
       "notes": [
@@ -1155,13 +1156,13 @@
         "controlPresent": true,
         "source": {
           "file": "android/app/src/main/java/app/opendeck/client/MainActivity.java",
-          "line": 3768
+          "line": 3836
         }
       },
       "recommendedTest": {
         "macToAndroid": false,
         "androidToMac": true,
-        "method": "UI change; observe already-open opposite control and host persisted field; restart each app and both apps; compare values again",
+        "method": "UI change; observe already-open opposite control and host persisted field; verify A: both-app restart; B: offline Android restart followed by Mac return; compare values again",
         "status": "not-run-by-inventory"
       },
       "notes": [
@@ -1193,7 +1194,7 @@
         "controlPresent": true,
         "source": {
           "file": "android/app/src/main/java/app/opendeck/client/MainActivity.java",
-          "line": 3689
+          "line": 3766
         }
       },
       "recommendedTest": {
@@ -2139,7 +2140,7 @@
         ],
         "source": {
           "file": "android/app/src/main/java/app/opendeck/client/MainActivity.java",
-          "line": 2505
+          "line": 2510
         }
       },
       "mac": {
@@ -2163,7 +2164,7 @@
         "label": "맥 Wi-Fi 주소",
         "source": {
           "file": "android/app/src/main/java/app/opendeck/client/MainActivity.java",
-          "line": 2691
+          "line": 2696
         }
       },
       "mac": {
@@ -2362,7 +2363,7 @@
       "key": "brightness",
       "hostAllowed": "integer -1..100",
       "androidSelectable": "integer -1..100",
-      "impact": "Original choice/range mismatch found in baseline and addressed in current source; actual Android UI verification is pending.",
+      "impact": "Baseline input-range mismatch is addressed in the committed 0.10.2 source. This inventory does not certify native UI execution.",
       "baselineAndroidSelectable": [
         -1,
         10,
@@ -2371,14 +2372,14 @@
         75,
         100
       ],
-      "status": "remediated-in-working-tree-runtime-pending",
+      "status": "remediated-in-committed-source-runtime-tracked-separately",
       "remediation": "Presets retained and validated custom numeric input added."
     },
     {
       "key": "screenSaverMinutes",
       "hostAllowed": "integer 0..120",
       "androidSelectable": "integer 0..120",
-      "impact": "Original choice/range mismatch found in baseline and addressed in current source; actual Android UI verification is pending.",
+      "impact": "Baseline input-range mismatch is addressed in the committed 0.10.2 source. This inventory does not certify native UI execution.",
       "baselineAndroidSelectable": [
         0,
         1,
@@ -2389,34 +2390,34 @@
         30,
         60
       ],
-      "status": "remediated-in-working-tree-runtime-pending",
+      "status": "remediated-in-committed-source-runtime-tracked-separately",
       "remediation": "Presets retained and validated custom numeric input added."
     },
     {
       "key": "textScale",
       "hostAllowed": "integer 80..160",
       "androidSelectable": "integer 80..160",
-      "impact": "Original choice/range mismatch found in baseline and addressed in current source; actual Android UI verification is pending.",
+      "impact": "Baseline input-range mismatch is addressed in the committed 0.10.2 source. This inventory does not certify native UI execution.",
       "baselineAndroidSelectable": "80..160 in steps of 10",
-      "status": "remediated-in-working-tree-runtime-pending",
+      "status": "remediated-in-committed-source-runtime-tracked-separately",
       "remediation": "Slider step changed to 1, covering every integer allowed by the host schema."
     },
     {
       "key": "vibrationMs",
       "hostAllowed": "integer 20..200",
       "androidSelectable": "integer 20..200",
-      "impact": "Original choice/range mismatch found in baseline and addressed in current source; actual Android UI verification is pending.",
+      "impact": "Baseline input-range mismatch is addressed in the committed 0.10.2 source. This inventory does not certify native UI execution.",
       "baselineAndroidSelectable": "20..200 in steps of 10",
-      "status": "remediated-in-working-tree-runtime-pending",
+      "status": "remediated-in-committed-source-runtime-tracked-separately",
       "remediation": "Slider step changed to 1, covering every integer allowed by the host schema."
     },
     {
       "key": "dimPercent",
       "hostAllowed": "integer 5..50",
       "androidSelectable": "integer 5..50",
-      "impact": "Original choice/range mismatch found in baseline and addressed in current source; actual Android UI verification is pending.",
+      "impact": "Baseline input-range mismatch is addressed in the committed 0.10.2 source. This inventory does not certify native UI execution.",
       "baselineAndroidSelectable": "5..50 in steps of 5",
-      "status": "remediated-in-working-tree-runtime-pending",
+      "status": "remediated-in-committed-source-runtime-tracked-separately",
       "remediation": "Slider step changed to 1, covering every integer allowed by the host schema."
     },
     {
@@ -2437,7 +2438,8 @@
     "osNotificationPermissionAsked",
     "settingsRevision",
     "model",
-    "appVersion"
+    "appVersion",
+    "navigationCatalog"
   ],
   "nonPersistentUiControls": [
     "Mac settings search/category",
@@ -2448,7 +2450,7 @@
     "Use only root-controlled emulator; create synthetic profiles/pages, record original settings and restore them after testing.",
     "For each shared field: Mac control changes to value A while matching Android panel is open; verify displayed value and server state. Android changes to value B while Mac panel is open; verify displayed value and server state.",
     "Use fixture profiles first; verify coupled profile/startPage changes. Use harmless display/input fields next. Run hidden controls, orientation, idle timers and transport-sensitive fields last.",
-    "After the per-field roundtrip, record complete settings maps; restart Android only, Mac+host only, and both. Read all 30 fields plus name after each restart and compare; field control visibility alone does not prove persistence.",
+    "After the per-field roundtrip, record complete settings maps; run A: both-app restart and B: offline Android restart followed by Mac return. Read all 30 fields plus name after each scenario and compare; field control visibility alone does not prove persistence.",
     "While Mac is stopped, edit multiple Android fields and restart Android before Mac returns. Verify pending edits persist, merge with unrelated Mac fields, then clear after acknowledgement.",
     "Test same-field delayed responses and A-to-B-to-A intent using deterministic fixtures. Server apply order is authoritative; do not infer cross-device wall-clock conflict resolution.",
     "Do not classify Mac-only settings as a failed tablet sync case. Do not count operating a one-shot action as persistence of a scalar setting.",
@@ -2460,8 +2462,7 @@
     "containsUserValues": false,
     "runtimeChecksPerformed": false
   },
-  "worktreeRecheckedAt": "2026-10-22T15:43:15.473Z",
-  "sourceState": "Baseline de0e76f; source-read follow-up includes current uncommitted Mac control and Android numeric-range fixes. Runtime validation remains the root task responsibility.",
+  "sourceState": "Committed source 452b0cfbaa0f22dc93fd23306c08f501f326ae9c. Mac controls, Android numeric input ranges, and metadata-only offline profile/page name caching are present. Native runtime evidence from ff27316 and the final 452b0cf offline-label retest are recorded separately in the runtime evidence files. This inventory itself is a source audit.",
   "remediationSummary": {
     "macSharedControlsAdded": [
       "language",
@@ -2474,6 +2475,38 @@
       "vibrationMs",
       "dimPercent"
     ],
-    "status": "source-inspected; no emulator interaction by inventory agent"
+    "status": "Present in committed source; this inventory makes no live emulator claim.",
+    "offlineNavigationLabels": {
+      "status": "Present in committed source; final runtime retest passed in emulator-to-mac-runtime.json.finalRetest. This inventory itself is a source audit.",
+      "cache": "SharedPreferences.navigationCatalog",
+      "allowedRootFields": [
+        "defaultProfileId",
+        "profiles",
+        "pages"
+      ],
+      "allowedProfileFields": [
+        "id",
+        "name",
+        "defaultPageId",
+        "pageIds"
+      ],
+      "allowedPageFields": [
+        "id",
+        "name"
+      ],
+      "reset": "Cleared when pairing/profile session data is reset.",
+      "excluded": "Actions, widgets, URLs, tokens, and live business state are not copied into this label cache."
+    }
+  },
+  "baselineSourceRevision": "de0e76f",
+  "baselineAppVersion": "0.10.1",
+  "androidVersionCode": 18,
+  "sourceRecheckedAt": "2026-10-22T16:12:51.151143+00:00",
+  "scopeNotes": {
+    "shared": "30 device settings plus the independently stored device name. These have Mac and Android controls and belong in the bidirectional/restart matrix.",
+    "macOnly": "34 preferences.json settings and 3 auxiliary account/vault policies are host/editor-local. They must not be counted as missing Android controls or falsely marked as tablet synchronization successes.",
+    "androidOnly": "Transport preference and endpoint list are Android-local connection settings. Remembered page and selected Grafana project are remembered view state, not shared settings.",
+    "operations": "Pairing, permission dialogs, backup/migration, certificate and ADB operations are actions; a button click is not proof that a scalar setting survived restart.",
+    "evidence": "Automated API/SSE, synthetic Mac browser UI, native Mac plus emulator, and physical hardware effects are separate evidence categories."
   }
 }
