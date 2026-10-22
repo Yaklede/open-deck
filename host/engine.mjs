@@ -66,6 +66,7 @@ export class Engine {
       cpu: this.cpu,
       memory: this.memory,
       system: this.systemMonitor?.state() || { status: "unavailable" },
+      grafana: this.grafana?.state() || { widgets: {} },
       volume: this.volume,
       muted: this.muted,
       running: [...this.running],
@@ -112,6 +113,7 @@ export class Engine {
       if (this.history[key].length > 120) this.history[key].shift();
     }
     this.connectors?.tick();
+    this.grafana?.tick();
     this.cpu = total ? Math.round(100 * (1 - idle / total)) : 0;
     if (process.platform !== "darwin" || this.memory === 0)
       this.memory = Math.round(100 * (1 - os.freemem() / os.totalmem()));

@@ -335,6 +335,20 @@ export function validateConfig(input) {
       )
         throw Error("시스템 지표를 선택하세요.");
       if (w.type === "grafana") {
+        if (
+          (w.metric !== undefined &&
+            !["system", "database"].includes(w.metric)) ||
+          (w.projectGroup !== undefined &&
+            (typeof w.projectGroup !== "string" ||
+              !/^[A-Za-z0-9_-]{1,128}$/.test(w.projectGroup)))
+        )
+          throw Error("Grafana 카드와 프로젝트 그룹을 확인하세요.");
+        if (
+          (w.auth !== undefined && typeof w.auth !== "boolean") ||
+          (w.cpuPanelId !== undefined && !integer(w.cpuPanelId, 1, 100000)) ||
+          (w.tpsPanelId !== undefined && !integer(w.tpsPanelId, 1, 100000))
+        )
+          throw Error("Grafana 조회 설정을 확인하세요.");
         if (w.url !== undefined && typeof w.url !== "string")
           throw Error("Grafana 주소를 확인하세요.");
         if (w.url) {

@@ -479,12 +479,26 @@ function updateLive() {
     }
     if (w.type === "grafana") {
       const p =
-        w.projects?.find((p) => p.value === w.defaultProject) ||
-        w.projects?.[0];
+          w.projects?.find((p) => p.value === w.defaultProject) ||
+          w.projects?.[0],
+        data = state.grafana?.widgets?.[w.id]?.projects?.[p?.value];
+      const pct = (v) => (v == null ? "수집 없음" : v.toFixed(1) + "%");
       c.querySelector(".system-reading").textContent =
-        "DB CPU · TPS\n" +
         (p?.label || "프로젝트 선택") +
-        "\n태블릿에서 대시보드 열기";
+        "\n" +
+        (data?.status === "ready"
+          ? w.metric === "system"
+            ? "시스템 CPU " +
+              pct(data.system?.value) +
+              "\n지표 수집 " +
+              (data.collection?.healthy ?? 0) +
+              "/" +
+              (data.collection?.total ?? 0)
+            : "DB CPU " +
+              pct(data.cpu.value) +
+              "\nTPS " +
+              (data.tps.value == null ? "수집 없음" : data.tps.value.toFixed(2))
+          : data?.message || "지표 조회 대기");
       c.querySelector(".system-reading").style.whiteSpace = "pre-line";
     }
     if (w.type === "gauges")
@@ -718,7 +732,11 @@ function inspect() {
       box,
       "시스템 지표",
       w.metric || "overview",
-      (v) => change(() => (w.metric = v)),
+      (v) =>
+        change(() => {
+          w.metric = v;
+          if (v !== "overview") w.compact = false;
+        }),
       {
         choices: {
           overview: "맥 상태 요약",
@@ -731,10 +749,69 @@ function inspect() {
         },
       },
     );
+  if (w.type === "system" && (!w.metric || w.metric === "overview"))
+    field(
+      box,
+      "한 카드로 요약",
+      !!w.compact,
+      (v) => change(() => (w.compact = v)),
+      { type: "checkbox" },
+    );
   if (w.type === "grafana") {
+    field(
+      box,
+      "표시 지표",
+      w.metric || "database",
+      (v) => change(() => (w.metric = v)),
+      {
+        choices: {
+          system: "시스템 CPU · 수집 상태",
+          database: "DB 상태 · CPU · TPS",
+        },
+      },
+    );
     field(box, "Grafana HTTPS 대시보드 주소", w.url || "", (v) =>
       change(() => (w.url = v)),
     );
+    field(box, "조회 토큰 사용", !!w.auth, (v) => change(() => (w.auth = v)), {
+      type: "checkbox",
+    });
+    field(
+      box,
+      "CPU 패널 ID",
+      w.cpuPanelId || 1,
+      (v) => change(() => (w.cpuPanelId = v)),
+      { type: "number", min: 1 },
+    );
+    field(
+      box,
+      "TPS 합계 패널 ID",
+      w.tpsPanelId || 2,
+      (v) => change(() => (w.tpsPanelId = v)),
+      { type: "number", min: 1 },
+    );
+    const token = n("input");
+    token.type = "password";
+    token.autocomplete = "off";
+    token.placeholder = "조회 전용 토큰 · 맥 키체인에만 저장";
+    token.setAttribute("aria-label", "Grafana 조회 토큰");
+    box.append(token);
+    button(box, "조회 토큰 키체인에 저장", async () => {
+      if (dirty) {
+        notice("변경 저장 후 토큰을 등록해 주세요.", true);
+        return;
+      }
+      try {
+        await api("/api/admin/grafana-token", "POST", {
+          widgetId: w.id,
+          token: token.value,
+        });
+        token.value = "";
+        notice("Grafana 조회 토큰을 키체인에 저장했습니다.");
+      } catch (e) {
+        notice(e.message, true);
+      }
+    });
     field(box, "프로젝트 필터 이름", w.projectVariable || "project", (v) =>
       change(() => (w.projectVariable = v)),
     );

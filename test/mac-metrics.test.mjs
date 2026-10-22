@@ -67,6 +67,10 @@ test("stale telemetry disappears instead of retaining a live-looking last value,
   for (let i = 0; i < 150; i++)
     metrics.accept({ ...sample(), capturedAt: time++ });
   assert.equal(metrics.state().history.cpu.length, 120);
+  assert.equal(metrics.state().history.battery.length, 120);
+  assert(metrics.state().history.battery.every((v) => v === 100));
+  assert(metrics.state().history.read.every((v) => v === null));
+  assert(metrics.state().history.write.every((v) => v === null));
   assert.equal(changed, 150);
   time += 9000;
   assert.deepEqual(metrics.state(), { status: "stale", capturedAt: 100149 });
@@ -86,14 +90,19 @@ test("monitor template has actual system roles, no calendar, and editable scoped
     },
   });
   c.pages.push(page);
-  assert.equal(validateConfig(c).pages.at(-1).widgets.length, 8);
+  assert.equal(validateConfig(c).pages.at(-1).widgets.length, 3);
   assert(!page.widgets.some((w) => w.type === "calendar"));
+  assert.equal(page.widgets.filter((w) => w.type === "system").length, 1);
+  assert(page.widgets.find((w) => w.type === "system").compact);
+  assert.equal(page.widgets[0].projectGroup, page.widgets[1].projectGroup);
   const exposed = deviceConfig(c)
     .pages.at(-1)
     .widgets.find((w) => w.type === "grafana");
   assert.equal(exposed.defaultProject, "everypay");
   assert.equal(exposed.actions, undefined);
-  const g = page.widgets.at(-1);
+  const g = page.widgets.find(
+    (w) => w.type === "grafana" && w.metric === "database",
+  );
   g.url = "https://user:password@grafana.example";
   assert.throws(() => validateConfig(c));
   g.url = "https://grafana.example";

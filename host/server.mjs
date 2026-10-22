@@ -1,5 +1,6 @@
 import http from "node:http";
 import { MacMetrics } from "./mac-metrics.mjs";
+import { GrafanaMonitor, grafanaSource, grafanaSecretId } from "./grafana.mjs";
 import { Extensions, osPage } from "./extensions.mjs";
 import { Plugins } from "./plugins.mjs";
 import { saveAsset, readAsset } from "./assets.mjs";
@@ -29,6 +30,14 @@ export const deviceConfig = (c) => ({
     ...p,
     widgets: p.widgets.map(({ actions, longActions, doubleActions, ...w }) => ({
       ...w,
+      ...(w.type === "grafana"
+        ? {
+            url: undefined,
+            auth: undefined,
+            cpuPanelId: undefined,
+            tpsPanelId: undefined,
+          }
+        : {}),
       ...(w.provider === "jimin-os" &&
       actions?.[0]?.type === "extension" &&
       actions[0].extensionId === "jimin-os" &&
@@ -49,6 +58,7 @@ export function createHost({
   wifi = false,
   wifiPort = 8841,
   extensionOptions = {},
+  grafanaOptions = {},
 } = {}) {
   let config = loadConfig(dir);
   let configRevision = 1;
@@ -126,6 +136,9 @@ export function createHost({
     onChange: broadcast,
   });
   engine.extensions = extensions;
+  const grafana = new GrafanaMonitor(() => config, broadcast, grafanaOptions);
+  engine.grafana = grafana;
+  if (metrics) grafana.tick();
   if (metrics) engine.systemMonitor = new MacMetrics(broadcast);
   const stateFile = path.join(dir, "state.json");
   try {
@@ -210,7 +223,7 @@ export function createHost({
             error: "Wi-Fi에서는 태블릿 연결만 허용됩니다.",
           });
         if (req.method === "GET" && u.pathname === "/health")
-          return send(res, 200, { name: "Open Deck", version: "0.6.0" });
+          return send(res, 200, { name: "Open Deck", version: "0.7.0" });
         if (req.method === "POST" && u.pathname === "/api/pair") {
           const now = Date.now(),
             key = req.socket.remoteAddress,
@@ -332,6 +345,23 @@ export function createHost({
           await setSecret(b.id, b.value);
           return send(res, 200, { ok: true });
         }
+        if (
+          req.method === "POST" &&
+          u.pathname === "/api/admin/grafana-token"
+        ) {
+          const b = await body(req),
+            w = engine.widget(b.widgetId);
+          if (!w || w.type !== "grafana")
+            throw Error("Grafana 위젯을 선택하세요.");
+          const source = grafanaSource(w);
+          try {
+            await setSecret(grafanaSecretId(source.origin), b.token);
+          } catch {
+            throw Error("Grafana 토큰을 키체인에 저장하지 못했습니다.");
+          }
+          grafana.refresh();
+          return send(res, 200, { ok: true });
+        }
         if (req.method === "POST" && u.pathname === "/api/admin/refresh") {
           const b = await body(req);
           return send(res, 200, { value: await connectors.run(b.id) });
@@ -391,14 +421,12 @@ export function createHost({
               a.operation === "navigate",
           )?.parameters?.view;
           const calendar = ["calendar", "agenda"].includes(w.type);
-          if (
-            !(
-              (input.operation === "create-schedule" &&
-                (calendar || view === "new-schedule")) ||
-              (input.operation === "complete-task" &&
-                (calendar || view === "tasks"))
-            )
-          )
+          if (!(
+            (input.operation === "create-schedule" &&
+              (calendar || view === "new-schedule")) ||
+            (input.operation === "complete-task" &&
+              (calendar || view === "tasks"))
+          ))
             throw Error("이 위젯에서 사용할 수 없는 동작이에요.");
           return send(
             res,
@@ -455,7 +483,13 @@ export function createHost({
         }
         if (
           req.method === "GET" &&
-          ["/", "/app.js", "/app.css", "/layout.mjs"].includes(u.pathname)
+          [
+            "/",
+            "/app.js",
+            "/app.css",
+            "/layout.mjs",
+            "/monitor-layout.mjs",
+          ].includes(u.pathname)
         ) {
           if (!admin)
             return send(res, 401, {
@@ -514,6 +548,7 @@ export function createHost({
     connectors.close();
     extensions.close();
     engine.systemMonitor?.close();
+    grafana.close();
     plugins.close();
     for (const s of streams) s.end();
   });

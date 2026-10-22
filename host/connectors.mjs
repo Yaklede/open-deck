@@ -35,7 +35,7 @@ export async function setSecret(id, value) {
     { timeout: 5000 },
   );
 }
-async function secret(id) {
+export async function readSecret(id) {
   if (process.platform !== "darwin") return "";
   try {
     return (
@@ -59,7 +59,7 @@ async function secret(id) {
 export async function httpRequest(i, fetcher = fetch) {
   const headers = { Accept: "application/json" };
   if (i.auth) {
-    const token = await secret(i.id);
+    const token = await readSecret(i.id);
     if (!token) throw Error("맥에서 연동 인증 토큰을 등록하세요.");
     headers.Authorization = "Bearer " + token;
   }

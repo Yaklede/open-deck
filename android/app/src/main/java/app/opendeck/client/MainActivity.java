@@ -333,17 +333,7 @@ public class MainActivity extends Activity {
     return warnings;
   }
 
-  private void systemDetails(JSONObject widget) {
-    JSONObject data = macSystem();
-    if (data == null) {
-      osDialog()
-          .setTitle("맥 상태 연결 대기")
-          .setMessage("맥의 Open Deck에서 최신 상태를 기다리고 있어요. 연결과 앱 버전을 확인해 주세요.")
-          .setPositiveButton("닫기", null)
-          .show();
-      return;
-    }
-    String kind = widget.optString("metric", "overview");
+  private String systemDetailText(JSONObject data, String kind) {
     StringBuilder body = new StringBuilder();
     JSONObject cpu = data.optJSONObject("cpu"),
         memory = data.optJSONObject("memory"),
@@ -351,10 +341,6 @@ public class MainActivity extends Activity {
         power = data.optJSONObject("power"),
         network = data.optJSONObject("network"),
         io = data.optJSONObject("io");
-    if (kind.equals("processes")) {
-      systemProcesses(data, false);
-      return;
-    }
     if (kind.equals("overview")) {
       body.append(data.optString("model", "내 Mac"))
           .append(" · ")
@@ -419,8 +405,30 @@ public class MainActivity extends Activity {
           .append(thermalText(power == null ? "" : power.optString("thermal")))
           .append("\n");
     }
+    return body.toString();
+  }
+
+  private void systemDetails(JSONObject widget) {
+    JSONObject data = macSystem();
+    if (data == null) {
+      osDialog()
+          .setTitle("맥 상태 연결 대기")
+          .setMessage("맥의 최신 상태를 기다리고 있어요.")
+          .setPositiveButton("닫기", null)
+          .show();
+      return;
+    }
+    String kind = widget.optString("metric", "overview");
+    if (kind.equals("processes")) {
+      systemProcesses(data, false);
+      return;
+    }
+    if (kind.equals("overview")) {
+      systemTabs();
+      return;
+    }
     TextView text = new TextView(this);
-    text.setText(body.toString());
+    text.setText(systemDetailText(data, kind));
     text.setTextSize(16);
     text.setPadding((int) dp(24), (int) dp(8), (int) dp(24), (int) dp(8));
     ScrollView scroll = new ScrollView(this);
@@ -430,6 +438,309 @@ public class MainActivity extends Activity {
         .setView(scroll)
         .setPositiveButton("닫기", null)
         .show();
+  }
+
+  private void systemTabs() {
+    String[] names = {"CPU", "메모리", "저장 공간", "전원·발열", "네트워크"};
+    String[] kinds = {"cpu", "memory", "disk", "power", "network"};
+    int[] selected = {0};
+    LinearLayout layout = new LinearLayout(this);
+    layout.setOrientation(LinearLayout.VERTICAL);
+    layout.setPadding((int) dp(16), (int) dp(8), (int) dp(16), 0);
+    HorizontalScrollView tabsScroll = new HorizontalScrollView(this);
+    tabsScroll.setHorizontalScrollBarEnabled(false);
+    LinearLayout tabs = new LinearLayout(this);
+    tabs.setOrientation(LinearLayout.HORIZONTAL);
+    tabsScroll.addView(tabs);
+    layout.addView(tabsScroll);
+    Button[] buttons = new Button[names.length];
+    TextView text = new TextView(this);
+    text.setTextSize(16);
+    text.setTypeface(font);
+    text.setPadding((int) dp(8), (int) dp(18), (int) dp(8), (int) dp(12));
+    ScrollView content = new ScrollView(this);
+    content.addView(text);
+    LinearLayout detailRow = new LinearLayout(this);
+    detailRow.setOrientation(LinearLayout.HORIZONTAL);
+    android.graphics.drawable.GradientDrawable statsBackground =
+        new android.graphics.drawable.GradientDrawable();
+    statsBackground.setColor(Color.parseColor("#172631"));
+    statsBackground.setCornerRadius(dp(12));
+    content.setBackground(statsBackground);
+    LinearLayout.LayoutParams statsParams = new LinearLayout.LayoutParams(0, -1, 1f);
+    statsParams.setMargins(0, (int) dp(12), (int) dp(8), 0);
+    detailRow.addView(content, statsParams);
+    MacHistoryView graph = new MacHistoryView(selected, kinds);
+    LinearLayout.LayoutParams graphParams = new LinearLayout.LayoutParams(0, -1, 1.3f);
+    graphParams.setMargins((int) dp(4), (int) dp(12), 0, 0);
+    detailRow.addView(graph, graphParams);
+    layout.addView(detailRow, new LinearLayout.LayoutParams(-1, (int) dp(320)));
+    Runnable render =
+        () -> {
+          JSONObject latest = macSystem();
+          text.setText(
+              latest == null
+                  ? "맥 연결과 최신 상태를 기다리고 있어요."
+                  : systemDetailText(latest, kinds[selected[0]]));
+          graph.invalidate();
+          for (int i = 0; i < buttons.length; i++) {
+            Button b = buttons[i];
+            if (b == null) continue;
+            boolean active = i == selected[0];
+            if (Boolean.valueOf(active).equals(b.getTag())) continue;
+            b.setTag(active);
+            b.setSelected(i == selected[0]);
+            b.setTextColor(Color.parseColor(i == selected[0] ? "#d9f4fa" : "#9bafbd"));
+            android.graphics.drawable.GradientDrawable bg =
+                new android.graphics.drawable.GradientDrawable();
+            bg.setColor(Color.parseColor(i == selected[0] ? "#36505e" : "#1f2b36"));
+            bg.setCornerRadius(dp(9));
+            b.setBackground(bg);
+          }
+        };
+    for (int i = 0; i < names.length; i++) {
+      final int index = i;
+      Button b = new Button(this);
+      buttons[i] = b;
+      b.setText(names[i]);
+      b.setAllCaps(false);
+      b.setTextSize(12);
+      b.setMinWidth(0);
+      b.setMinimumWidth(0);
+      b.setContentDescription(names[i] + " 상세 탭");
+      LinearLayout.LayoutParams params = new LinearLayout.LayoutParams((int) dp(99), (int) dp(43));
+      params.setMargins((int) dp(2), 0, (int) dp(2), 0);
+      tabs.addView(b, params);
+      b.setOnClickListener(
+          v -> {
+            selected[0] = index;
+            content.scrollTo(0, 0);
+            render.run();
+          });
+    }
+    AlertDialog dialog =
+        osDialog()
+            .setTitle("내 Mac · 상세")
+            .setView(layout)
+            .setPositiveButton("닫기", null)
+            .setNeutralButton(
+                "앱별 사용량",
+                (d, x) -> {
+                  JSONObject latest = macSystem();
+                  if (latest != null) systemProcesses(latest, false);
+                })
+            .show();
+    Runnable refresh =
+        new Runnable() {
+          public void run() {
+            if (!dialog.isShowing()) return;
+            render.run();
+            ui.postDelayed(this, 2000);
+          }
+        };
+    dialog.setOnDismissListener(d -> ui.removeCallbacks(refresh));
+    render.run();
+    ui.postDelayed(refresh, 2000);
+  }
+
+  private class MacHistoryView extends View {
+    final int[] selected;
+    final String[] kinds;
+    final Paint p = new Paint(Paint.ANTI_ALIAS_FLAG);
+    final Path line = new Path();
+    final RectF plot = new RectF();
+
+    MacHistoryView(int[] selected, String[] kinds) {
+      super(MainActivity.this);
+      this.selected = selected;
+      this.kinds = kinds;
+      setImportantForAccessibility(View.IMPORTANT_FOR_ACCESSIBILITY_YES);
+      setContentDescription("맥 상태 실시간 추이 그래프");
+    }
+
+    void text(Canvas c, String value, float x, float y, float size, int color, Paint.Align align) {
+      p.setStyle(Paint.Style.FILL);
+      p.setColor(color);
+      p.setTypeface(font);
+      p.setTextSize(dp(size));
+      p.setTextAlign(align);
+      c.drawText(value, x, y, p);
+    }
+
+    void curve(Canvas c, JSONArray values, double max, int color) {
+      if (values == null || values.length() < 2) return;
+      line.rewind();
+      boolean started = false;
+      for (int i = 0; i < values.length(); i++) {
+        double v = values.optDouble(i, Double.NaN);
+        if (values.isNull(i) || !Double.isFinite(v)) {
+          started = false;
+          continue;
+        }
+        float x = plot.left + plot.width() * i / Math.max(1, values.length() - 1),
+            y = plot.bottom - (float) Math.max(0, Math.min(1, v / max)) * plot.height();
+        if (started) line.lineTo(x, y);
+        else line.moveTo(x, y);
+        started = true;
+      }
+      p.setStyle(Paint.Style.STROKE);
+      p.setStrokeWidth(dp(2));
+      p.setColor(color);
+      c.drawPath(line, p);
+      p.setStyle(Paint.Style.FILL);
+    }
+
+    @Override
+    protected void onDraw(Canvas c) {
+      String kind = kinds[selected[0]],
+          first = "cpu",
+          second = null,
+          title = "CPU 추이",
+          legend = "전체 CPU";
+      boolean percent = true;
+      int accent = Color.parseColor("#86b6ef"),
+          other = Color.parseColor("#83cbb9"),
+          muted = Color.parseColor("#9bafbd");
+      if (kind.equals("memory")) {
+        first = "memory";
+        title = "메모리 사용률";
+        legend = "물리 메모리 대비";
+        accent = Color.parseColor("#b6a6ec");
+      } else if (kind.equals("disk")) {
+        first = "read";
+        second = "write";
+        title = "디스크 I/O 추이";
+        legend = "읽기";
+        percent = false;
+        other = Color.parseColor("#efbd73");
+      } else if (kind.equals("network")) {
+        first = "rx";
+        second = "tx";
+        title = "네트워크 추이";
+        legend = "수신";
+        percent = false;
+      } else if (kind.equals("power")) {
+        first = "battery";
+        title = "배터리 추이";
+        legend = "배터리 잔량";
+        accent = Color.parseColor("#83cbb9");
+      }
+      p.setStyle(Paint.Style.FILL);
+      p.setColor(Color.parseColor("#172631"));
+      c.drawRoundRect(0, 0, getWidth(), getHeight(), dp(12), dp(12), p);
+      text(c, title, dp(16), dp(28), 14, Color.parseColor("#d9f4fa"), Paint.Align.LEFT);
+      text(c, legend, dp(16), dp(49), 10, accent, Paint.Align.LEFT);
+      if (second != null) {
+        text(
+            c,
+            kind.equals("disk") ? "쓰기" : "송신",
+            getWidth() - dp(16),
+            dp(49),
+            10,
+            other,
+            Paint.Align.RIGHT);
+      }
+      JSONObject data = macSystem(), history = data == null ? null : data.optJSONObject("history");
+      JSONArray a = history == null ? null : history.optJSONArray(first),
+          b = history == null || second == null ? null : history.optJSONArray(second);
+      plot.set(dp(58), dp(77), getWidth() - dp(16), getHeight() - dp(39));
+      double max = percent ? 100 : 1;
+      if (!percent) {
+        for (JSONArray rows : new JSONArray[] {a, b})
+          if (rows != null)
+            for (int i = 0; i < rows.length(); i++)
+              if (!rows.isNull(i)) max = Math.max(max, rows.optDouble(i));
+      }
+      for (int i = 0; i < 3; i++) {
+        float y = plot.top + plot.height() * i / 2;
+        p.setColor(Color.parseColor("#2b414f"));
+        p.setStrokeWidth(dp(1));
+        c.drawLine(plot.left, y, plot.right, y, p);
+        double value = max * (2 - i) / 2;
+        text(
+            c,
+            percent ? String.format(Locale.KOREA, "%.0f%%", value) : metricBytes(value) + "/s",
+            plot.left - dp(8),
+            y + dp(3),
+            8,
+            muted,
+            Paint.Align.RIGHT);
+      }
+      if (a == null || a.length() < 2)
+        text(c, "추이 수집 중", plot.centerX(), plot.centerY(), 12, muted, Paint.Align.CENTER);
+      else {
+        curve(c, a, max, accent);
+        curve(c, b, max, other);
+      }
+      text(c, "이전", plot.left, getHeight() - dp(17), 9, muted, Paint.Align.LEFT);
+      text(c, "지금 · 2초 갱신", plot.right, getHeight() - dp(17), 9, muted, Paint.Align.RIGHT);
+    }
+  }
+
+  private class GrafanaHistoryView extends MacHistoryView {
+    final JSONObject widget;
+    String chartMetric;
+
+    GrafanaHistoryView(JSONObject widget) {
+      super(new int[] {0}, new String[] {"cpu"});
+      this.widget = widget;
+      chartMetric = widget.optString("metric").equals("system") ? "system" : "tps";
+      setContentDescription("Grafana 최근 1시간 추이 그래프");
+    }
+
+    @Override
+    protected void onDraw(Canvas c) {
+      boolean percent =
+          chartMetric.equals("system") || chartMetric.equals("cpu") || chartMetric.equals("memory");
+      boolean system = chartMetric.equals("system");
+      int accent = Color.parseColor(system ? "#86b6ef" : "#83cbb9"),
+          muted = Color.parseColor("#9bafbd");
+      p.setStyle(Paint.Style.FILL);
+      p.setColor(Color.parseColor("#172631"));
+      c.drawRoundRect(0, 0, getWidth(), getHeight(), dp(12), dp(12), p);
+      text(
+          c,
+          system
+              ? "시스템 CPU 추이"
+              : chartMetric.equals("cpu")
+                  ? "DB CPU 추이"
+                  : chartMetric.equals("memory")
+                      ? "DB 메모리 추이"
+                      : chartMetric.equals("qps") ? "QPS · 쿼리/초" : "TPS · 커밋/초",
+          dp(16),
+          dp(29),
+          14,
+          Color.parseColor("#d9f4fa"),
+          Paint.Align.LEFT);
+      text(c, "최근 1시간", dp(16), dp(50), 10, muted, Paint.Align.LEFT);
+      JSONObject data = grafanaData(widget),
+          metric = data == null ? null : data.optJSONObject(chartMetric);
+      JSONArray points = metric == null ? null : metric.optJSONArray("points");
+      plot.set(dp(45), dp(76), getWidth() - dp(16), getHeight() - dp(39));
+      double max = percent ? 100 : 1;
+      if (!percent && points != null)
+        for (int i = 0; i < points.length(); i++)
+          max = Math.max(max, points.optJSONArray(i).optDouble(1));
+      for (int i = 0; i < 3; i++) {
+        float y = plot.top + plot.height() * i / 2;
+        p.setColor(Color.parseColor("#2b414f"));
+        p.setStrokeWidth(dp(1));
+        c.drawLine(plot.left, y, plot.right, y, p);
+        text(
+            c,
+            String.format(Locale.KOREA, percent ? "%.0f%%" : "%.1f", max * (2 - i) / 2),
+            plot.left - dp(6),
+            y + dp(3),
+            9,
+            muted,
+            Paint.Align.RIGHT);
+      }
+      if (points == null || points.length() < 2)
+        text(c, "수집 데이터 없음", plot.centerX(), plot.centerY(), 12, muted, Paint.Align.CENTER);
+      else if (deck != null) deck.grafanaTrend(c, points, plot, accent, percent);
+      text(c, "이전", plot.left, getHeight() - dp(16), 9, muted, Paint.Align.LEFT);
+      text(c, "최근", plot.right, getHeight() - dp(16), 9, muted, Paint.Align.RIGHT);
+    }
   }
 
   private void systemProcesses(JSONObject data, boolean memoryOrder) {
@@ -470,7 +781,7 @@ public class MainActivity extends Activity {
     if (projects == null || projects.length() == 0) return new JSONObject();
     String selected =
         prefs.getString(
-            "grafana-project-" + widget.optString("id"),
+            "grafana-project-" + widget.optString("projectGroup", widget.optString("id")),
             widget.optString("defaultProject", projects.optJSONObject(0).optString("value")));
     for (int i = 0; i < projects.length(); i++)
       if (projects.optJSONObject(i).optString("value").equals(selected))
@@ -499,44 +810,249 @@ public class MainActivity extends Activity {
               prefs
                   .edit()
                   .putString(
-                      "grafana-project-" + widget.optString("id"),
+                      "grafana-project-" + widget.optString("projectGroup", widget.optString("id")),
                       projects.optJSONObject(index).optString("value"))
                   .apply();
               deck.refresh(widget.optString("id"));
+              deck.updateState();
               d.dismiss();
             })
         .setNegativeButton("닫기", null)
         .show();
   }
 
-  private void grafanaOpen(JSONObject widget) {
-    try {
-      android.net.Uri original = android.net.Uri.parse(widget.optString("url"));
-      if (!"https".equals(original.getScheme()) || original.getHost() == null)
-        throw new IllegalArgumentException();
-      String key = "var-" + widget.optString("projectVariable", "project");
-      android.net.Uri.Builder url = original.buildUpon().clearQuery();
-      for (String name : original.getQueryParameterNames())
-        if (!name.equals(key))
-          for (String value : original.getQueryParameters(name))
-            url.appendQueryParameter(name, value);
-      url.appendQueryParameter(key, grafanaProject(widget).optString("value"));
-      Intent intent = new Intent(Intent.ACTION_VIEW, url.build());
-      Bundle extras = new Bundle();
-      extras.putBinder("android.support.customtabs.extra.SESSION", null);
-      intent.putExtras(extras);
-      intent.putExtra(
-          "android.support.customtabs.extra.TOOLBAR_COLOR", Color.parseColor("#14181f"));
-      intent.putExtra("android.support.customtabs.extra.TITLE_VISIBILITY", 1);
-      startActivity(intent);
-    } catch (Exception e) {
-      osDialog()
-          .setTitle("Grafana 연결 설정")
-          .setMessage(
-              "맥 편집기에서 Grafana의 HTTPS 대시보드 주소를 설정해 주세요. 대시보드를 처음 열 때 태블릿 브라우저 로그인이 필요할 수 있어요.")
-          .setPositiveButton("닫기", null)
-          .show();
+  private JSONObject grafanaData(JSONObject widget) {
+    JSONObject all = state.optJSONObject("grafana");
+    JSONObject widgets = all == null ? null : all.optJSONObject("widgets");
+    JSONObject entry = widgets == null ? null : widgets.optJSONObject(widget.optString("id"));
+    JSONObject projects = entry == null ? null : entry.optJSONObject("projects");
+    JSONObject data =
+        projects == null ? null : projects.optJSONObject(grafanaProject(widget).optString("value"));
+    if (data != null
+        && data.optString("status").equals("ready")
+        && hostNow() - data.optLong("capturedAt") > 90000) return null;
+    return data;
+  }
+
+  private String grafanaNumber(JSONObject data, String key, boolean percent) {
+    double value = metric(data == null ? null : data.optJSONObject(key), "value");
+    return percent
+        ? metricPercent(value)
+        : Double.isFinite(value) ? String.format(Locale.KOREA, "%,.2f", value) : "—";
+  }
+
+  private TextView grafanaStat(LinearLayout row, String label, String hint) {
+    LinearLayout tile = new LinearLayout(this);
+    tile.setOrientation(LinearLayout.VERTICAL);
+    tile.setPadding((int) dp(12), (int) dp(8), (int) dp(12), (int) dp(8));
+    android.graphics.drawable.GradientDrawable bg =
+        new android.graphics.drawable.GradientDrawable();
+    bg.setColor(Color.parseColor("#172631"));
+    bg.setCornerRadius(dp(10));
+    tile.setBackground(bg);
+    LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(0, (int) dp(94), 1f);
+    params.setMargins((int) dp(3), (int) dp(3), (int) dp(3), (int) dp(3));
+    row.addView(tile, params);
+    TextView heading = new TextView(this);
+    heading.setText(label);
+    heading.setTextSize(12);
+    heading.setIncludeFontPadding(false);
+    tile.addView(heading, new LinearLayout.LayoutParams(-1, (int) dp(18)));
+    TextView value = new TextView(this);
+    value.setTextSize(30);
+    value.setTypeface(font, android.graphics.Typeface.BOLD);
+    value.setSingleLine(true);
+    value.setIncludeFontPadding(false);
+    value.setGravity(android.view.Gravity.CENTER_VERTICAL);
+    value.setAutoSizeTextTypeUniformWithConfiguration(
+        18, 30, 1, android.util.TypedValue.COMPLEX_UNIT_SP);
+    tile.addView(value, new LinearLayout.LayoutParams(-1, (int) dp(42)));
+    TextView subtitle = new TextView(this);
+    subtitle.setText(hint);
+    subtitle.setTextSize(10);
+    subtitle.setIncludeFontPadding(false);
+    subtitle.setSingleLine(true);
+    tile.addView(subtitle, new LinearLayout.LayoutParams(-1, (int) dp(18)));
+    return value;
+  }
+
+  private void grafanaDetails(JSONObject widget) {
+    boolean system = widget.optString("metric").equals("system");
+    LinearLayout layout = new LinearLayout(this);
+    layout.setOrientation(LinearLayout.VERTICAL);
+    layout.setPadding((int) dp(13), 0, (int) dp(13), 0);
+    LinearLayout firstRow = new LinearLayout(this);
+    layout.addView(firstRow);
+    TextView[] values = new TextView[system ? 3 : 6];
+    values[0] =
+        grafanaStat(
+            firstRow, system ? "시스템 CPU" : "DB CPU", system ? "서비스 보고값 중 최대" : "노드 최대 · 할당 한도 대비");
+    values[1] =
+        grafanaStat(firstRow, system ? "수집 정상" : "TPS", system ? "정상 대상 / 전체 대상" : "커밋/초 · 5분 평균");
+    values[2] =
+        grafanaStat(
+            firstRow, system ? "보고 서비스" : "QPS", system ? "CPU 보고 job 수" : "쿼리/초 · 전체 노드 합계");
+    if (!system) {
+      LinearLayout secondRow = new LinearLayout(this);
+      layout.addView(secondRow);
+      values[3] = grafanaStat(secondRow, "연결 수", "전체 노드의 현재 연결 합계");
+      values[4] = grafanaStat(secondRow, "DB 메모리", "노드 최대 · 할당 한도 대비");
+      values[5] = grafanaStat(secondRow, "DB 상태", "준비 상태 · 수집 대상 확인");
     }
+    LinearLayout lower = new LinearLayout(this);
+    LinearLayout.LayoutParams lowerParams =
+        new LinearLayout.LayoutParams(-1, (int) dp(system ? 280 : 230));
+    lowerParams.setMargins((int) dp(3), (int) dp(9), (int) dp(3), 0);
+    layout.addView(lower, lowerParams);
+    ScrollView nodesScroll = new ScrollView(this);
+    LinearLayout nodes = new LinearLayout(this);
+    nodes.setOrientation(LinearLayout.VERTICAL);
+    nodes.setPadding((int) dp(10), (int) dp(8), (int) dp(10), (int) dp(8));
+    nodesScroll.addView(nodes);
+    lower.addView(nodesScroll, new LinearLayout.LayoutParams(0, -1, .85f));
+    LinearLayout charts = new LinearLayout(this);
+    charts.setOrientation(LinearLayout.VERTICAL);
+    LinearLayout.LayoutParams chartsParams = new LinearLayout.LayoutParams(0, -1, 1.4f);
+    chartsParams.setMargins((int) dp(9), 0, 0, 0);
+    lower.addView(charts, chartsParams);
+    GrafanaHistoryView graph = new GrafanaHistoryView(widget);
+    if (!system) {
+      LinearLayout chartTabs = new LinearLayout(this);
+      String[] keys = {"tps", "qps", "cpu", "memory"};
+      String[] labels = {"TPS", "QPS", "CPU", "메모리"};
+      Button[] buttons = new Button[keys.length];
+      for (int i = 0; i < keys.length; i++) {
+        final int index = i;
+        Button button = new Button(this);
+        buttons[i] = button;
+        button.setText(labels[i]);
+        button.setTextSize(11);
+        button.setAllCaps(false);
+        button.setMinWidth(0);
+        button.setMinimumWidth(0);
+        button.setPadding(0, 0, 0, 0);
+        android.graphics.drawable.GradientDrawable tabBackground =
+            new android.graphics.drawable.GradientDrawable();
+        tabBackground.setColor(Color.parseColor("#36505e"));
+        tabBackground.setCornerRadius(dp(8));
+        button.setBackground(tabBackground);
+        button.setContentDescription("Grafana " + labels[i] + " 그래프");
+        LinearLayout.LayoutParams tabParams = new LinearLayout.LayoutParams(0, (int) dp(32), 1f);
+        tabParams.setMargins((int) dp(2), 0, (int) dp(2), (int) dp(5));
+        chartTabs.addView(button, tabParams);
+        button.setOnClickListener(
+            v -> {
+              graph.chartMetric = keys[index];
+              graph.invalidate();
+              for (int j = 0; j < buttons.length; j++)
+                if (buttons[j] != null) buttons[j].setAlpha(j == index ? 1f : .5f);
+            });
+        button.setAlpha(i == 0 ? 1f : .5f);
+      }
+      charts.addView(chartTabs);
+    }
+    charts.addView(graph, new LinearLayout.LayoutParams(-1, 0, 1f));
+    TextView updated = new TextView(this);
+    updated.setTextSize(10);
+    updated.setPadding((int) dp(5), (int) dp(8), 0, 0);
+    layout.addView(updated);
+    String[] last = {""};
+    Runnable render =
+        () -> {
+          JSONObject data = grafanaData(widget);
+          String signature = String.valueOf(data);
+          if (signature.equals(last[0])) return;
+          last[0] = signature;
+          nodes.removeAllViews();
+          boolean ready = data != null && data.optString("status").equals("ready");
+          for (TextView value : values) value.setText("—");
+          if (!ready) {
+            updated.setText(
+                data == null
+                    ? "맥에서 Grafana 연결을 확인해 주세요."
+                    : data.optString("message", "지표를 조회하고 있어요."));
+            graph.invalidate();
+            return;
+          }
+          JSONObject cpu = data.optJSONObject(system ? "system" : "cpu"),
+              collection = data.optJSONObject("collection"),
+              database = data.optJSONObject("database");
+          values[0].setText(grafanaNumber(data, system ? "system" : "cpu", true));
+          if (system) {
+            values[1].setText(
+                collection == null || collection.optInt("total") == 0
+                    ? "—"
+                    : collection.optInt("healthy") + " / " + collection.optInt("total"));
+            JSONArray services = cpu == null ? null : cpu.optJSONArray("nodes");
+            values[2].setText(
+                services == null || services.length() == 0 ? "—" : services.length() + "개");
+          } else {
+            values[1].setText(grafanaNumber(data, "tps", false));
+            values[2].setText(grafanaNumber(data, "qps", false));
+            double connections = metric(database, "connections");
+            values[3].setText(
+                Double.isFinite(connections)
+                    ? String.format(Locale.KOREA, "%,.0f", connections)
+                    : "—");
+            values[4].setText(grafanaNumber(data, "memory", true));
+            values[5].setText(
+                database == null || database.isNull("ready")
+                    ? "확인 불가"
+                    : database.optBoolean("ready") ? "정상" : "확인 필요");
+          }
+          TextView nodeTitle = new TextView(this);
+          nodeTitle.setText(system ? "서비스별 시스템 CPU" : "노드별 DB CPU");
+          nodeTitle.setTextSize(12);
+          nodeTitle.setIncludeFontPadding(false);
+          nodes.addView(nodeTitle);
+          JSONArray rows = cpu == null ? null : cpu.optJSONArray("nodes");
+          if (rows != null)
+            for (int i = 0; i < rows.length(); i++) {
+              JSONObject row = rows.optJSONObject(i);
+              if (row == null) continue;
+              TextView name = new TextView(this);
+              name.setText(row.optString("name"));
+              name.setTextSize(11);
+              name.setIncludeFontPadding(false);
+              name.setPadding(0, (int) dp(9), 0, 0);
+              nodes.addView(name);
+              TextView value = new TextView(this);
+              value.setText(metricPercent(metric(row, "value")));
+              value.setTextSize(22);
+              value.setIncludeFontPadding(false);
+              value.setTypeface(font, android.graphics.Typeface.BOLD);
+              nodes.addView(value);
+              styleOSText(name);
+              styleOSText(value);
+            }
+          styleOSText(nodeTitle);
+          updated.setText(
+              "조회 "
+                  + osDate(data.optLong("capturedAt"), "HH:mm:ss")
+                  + " · 30초 갱신 · 최근 1시간 추이"
+                  + (system ? " · 수집 성공 기준" : " · TPS는 Galera 로컬 커밋, QPS는 Questions 기준"));
+          graph.invalidate();
+        };
+    AlertDialog dialog =
+        osDialog()
+            .setTitle(
+                grafanaProject(widget).optString("label", "프로젝트")
+                    + (system ? " · 시스템 상태" : " · DB 상태"))
+            .setView(layout)
+            .setPositiveButton("프로젝트 변경", (d, x) -> grafanaChoose(widget))
+            .setNegativeButton("닫기", null)
+            .show();
+    Runnable refresh =
+        new Runnable() {
+          public void run() {
+            if (!dialog.isShowing()) return;
+            render.run();
+            ui.postDelayed(this, 2000);
+          }
+        };
+    dialog.setOnDismissListener(d -> ui.removeCallbacks(refresh));
+    render.run();
+    ui.postDelayed(refresh, 2000);
   }
 
   private void osAction(JSONObject widget, String operation, String itemId) {
@@ -555,7 +1071,11 @@ public class MainActivity extends Activity {
   private void styleOSText(View view) {
     if (view instanceof TextView) {
       TextView text = (TextView) view;
-      text.setTypeface(font);
+      text.setTypeface(
+          font,
+          text.getTypeface() == null
+              ? android.graphics.Typeface.NORMAL
+              : text.getTypeface().getStyle());
       text.setTextColor(Color.parseColor(view instanceof Button ? "#8fcfc1" : "#e0e9fa"));
       text.setLetterSpacing(0);
     }
@@ -2349,10 +2869,13 @@ public class MainActivity extends Activity {
       String osSignature =
           String.valueOf(osProvider()) + String.valueOf(state.optJSONArray("notifications"));
       String systemSignature = String.valueOf(state.optJSONObject("system"));
+      String grafanaSignature = String.valueOf(state.optJSONObject("grafana"));
       for (Tile tile : cachedTiles.values()) {
         if (tile.getVisibility() != View.VISIBLE) continue;
         String next;
         if (tile.type.equals("system")) next = systemSignature;
+        else if (tile.type.equals("grafana"))
+          next = grafanaSignature + grafanaProject(tile.widget).optString("value");
         else if (tile.type.equals("gauges"))
           next = state.optInt("cpu") + ":" + state.optInt("memory");
         else if (tile.type.equals("volume"))
@@ -2366,6 +2889,29 @@ public class MainActivity extends Activity {
           next += String.valueOf(state.optJSONObject("variables"));
         if (!next.equals(tile.signature)) {
           tile.signature = next;
+          if (tile.type.equals("grafana")) {
+            JSONObject data = grafanaData(tile.widget),
+                cpu =
+                    data == null
+                        ? null
+                        : data.optJSONObject(
+                            tile.widget.optString("metric").equals("system") ? "system" : "cpu"),
+                tps = data == null ? null : data.optJSONObject("tps");
+            boolean server = tile.widget.optString("metric").equals("system");
+            double rate = metric(tps, "value");
+            tile.setContentDescription(
+                "Grafana "
+                    + grafanaProject(tile.widget).optString("label")
+                    + (server ? ", 시스템 CPU " : ", DB CPU ")
+                    + metricPercent(metric(cpu, "value"))
+                    + (server
+                        ? ""
+                        : ", TPS "
+                            + (Double.isFinite(rate)
+                                ? String.format(Locale.KOREA, "%.2f", rate)
+                                : "수집 없음"))
+                    + ", 길게 눌러 프로젝트 변경");
+          }
           if (tile.getVisibility() == View.VISIBLE) tile.invalidate();
         }
         float alpha =
@@ -2430,7 +2976,7 @@ public class MainActivity extends Activity {
                     return;
                   }
                   if (type.equals("grafana")) {
-                    grafanaOpen(w);
+                    grafanaDetails(w);
                     return;
                   }
                   if (type.equals("agenda")
@@ -2644,6 +3190,10 @@ public class MainActivity extends Activity {
           text = color(themeValue("text")),
           muted = color("#9bafbd");
       float top = r.top;
+      if (widget.optBoolean("compact")) {
+        drawMacSummary(c, widget, r);
+        return;
+      }
       String kind = widget.optString("metric", "overview");
       systemLabel(c, widget.optString("label", "맥 상태"), r, top + dp(25), 12, accent);
       JSONObject data = macSystem();
@@ -2833,12 +3383,229 @@ public class MainActivity extends Activity {
       }
     }
 
+    void grafanaTrend(Canvas c, JSONArray points, RectF r, int accent, boolean percent) {
+      if (points == null || points.length() < 2 || r.height() < dp(8)) return;
+      long first = points.optJSONArray(0).optLong(0),
+          last = points.optJSONArray(points.length() - 1).optLong(0);
+      if (last <= first) return;
+      double max = percent ? 100 : 1;
+      if (!percent)
+        for (int i = 0; i < points.length(); i++)
+          max = Math.max(max, points.optJSONArray(i).optDouble(1));
+      iconPath.rewind();
+      boolean started = false;
+      long previous = 0;
+      for (int i = 0; i < points.length(); i++) {
+        JSONArray point = points.optJSONArray(i);
+        long at = point.optLong(0);
+        double v = point.optDouble(1, Double.NaN);
+        if (!Double.isFinite(v)) {
+          started = false;
+          continue;
+        }
+        float x = r.left + r.width() * (at - first) / (float) (last - first),
+            y = r.bottom - (float) Math.max(0, Math.min(1, v / max)) * r.height();
+        if (started && at - previous <= 120000) iconPath.lineTo(x, y);
+        else iconPath.moveTo(x, y);
+        started = true;
+        previous = at;
+      }
+      paint.setColor(accent);
+      paint.setStrokeWidth(dp(2));
+      paint.setStyle(Paint.Style.STROKE);
+      c.drawPath(iconPath, paint);
+      paint.setStyle(Paint.Style.FILL);
+    }
+
+    void drawMacSummary(Canvas c, JSONObject widget, RectF r) {
+      int text = color(themeValue("text")), muted = color("#9bafbd");
+      systemLabel(c, "내 Mac", r, r.top + dp(24), 12, muted);
+      JSONObject data = macSystem();
+      if (data == null) {
+        systemLabel(c, "맥 상태 연결 대기", r, r.top + dp(66), 20, text);
+        return;
+      }
+      JSONObject cpu = data.optJSONObject("cpu"),
+          mem = data.optJSONObject("memory"),
+          disk = data.optJSONObject("disk"),
+          power = data.optJSONObject("power"),
+          net = data.optJSONObject("network");
+      String[] names = {"CPU", "메모리", "저장 공간", "전원·발열", "네트워크"};
+      String[] values = {
+        metricPercent(metric(cpu, "percent")),
+        metricBytes(metric(mem, "usedBytes")),
+        metricBytes(metric(disk, "availableBytes")) + " 여유",
+        metricPercent(metric(power, "batteryPercent")),
+        "↓ " + metricBytes(metric(net, "rxBytesPerSecond")) + "/s"
+      };
+      String[] sub = {
+        data.optInt("logicalCores") + "코어",
+        "압력 " + pressureText(mem == null ? "" : mem.optString("pressure")),
+        "전체 " + metricBytes(metric(disk, "totalBytes")),
+        "발열 " + thermalText(power == null ? "" : power.optString("thermal")),
+        "↑ " + metricBytes(metric(net, "txBytesPerSecond")) + "/s"
+      };
+      for (int i = 0; i < 5; i++) {
+        RectF cell =
+            new RectF(
+                r.left + r.width() * i / 5, r.top, r.left + r.width() * (i + 1) / 5, r.bottom);
+        systemLabel(c, names[i], cell, r.top + dp(51), 10, muted);
+        systemLabel(c, values[i], cell, r.top + dp(77), 18, text);
+        systemLabel(c, sub[i], cell, r.top + dp(98), 10, muted);
+      }
+      List<String> alerts = systemWarnings(data);
+      systemLabel(
+          c,
+          alerts.isEmpty() ? "맥 상태 정상 · 눌러서 상세 탭 보기" : String.join(" · ", alerts) + " · 눌러서 상세 보기",
+          r,
+          r.bottom - dp(17),
+          10,
+          color(alerts.isEmpty() ? "#83cbb9" : "#efbd73"));
+    }
+
     void drawGrafana(Canvas c, JSONObject widget, RectF r) {
-      int accent = color("#efb17c"), text = color(themeValue("text"));
-      systemLabel(c, "GRAFANA · 프로젝트 시스템 상태", r, r.top + dp(26), 12, accent);
-      systemLabel(c, "DB CPU · TPS", r, r.top + dp(66), 24, text);
-      systemLabel(c, "DB 메모리 · 서비스 CPU · 요청 상태", r, r.top + dp(93), 11, color("#9bafbd"));
-      systemLabel(c, "탭하여 대시보드 열기", r, r.top + dp(119), 10, color("#9bafbd"));
+      boolean server = widget.optString("metric").equals("system");
+      int accent = color(server ? "#86b6ef" : "#83cbb9"),
+          text = color(themeValue("text")),
+          muted = color("#9bafbd");
+      systemLabel(
+          c, server ? "GRAFANA · 시스템 상태" : "GRAFANA · DB 상태", r, r.top + dp(27), 14, accent);
+      JSONObject data = grafanaData(widget);
+      if (data == null || !data.optString("status").equals("ready")) {
+        systemLabel(
+            c,
+            data != null && data.optString("status").equals("error") ? "지표 연결 확인" : "지표 조회 중",
+            r,
+            r.top + dp(85),
+            24,
+            text);
+        systemLabel(
+            c,
+            data == null ? "맥에서 Grafana 연결을 확인해 주세요" : data.optString("message", "잠시 후 자동으로 표시돼요"),
+            r,
+            r.top + dp(116),
+            11,
+            muted);
+      } else if (server) {
+        JSONObject system = data.optJSONObject("system"),
+            collection = data.optJSONObject("collection");
+        systemLabel(c, "시스템 CPU · 최대 보고값", r, r.top + dp(60), 11, muted);
+        double value = metric(system, "value");
+        systemLabel(
+            c,
+            Double.isFinite(value) ? metricPercent(value) : "수집 없음",
+            r,
+            r.top + dp(106),
+            35,
+            text);
+        int healthy = collection == null ? 0 : collection.optInt("healthy"),
+            total = collection == null ? 0 : collection.optInt("total");
+        systemLabel(
+            c,
+            total > 0 ? "지표 수집 " + healthy + " / " + total + " 정상" : "수집 대상 없음",
+            r,
+            r.top + dp(137),
+            12,
+            color(total > 0 && healthy == total ? "#83cbb9" : "#efbd73"));
+        JSONArray nodes = system == null ? null : system.optJSONArray("nodes");
+        if (nodes != null)
+          for (int i = 0; i < Math.min(5, nodes.length()); i++) {
+            JSONObject row = nodes.optJSONObject(i);
+            float y = r.top + dp(174 + i * 27);
+            systemLabel(
+                c,
+                row.optString("name"),
+                new RectF(r.left, r.top, r.right - dp(70), r.bottom),
+                y,
+                11,
+                muted);
+            label(
+                c,
+                metricPercent(metric(row, "value")),
+                r.right - dp(16),
+                y,
+                12,
+                text,
+                Paint.Align.RIGHT);
+          }
+        float chartTop = Math.max(r.top + dp(314), r.bottom - dp(132));
+        systemLabel(c, "최근 1시간 · 시스템 CPU", r, chartTop - dp(8), 10, muted);
+        grafanaTrend(
+            c,
+            system == null ? null : system.optJSONArray("points"),
+            new RectF(r.left + dp(16), chartTop, r.right - dp(16), r.bottom - dp(64)),
+            accent,
+            true);
+      } else {
+        JSONObject cpu = data.optJSONObject("cpu"),
+            tps = data.optJSONObject("tps"),
+            database = data.optJSONObject("database");
+        String ready =
+            database == null || database.isNull("ready")
+                ? "확인 불가"
+                : database.optBoolean("ready") ? "준비됨" : "확인 필요";
+        systemLabel(
+            c,
+            "DB " + ready,
+            r,
+            r.top + dp(58),
+            12,
+            color(ready.equals("준비됨") ? "#83cbb9" : "#efbd73"));
+        RectF left = new RectF(r.left, r.top, r.centerX(), r.bottom),
+            right = new RectF(r.centerX(), r.top, r.right, r.bottom);
+        systemLabel(c, "DB CPU · 최대 노드", left, r.top + dp(89), 10, muted);
+        systemLabel(c, "TPS · 커밋/초", right, r.top + dp(89), 10, muted);
+        double cpuValue = metric(cpu, "value"), tpsValue = metric(tps, "value");
+        systemLabel(
+            c,
+            Double.isFinite(cpuValue) ? metricPercent(cpuValue) : "수집 없음",
+            left,
+            r.top + dp(126),
+            28,
+            text);
+        systemLabel(
+            c,
+            Double.isFinite(tpsValue) ? String.format(Locale.KOREA, "%.2f", tpsValue) : "수집 없음",
+            right,
+            r.top + dp(126),
+            28,
+            text);
+        JSONArray nodes = cpu == null ? null : cpu.optJSONArray("nodes");
+        if (nodes != null)
+          for (int i = 0; i < Math.min(4, nodes.length()); i++) {
+            JSONObject row = nodes.optJSONObject(i);
+            float y = r.top + dp(171 + i * 27);
+            systemLabel(c, row.optString("name"), left, y, 11, muted);
+            label(
+                c,
+                metricPercent(metric(row, "value")),
+                r.right - dp(16),
+                y,
+                12,
+                text,
+                Paint.Align.RIGHT);
+          }
+        double connections = metric(database, "connections");
+        systemLabel(
+            c,
+            "연결 "
+                + (Double.isFinite(connections)
+                    ? String.format(Locale.KOREA, "%.0f", connections)
+                    : "수집 없음")
+                + " · TPS는 5분 평균",
+            r,
+            r.top + dp(286),
+            10,
+            muted);
+        float chartTop = Math.max(r.top + dp(314), r.bottom - dp(132));
+        systemLabel(c, "최근 1시간 · TPS", r, chartTop - dp(8), 10, muted);
+        grafanaTrend(
+            c,
+            tps == null ? null : tps.optJSONArray("points"),
+            new RectF(r.left + dp(16), chartTop, r.right - dp(16), r.bottom - dp(64)),
+            accent,
+            false);
+      }
       line(
           c,
           r.left + dp(16),
@@ -3660,7 +4427,7 @@ public class MainActivity extends Activity {
             else if (type.equals("grafana")) {
               if (y > rects.get(downIndex).bottom - dp(48)
                   || System.currentTimeMillis() - downAt > 650) grafanaChoose(w);
-              else grafanaOpen(w);
+              else grafanaDetails(w);
             } else if (type.equals("todo")) todoDialog(w);
             else if (type.equals("toggle"))
               action(

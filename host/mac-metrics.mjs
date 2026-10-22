@@ -103,7 +103,15 @@ export class MacMetrics {
     this.helper = helper;
     this.spawnProcess = spawnProcess;
     this.clock = clock;
-    this.history = { cpu: [], memory: [], rx: [], tx: [] };
+    this.history = {
+      cpu: [],
+      memory: [],
+      rx: [],
+      tx: [],
+      read: [],
+      write: [],
+      battery: [],
+    };
     this.closed = false;
     this.retryMs = 5000;
     this.status =
@@ -123,6 +131,9 @@ export class MacMetrics {
           : null,
       rx: sample.network.rxBytesPerSecond,
       tx: sample.network.txBytesPerSecond,
+      read: sample.io.readBytesPerSecond,
+      write: sample.io.writeBytesPerSecond,
+      battery: sample.power.batteryPercent,
     })) {
       this.history[key].push(value);
       if (this.history[key].length > 120) this.history[key].shift();

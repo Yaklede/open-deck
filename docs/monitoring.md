@@ -1,6 +1,6 @@
 # Mac monitoring and Grafana
 
-The Monitor template contains seven native Mac status cards and a Grafana card. It does not include a calendar. Existing calendar widgets and the Jimin OS page remain available separately.
+The Monitor template prioritizes two native Grafana cards: system CPU/collection status and database readiness/CPU/TPS/connections. One compact Mac card sits below them. Tap the Mac card for CPU, memory, storage, power/thermal and network tabs. Calendar widgets and the Jimin OS page remain available separately.
 
 ## Mac cards
 
@@ -16,13 +16,21 @@ A signed Swift helper samples host counters every two seconds and process counte
 
 Telemetry is sent only through the existing paired-device connection. Process entries contain a short executable name and PID; command arguments, full paths and environment variables are not sent. No extra monitoring service or exporter is installed. Running the Node host from source requires setting `OPEN_DECK_METRICS_HELPER` to a locally compiled helper; the packaged Mac app includes it.
 
-## Grafana card
+## Native Grafana cards
 
-Set the HTTPS dashboard URL, project variable name, project labels/values and default in the Mac widget editor. The tablet remembers its selected project for this widget. Tap the card's project row, or long-press the card, to change it. Tap the body to open the selected dashboard. The URL receives `var-<variable>=<selected value>` while retaining unrelated query parameters.
+The Android app renders Grafana values and trends directly with Canvas. It does not open a browser or embed a WebView. Both cards share a project selection: tap the project row or long-press either card to change it. Selection persists on the tablet and updates both cards immediately from cached results.
 
-Grafana uses an Android browser Custom Tab and that browser's normal authentication session. It is a dashboard launcher, not embedded native Grafana charts. First use may need browser setup and Grafana login. Open Deck does not relay a Mac session, store a Grafana API token or bypass Grafana access controls. The native Mac cards work independently of Grafana availability.
+- System: maximum reported `system_cpu_usage` across jobs, the individual job values, a one-hour trend and successful scrape targets out of total observed targets. These are system CPU values reported by the service runtimes, not Mac CPU or a sum of the entire cluster's CPU. Scrape success does not guarantee every business function is healthy.
+- Database: readiness, maximum CPU utilization among observed nodes, per-node CPU, committed TPS, QPS, memory and total observed connections. The detail view uses six large numeric cards and switchable TPS, QPS, CPU and memory charts. QPS sums the dashboard’s per-node Questions rates; memory reports the highest observed node utilization. A failed observed MariaDB exporter prevents a healthy readiness badge.
+- Mac: one supporting summary of CPU, memory, storage, power/thermal state and network. Its detail tabs use a balanced two-column layout with current values and native trend charts: CPU, memory utilization, disk read/write throughput, battery level and network receive/send throughput. They refresh every two seconds. App-level CPU/memory lists remain accessible from that dialog.
 
-For a tablet-focused view, add `kiosk=1` to the configured URL to hide Grafana's management navigation. Project selection still comes from the native card; the dashboard also retains its variable selector in the verified Grafana version.
+Grafana detail dialogs also put the metric summary beside its native one-hour chart. The monitor and detail views contain no embedded webpage.
+
+The Mac editor configures the HTTPS dashboard URL, CPU/TPS panel IDs, project labels/values, default and optional token use. The source dashboard supplies the queries; project values are validated before substitution. Standard Open Deck dashboards also provide readiness, system CPU, scrape status and connection panels. Missing optional panels remain unavailable.
+
+The Mac host queries Grafana every 30 seconds with at most two concurrent project requests and shares results between cards. It keeps 60 trend points per metric, bounds HTTP bodies/timeouts, rejects redirects, excludes source samples older than five minutes and hides results whose query timestamp is older than 90 seconds. Connection failures show an error instead of stale values or invented zeros. Source collection intervals can delay the latest CPU point even when a query just succeeded.
+
+For authenticated Grafana, create a dedicated Viewer service account token and store it through the widget editor. The token is stored in macOS Keychain, never in deck JSON, exports, Android settings or snapshots. Dashboard URLs and private query configuration stay on the Mac. The paired tablet receives only bounded values, labels, timestamps and histories. Browser cookies and the Codex connector's credentials are not reused. Administration APIs remain blocked on Wi-Fi.
 
 For an existing Kubernetes/Galera deployment, the configured dashboard uses the existing Cloud Monitoring and Prometheus/Mimir data sources:
 
