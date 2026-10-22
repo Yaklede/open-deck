@@ -302,7 +302,12 @@ export class SecretVault {
     const secrets = this.secrets();
     if (!Object.hasOwn(secrets, id) && Object.keys(secrets).length >= 200)
       throw Error("비밀은 최대 200개까지 보관할 수 있습니다.");
-    secrets[id] = { label, value, updatedAt: this.now() };
+    Object.defineProperty(secrets, id, {
+      value: { label, value, updatedAt: this.now() },
+      enumerable: true,
+      writable: true,
+      configurable: true,
+    });
     this.saveSecrets(secrets);
     return this.listSecrets();
   }
@@ -337,7 +342,8 @@ export class SecretVault {
   }
   readSecret(id) {
     secretId(id);
-    return this.secrets()[id]?.value || "";
+    const secrets = this.secrets();
+    return Object.hasOwn(secrets, id) ? secrets[id].value : "";
   }
   encryptBackup(archive, { recoveryProtected = false } = {}) {
     const envelope = {

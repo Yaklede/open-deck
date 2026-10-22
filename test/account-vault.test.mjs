@@ -151,6 +151,15 @@ test("vault keeps master key, passwords and secrets encrypted and stays locked a
   assert.throws(() => restart.unlock(pass));
   restart.unlock("different-password");
   restart.removeSecret("test");
+  for (const id of ["__proto__", "constructor", "toString"]) {
+    restart.setSecret({ id, label: "Reserved object name", value: "preserved-value" });
+    restart.lock();
+    restart.unlock("different-password");
+    assert.equal(restart.hasSecret(id), true);
+    assert.equal(restart.readSecret(id), "preserved-value");
+    assert.ok(restart.listSecrets().some((s) => s.id === id));
+    restart.removeSecret(id);
+  }
   assert.equal(restart.status().secretCount, 0);
 });
 test("vault recovery has confirmation, rotation, lost-password recovery and portable backup decryption", (t) => {
