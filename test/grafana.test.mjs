@@ -112,6 +112,23 @@ test("DB QPS sums per-node query rates, memory uses the highest node and missing
   assert.equal(parseGrafanaMetrics(response(), now).qps.value, null);
   assert.equal(parseGrafanaMetrics(response(), now).memory.value, null);
 });
+test("DB GiB uses actual bytes from the same highest-utilization node, not a different node or inferred limit", () => {
+  const raw = response();
+  raw.results.H = {
+    frames: [frame("db-0", [0.1, 0.3, 0.4]), frame("db-1", [0.6, 0.7, 0.8])],
+  };
+  raw.results.I = {
+    frames: [frame("db-0", [100, 200, 300]), frame("db-1", [600, 700, 800])],
+  };
+  const data = parseGrafanaMetrics(raw, now);
+  assert.equal(data.memory.usedBytes, 800);
+  assert.equal(data.memory.value, 80);
+  raw.results.I.frames.push(frame("db-1", [600, 700, 900]));
+  assert.equal(parseGrafanaMetrics(raw, now).memory.usedBytes, null);
+  raw.results.I.frames.pop();
+  raw.results.I.frames.pop();
+  assert.equal(parseGrafanaMetrics(raw, now).memory.usedBytes, null);
+});
 test("two native cards for one project reuse the same collected result", async (t) => {
   let posts = 0;
   const a = widget(),
@@ -278,6 +295,14 @@ test("paired snapshots expose native metrics while LAN cannot store a Grafana cr
   assert.match(template.headers.get("content-type"), /javascript/);
   assert((await template.text()).includes("projectGroup"));
   assert.equal((await fetch(base + "/monitor-layout.mjs")).status, 401);
+  assert.equal(
+    (
+      await fetch(base + "/monitor-rules.mjs", {
+        headers: { "X-Open-Deck-Admin": h.adminKey },
+      })
+    ).status,
+    200,
+  );
   const unauthorized = await fetch(base + "/api/snapshot");
   assert.equal(unauthorized.status, 401);
   const pair = await (
@@ -308,6 +333,40 @@ test("paired snapshots expose native metrics while LAN cannot store a Grafana cr
     body: JSON.stringify({ widgetId: "db", token: "never stored" }),
   });
   assert.equal(write.status, 403);
+  const testBody = JSON.stringify({ widgetId: "db" });
+  assert.equal(
+    (
+      await fetch(base + "/api/admin/monitor-test", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: "Bearer " + pair.token,
+        },
+        body: testBody,
+      })
+    ).status,
+    403,
+  );
+  assert.equal(
+    (
+      await fetch(base + "/api/admin/monitor-test", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "X-Open-Deck-Admin": h.adminKey,
+        },
+        body: testBody,
+      })
+    ).status,
+    200,
+  );
+  const notified = await (
+    await fetch(base + "/api/snapshot", {
+      headers: { Authorization: "Bearer " + pair.token },
+    })
+  ).json();
+  assert.equal(notified.state.notifications.at(-1).kind, "monitor");
+  assert.match(notified.state.notifications.at(-1).title, /알림 테스트/);
   if (!h.lanServer.listening)
     await new Promise((r) => h.lanServer.once("listening", r));
   const status = await new Promise((resolve, reject) => {

@@ -1,6 +1,7 @@
 import { spawn } from "node:child_process";
 import os from "node:os";
 import crypto from "node:crypto";
+import { MonitorAlerts } from "./monitor-alerts.mjs";
 import { chrome } from "./chrome.mjs";
 export function command(executable, args, timeout = 3000) {
   return new Promise((resolve, reject) => {
@@ -53,6 +54,7 @@ export class Engine {
     this.todos = {};
     this.history = { cpu: [], memory: [] };
     this.integrations = {};
+    this.monitorAlerts = new MonitorAlerts();
     this.navigation = null;
     this.volumeWrite = Promise.resolve();
     this.volumeRevision = 0;
@@ -61,12 +63,19 @@ export class Engine {
     return this.config.pages.flatMap((p) => p.widgets).find((w) => w.id === id);
   }
   state() {
+    const system = this.systemMonitor?.state() || { status: "unavailable" };
+    const grafana = this.grafana?.state() || { widgets: {} };
+    const monitoring = this.monitorAlerts.evaluate(this.config, {
+      system,
+      grafana,
+    });
     return {
       at: Date.now(),
       cpu: this.cpu,
       memory: this.memory,
-      system: this.systemMonitor?.state() || { status: "unavailable" },
-      grafana: this.grafana?.state() || { widgets: {} },
+      system,
+      grafana,
+      monitoring,
       volume: this.volume,
       muted: this.muted,
       running: [...this.running],
@@ -77,7 +86,12 @@ export class Engine {
       history: this.history,
       integrations: this.integrations,
       extensions: this.extensions?.state() || {},
-      notifications: this.extensions?.notifications || [],
+      notifications: [
+        ...(this.extensions?.notifications || []),
+        ...monitoring.notifications,
+      ]
+        .sort((a, b) => a.createdAt - b.createdAt)
+        .slice(-80),
     };
   }
   metrics() {

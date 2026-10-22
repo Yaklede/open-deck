@@ -1,4 +1,5 @@
 import fs from "node:fs";
+import { validateMonitorSettings } from "./public/monitor-rules.mjs";
 import path from "node:path";
 import os from "node:os";
 import crypto from "node:crypto";
@@ -296,6 +297,7 @@ export function validateConfig(input) {
           throw Error("스타일 색상을 확인하세요.");
       for (const [k, min, max] of [
         ["textSize", 9, 36],
+        ["valueSize", 20, 60],
         ["iconSize", 10, 65],
         ["borderWidth", 0, 5],
         ["opacity", 20, 100],
@@ -334,6 +336,7 @@ export function validateConfig(input) {
         ].includes(w.metric || "overview")
       )
         throw Error("시스템 지표를 선택하세요.");
+      if (["grafana", "system"].includes(w.type)) validateMonitorSettings(w);
       if (w.type === "grafana") {
         if (
           (w.metric !== undefined &&

@@ -37,7 +37,7 @@ export function monitorPage({
         id: id + "-grafana",
         type: "grafana",
         metric: "database",
-        label: "DB 상태 · CPU · TPS",
+        label: "DB 상태 · CPU · MEM · TPS · QPS",
         x: 4,
         y: 0,
         w: 4,

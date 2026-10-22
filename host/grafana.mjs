@@ -83,7 +83,8 @@ export function parseGrafanaMetrics(data, now = Date.now()) {
     for (const [at, value] of row.points)
       systemHistory.set(at, Math.max(systemHistory.get(at) ?? 0, value));
   const qps = optional("G"),
-    memory = optional("H", 100);
+    memory = optional("H", 100),
+    memoryBytes = optional("I");
   const trend = (rows, mode) => {
     const points = new Map();
     for (const row of rows)
@@ -95,6 +96,14 @@ export function parseGrafanaMetrics(data, now = Date.now()) {
             : Math.max(points.get(at) ?? 0, value),
         );
     return [...points].sort((a, b) => a[0] - b[0]).slice(-60);
+  };
+  const highestMemory = memory.reduce(
+    (best, row) => (!best || row.value > best.value ? row : best),
+    null,
+  );
+  const usedBytes = (name) => {
+    const matched = memoryBytes.filter((row) => row.name === name);
+    return matched.length === 1 ? matched[0].value : null;
   };
   const exporters = up.filter((row) => row.job === "mariadb-exporter");
   return {
@@ -126,7 +135,11 @@ export function parseGrafanaMetrics(data, now = Date.now()) {
     },
     memory: {
       value: memory.length ? Math.max(...memory.map((r) => r.value)) : null,
-      nodes: memory.map(({ points, ...row }) => row),
+      usedBytes: highestMemory ? usedBytes(highestMemory.name) : null,
+      nodes: memory.map(({ points, ...row }) => ({
+        ...row,
+        usedBytes: usedBytes(row.name),
+      })),
       points: trend(memory, "max"),
     },
     database: {
@@ -257,10 +270,10 @@ export class GrafanaMonitor {
     const selected = [
       [cpu, "A"],
       [tps, "B"],
-      ...[3, 14, 15, 7, 8, 6]
+      ...[3, 14, 15, 7, 8, 6, 16]
         .map((id, i) => [
           panels.find((p) => p.id === id),
-          ["C", "D", "E", "F", "G", "H"][i],
+          ["C", "D", "E", "F", "G", "H", "I"][i],
         ])
         .filter(([p]) => p?.targets?.[0]),
     ];

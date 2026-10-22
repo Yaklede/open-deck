@@ -1,5 +1,6 @@
 import { migrate, place, overlaps, themes } from "./layout.mjs";
 import { monitorPage } from "./monitor-layout.mjs";
+import { monitorSettings, monitorRuleNames } from "./monitor-rules.mjs";
 const $ = (s) => document.querySelector(s),
   uid = () => crypto.randomUUID();
 let config,
@@ -497,7 +498,17 @@ function updateLive() {
             : "DB CPU " +
               pct(data.cpu.value) +
               "\nTPS " +
-              (data.tps.value == null ? "수집 없음" : data.tps.value.toFixed(2))
+              (data.tps.value == null
+                ? "수집 없음"
+                : data.tps.value.toFixed(2)) +
+              " · QPS " +
+              (data.qps?.value == null ? "—" : data.qps.value.toFixed(2)) +
+              "\nMEM " +
+              pct(data.memory?.value) +
+              " · " +
+              (data.memory?.usedBytes == null
+                ? "—"
+                : (data.memory.usedBytes / 1073741824).toFixed(1) + " GiB")
           : data?.message || "지표 조회 대기");
       c.querySelector(".system-reading").style.whiteSpace = "pre-line";
     }
@@ -757,6 +768,97 @@ function inspect() {
       (v) => change(() => (w.compact = v)),
       { type: "checkbox" },
     );
+  if (["grafana", "system"].includes(w.type)) {
+    const alertBox = n("details");
+    alertBox.append(n("summary", "임계치 · 태블릿 알림"));
+    box.append(alertBox);
+    const settings = monitorSettings(w);
+    const edit = (key, value) =>
+      change(() => {
+        w.alerts ??= structuredClone(settings);
+        w.alerts[key] = value;
+      });
+    field(
+      alertBox,
+      "위험 색상 표시",
+      settings.enabled,
+      (v) => edit("enabled", v),
+      { type: "checkbox" },
+    );
+    field(alertBox, "태블릿 알림", settings.notify, (v) => edit("notify", v), {
+      type: "checkbox",
+    });
+    field(
+      alertBox,
+      "지속 시간 (초)",
+      settings.holdSeconds,
+      (v) => edit("holdSeconds", v),
+      { type: "number", min: 0, max: 3600 },
+    );
+    field(
+      alertBox,
+      "재알림 간격 (초)",
+      settings.cooldownSeconds,
+      (v) => edit("cooldownSeconds", v),
+      { type: "number", min: 60, max: 86400 },
+    );
+    alertBox.append(
+      n(
+        "p",
+        "초록 정상 · 주황 주의 · 빨강 위험. 설정한 시간 이상 유지되면 알림을 보내고 정상 복구도 알려드려요.",
+      ),
+    );
+    for (const [key, rule] of Object.entries(settings.rules)) {
+      const group = n("details");
+      group.append(n("summary", monitorRuleNames[key]));
+      alertBox.append(group);
+      const setRule = (name, value) =>
+        change(() => {
+          w.alerts ??= structuredClone(settings);
+          w.alerts.rules ??= structuredClone(settings.rules);
+          w.alerts.rules[key] ??= { ...rule };
+          w.alerts.rules[key][name] = value;
+        });
+      field(group, "임계치 사용", rule.enabled, (v) => setRule("enabled", v), {
+        type: "checkbox",
+      });
+      field(group, "기준", rule.direction, (v) => setRule("direction", v), {
+        choices: { above: "이상일 때", below: "이하일 때" },
+      });
+      for (const [name, title] of [
+        ["warning", "주의"],
+        ["critical", "위험"],
+      ]) {
+        const input = field(group, title, rule[name], () => {}, {
+          type: "number",
+          min: 0,
+        });
+        input.step = "any";
+        input.placeholder = "임계치 입력";
+        input.onchange = () =>
+          setRule(name, input.value.trim() === "" ? null : Number(input.value));
+      }
+    }
+    button(alertBox, "태블릿 알림 테스트", async () => {
+      if (dirty) {
+        notice("변경 저장 후 알림을 테스트해 주세요.", true);
+        return;
+      }
+      try {
+        await api("/api/admin/monitor-test", "POST", { widgetId: w.id });
+        notice("태블릿에 테스트 알림을 보냈습니다.");
+      } catch (e) {
+        notice(e.message, true);
+      }
+    });
+    if (w.type === "grafana" && w.metric !== "system")
+      alertBox.append(
+        n(
+          "p",
+          "TPS·QPS·연결 수는 임계치를 입력한 뒤 켜세요. 처리량 감소를 감지하려면 ‘이하일 때’를 선택하세요.",
+        ),
+      );
+  }
   if (w.type === "grafana") {
     field(
       box,
@@ -934,6 +1036,15 @@ function inspect() {
         (v) => change(() => (w.style[key] = v)),
         { choices },
       );
+  if (["grafana", "system"].includes(w.type))
+    field(
+      style,
+      "지표 숫자 크기",
+      w.style.valueSize ||
+        (w.type === "system" ? 28 : w.metric === "system" ? 44 : 36),
+      (v) => change(() => (w.style.valueSize = v)),
+      { type: "number", min: 20, max: 60 },
+    );
   for (const [key, title, value, min, max] of [
     ["textSize", "글자 크기", 17, 9, 36],
     ["iconSize", "아이콘 크기 (%)", 32, 10, 65],
@@ -941,7 +1052,7 @@ function inspect() {
     ["opacity", "불투명도 (%)", 100, 20, 100],
   ].filter(([key]) =>
     key === "textSize"
-      ? freeLabel
+      ? freeLabel || ["grafana", "system"].includes(w.type)
       : key === "iconSize"
         ? ["button", "page"].includes(w.type)
         : true,

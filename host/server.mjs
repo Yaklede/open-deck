@@ -223,7 +223,7 @@ export function createHost({
             error: "Wi-Fi에서는 태블릿 연결만 허용됩니다.",
           });
         if (req.method === "GET" && u.pathname === "/health")
-          return send(res, 200, { name: "Open Deck", version: "0.7.0" });
+          return send(res, 200, { name: "Open Deck", version: "0.8.0" });
         if (req.method === "POST" && u.pathname === "/api/pair") {
           const now = Date.now(),
             key = req.socket.remoteAddress,
@@ -362,6 +362,18 @@ export function createHost({
           grafana.refresh();
           return send(res, 200, { ok: true });
         }
+        if (req.method === "POST" && u.pathname === "/api/admin/monitor-test") {
+          const b = await body(req),
+            w = engine.widget(b.widgetId),
+            page = config.pages.find((p) =>
+              p.widgets.some((w) => w.id === b.widgetId),
+            );
+          if (!w || !["grafana", "system"].includes(w.type))
+            throw Error("모니터 위젯을 선택하세요.");
+          engine.monitorAlerts.testNotification(page, w);
+          broadcast();
+          return send(res, 200, { ok: true });
+        }
         if (req.method === "POST" && u.pathname === "/api/admin/refresh") {
           const b = await body(req);
           return send(res, 200, { value: await connectors.run(b.id) });
@@ -489,6 +501,7 @@ export function createHost({
             "/app.css",
             "/layout.mjs",
             "/monitor-layout.mjs",
+            "/monitor-rules.mjs",
           ].includes(u.pathname)
         ) {
           if (!admin)

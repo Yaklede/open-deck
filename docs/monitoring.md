@@ -42,3 +42,15 @@ For an existing Kubernetes/Galera deployment, the configured dashboard uses the 
 Every panel is scoped to the selected project. A project without an exporter or database reports no data; it does not silently show another project's values or substitute zero. Grafana connections, project identifiers and deployment-specific dashboard definitions stay in private configuration.
 
 References: [Apple CPU accounting](https://github.com/apple-oss-distributions/xnu/blob/main/doc/observability/recount.md), [MariaDB Galera status variables](https://mariadb.com/docs/galera-cluster/reference/galera-cluster-status-variables), [Google Kubernetes system metrics](https://docs.cloud.google.com/monitoring/api/metrics_kubernetes).
+
+## Thresholds and tablet alerts
+
+In the Mac widget editor, expand **임계치 · 태블릿 알림** and save changes. CPU, memory, TPS, QPS and connection rules can use an upper or lower threshold. CPU defaults to warning at 80% and critical at 90%; memory defaults to 85%/95%. TPS, QPS and connection thresholds start disabled because their useful limits depend on the workload. DB not-ready and failed scrape targets also indicate critical status. Green, amber and red distinguish normal, warning and critical values in the main cards, detail values and trend lines; missing/stale samples stay unknown.
+
+Color follows the current observation immediately. Notifications wait for the configured hold duration (default 60 seconds), repeat no more than once per cooldown (default 600 seconds) while the same condition persists, and report sustained recovery. A brief spike or missing data resets the hold. Projects are tracked independently. Turning notification delivery off preserves color classification. The editor includes a clearly labeled test notification; paired devices cannot call that admin endpoint.
+
+While the tablet app is connected, new monitor events produce a private Android notification and a 12-second in-app banner. The banner stays visible inside Open Deck even when Android suppresses system popups; notification sound and system presentation still follow Android settings. Tap the banner/notification to open the relevant monitor page and project. This is the existing local paired connection, not a background cloud push service.
+
+The main DB card directly shows CPU, MEM, TPS and QPS. Memory displays both percentage and actual GiB, using the byte series for the same highest-utilization DB node. Missing or ambiguous byte series remain unavailable; bytes are never inferred from percentage. The source dashboard's optional memory-byte panel uses the existing Cloud Monitoring container memory-used counter grouped by cluster/pod. Mac memory likewise shows actual used/total GiB and percentage.
+
+Monitor titles use the saved widget label rather than hardcoded text. The editor's title/text-size and separate numeric-size controls are delivered with the normal configuration revision; use **변경 저장** to publish edits to connected tablets without restarting the app. Page names also follow the saved configuration.
