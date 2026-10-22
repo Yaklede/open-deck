@@ -6,13 +6,154 @@
   "observationMethod": "Native Mac accessibility UI, Android ADB UI hierarchy/screenshots, and authenticated localhost settings readback. No macro actions invoked.",
   "settingsFlowSourceCommit": "b7d7b3cc0d62d91883bf6485fc1194d37b81c015",
   "cases": [
-    {"case":"Mac footer Save -> already-open Android display settings","macEdited":{"textScale":130},"androidVisible":"130%","serverStored":{"textScale":130,"timeFormat":"12h"},"reopenedSettings":false,"result":"pass"},
-    {"case":"Android -> already-open Mac device settings","androidSelected":"24 hours","macVisible":"24시간","reopenedSettings":false,"result":"pass"},
-    {"case":"Independent fields changed on both sides","steps":["Mac keeps an unsaved font scale of 135","Android changes clock to 12 hours","Open Mac form shows 12 hours while retaining unsaved 135","Mac applies only its changed field"],"androidVisible":["135%","12 hours"],"serverStored":{"textScale":135,"timeFormat":"12h"},"result":"pass"},
-    {"case":"Android force-stop and relaunch","androidVisible":["135%","12 hours"],"connection":"Wi-Fi · Encrypted connection","pairingReentered":false,"result":"pass"},
-    {"case":"Mac native app and host stop/start","androidWhileMacStopped":["135%","12 hours"],"macAfterRestart":{"textScale":135,"timeFormat":"12h"},"serverStored":{"textScale":135,"timeFormat":"12h"},"automaticReconnect":true,"result":"pass"},
-    {"case":"Both apps stopped, offline edit survives Android cold start","steps":["Stop Mac native app and host","Set Android clock to 24 hours while offline","Force-stop Android and relaunch while Mac remains stopped","Open Android settings and observe 135% and 24 hours","Start Mac and wait for automatic connection"],"androidOfflineAfterRestart":["135%","24 hours"],"macAfterReconnect":{"textScale":135,"timeFormat":"24h"},"serverStored":{"textScale":135,"timeFormat":"24h"},"pairingReentered":false,"result":"pass"}
+    {
+      "case": "Mac footer Save -> already-open Android display settings",
+      "macEdited": {
+        "textScale": 130
+      },
+      "androidVisible": "130%",
+      "serverStored": {
+        "textScale": 130,
+        "timeFormat": "12h"
+      },
+      "reopenedSettings": false,
+      "result": "pass"
+    },
+    {
+      "case": "Android -> already-open Mac device settings",
+      "androidSelected": "24 hours",
+      "macVisible": "24시간",
+      "reopenedSettings": false,
+      "result": "pass"
+    },
+    {
+      "case": "Independent fields changed on both sides",
+      "steps": [
+        "Mac keeps an unsaved font scale of 135",
+        "Android changes clock to 12 hours",
+        "Open Mac form shows 12 hours while retaining unsaved 135",
+        "Mac applies only its changed field"
+      ],
+      "androidVisible": [
+        "135%",
+        "12 hours"
+      ],
+      "serverStored": {
+        "textScale": 135,
+        "timeFormat": "12h"
+      },
+      "result": "pass"
+    },
+    {
+      "case": "Android force-stop and relaunch",
+      "androidVisible": [
+        "135%",
+        "12 hours"
+      ],
+      "connection": "Wi-Fi · Encrypted connection",
+      "pairingReentered": false,
+      "result": "pass"
+    },
+    {
+      "case": "Mac native app and host stop/start",
+      "androidWhileMacStopped": [
+        "135%",
+        "12 hours"
+      ],
+      "macAfterRestart": {
+        "textScale": 135,
+        "timeFormat": "12h"
+      },
+      "serverStored": {
+        "textScale": 135,
+        "timeFormat": "12h"
+      },
+      "automaticReconnect": true,
+      "result": "pass"
+    },
+    {
+      "case": "Both apps stopped, offline edit survives Android cold start",
+      "steps": [
+        "Stop Mac native app and host",
+        "Set Android clock to 24 hours while offline",
+        "Force-stop Android and relaunch while Mac remains stopped",
+        "Open Android settings and observe 135% and 24 hours",
+        "Start Mac and wait for automatic connection"
+      ],
+      "androidOfflineAfterRestart": [
+        "135%",
+        "24 hours"
+      ],
+      "macAfterReconnect": {
+        "textScale": 135,
+        "timeFormat": "24h"
+      },
+      "serverStored": {
+        "textScale": 135,
+        "timeFormat": "24h"
+      },
+      "pairingReentered": false,
+      "result": "pass"
+    }
   ],
-  "isolation": {"pageCountUnchanged":3,"widgetCountUnchanged":26,"widgetIdsUnchanged":true,"physicalTabletRecordUnchanged":true},
-  "limits": ["App process restarts were tested; the Mac operating system was not rebooted.","The tablet was unavailable, so this run uses the Android emulator.","Saved settings persist; unsaved Mac form drafts are not claimed to survive process termination.","Same-field conflicts follow server-applied write order, not wall-clock edit timestamps."]
+  "isolation": {
+    "pageCountUnchanged": 3,
+    "widgetCountUnchanged": 26,
+    "widgetIdsUnchanged": true,
+    "physicalTabletRecordUnchanged": true
+  },
+  "limits": [
+    "App process restarts were tested; the Mac operating system was not rebooted.",
+    "The tablet was unavailable, so this run uses the Android emulator.",
+    "Saved settings persist; unsaved Mac form drafts are not claimed to survive process termination.",
+    "Same-field conflicts follow server-applied write order, not wall-clock edit timestamps."
+  ],
+  "finalSourceCommit": "a7f2185e350588371299b8fde30f37acc64bfe8b",
+  "finalBuildChecks": [
+    {
+      "case": "Remote dark-to-light theme update while Android settings are scrolled",
+      "androidDialogRemainsOpen": true,
+      "scrollPositionRetained": true,
+      "clockRowBoundsBeforeAndAfter": "[720,945][1718,983]",
+      "lightThemeVisuallyConfirmed": true,
+      "result": "pass"
+    },
+    {
+      "case": "Android switches keep-screen-on off while Mac settings stay open",
+      "macCheckboxValue": false,
+      "result": "pass"
+    },
+    {
+      "case": "Android changes theme back to system while Mac settings stay open",
+      "macSelected": "시스템에 맞춤",
+      "androidDialogRemainsOpen": true,
+      "result": "pass"
+    },
+    {
+      "case": "Mac restores font scale 100 and keep-screen-on true using footer Save",
+      "androidAlreadyOpenLabel": "100%",
+      "serverStored": {
+        "textScale": 100,
+        "timeFormat": "24h",
+        "theme": "system",
+        "awake": true
+      },
+      "result": "pass"
+    },
+    {
+      "case": "Final release builds both stopped and restarted",
+      "automaticReconnect": true,
+      "pairingReentered": false,
+      "androidVisible": "100%",
+      "serverStored": {
+        "textScale": 100,
+        "timeFormat": "24h",
+        "theme": "system",
+        "awake": true
+      },
+      "result": "pass"
+    }
+  ],
+  "installedApkMatchesRelease": true,
+  "apkSha256": "5bc6d92995dfdc63cbd1679c4964789b8774d7308a0f2c3558717c2d99018496"
 }
