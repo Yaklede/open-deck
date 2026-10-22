@@ -1,0 +1,18 @@
+{
+  "version": "0.10.1",
+  "environment": "Installed native macOS app + Android API 34 tablet emulator (2560 x 1600)",
+  "physicalTabletUsed": false,
+  "macOSRebooted": false,
+  "observationMethod": "Native Mac accessibility UI, Android ADB UI hierarchy/screenshots, and authenticated localhost settings readback. No macro actions invoked.",
+  "settingsFlowSourceCommit": "b7d7b3cc0d62d91883bf6485fc1194d37b81c015",
+  "cases": [
+    {"case":"Mac footer Save -> already-open Android display settings","macEdited":{"textScale":130},"androidVisible":"130%","serverStored":{"textScale":130,"timeFormat":"12h"},"reopenedSettings":false,"result":"pass"},
+    {"case":"Android -> already-open Mac device settings","androidSelected":"24 hours","macVisible":"24시간","reopenedSettings":false,"result":"pass"},
+    {"case":"Independent fields changed on both sides","steps":["Mac keeps an unsaved font scale of 135","Android changes clock to 12 hours","Open Mac form shows 12 hours while retaining unsaved 135","Mac applies only its changed field"],"androidVisible":["135%","12 hours"],"serverStored":{"textScale":135,"timeFormat":"12h"},"result":"pass"},
+    {"case":"Android force-stop and relaunch","androidVisible":["135%","12 hours"],"connection":"Wi-Fi · Encrypted connection","pairingReentered":false,"result":"pass"},
+    {"case":"Mac native app and host stop/start","androidWhileMacStopped":["135%","12 hours"],"macAfterRestart":{"textScale":135,"timeFormat":"12h"},"serverStored":{"textScale":135,"timeFormat":"12h"},"automaticReconnect":true,"result":"pass"},
+    {"case":"Both apps stopped, offline edit survives Android cold start","steps":["Stop Mac native app and host","Set Android clock to 24 hours while offline","Force-stop Android and relaunch while Mac remains stopped","Open Android settings and observe 135% and 24 hours","Start Mac and wait for automatic connection"],"androidOfflineAfterRestart":["135%","24 hours"],"macAfterReconnect":{"textScale":135,"timeFormat":"24h"},"serverStored":{"textScale":135,"timeFormat":"24h"},"pairingReentered":false,"result":"pass"}
+  ],
+  "isolation": {"pageCountUnchanged":3,"widgetCountUnchanged":26,"widgetIdsUnchanged":true,"physicalTabletRecordUnchanged":true},
+  "limits": ["App process restarts were tested; the Mac operating system was not rebooted.","The tablet was unavailable, so this run uses the Android emulator.","Saved settings persist; unsaved Mac form drafts are not claimed to survive process termination.","Same-field conflicts follow server-applied write order, not wall-clock edit timestamps."]
+}

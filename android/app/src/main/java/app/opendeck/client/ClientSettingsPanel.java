@@ -1,10 +1,13 @@
 package app.opendeck.client;
 
+import android.app.Activity;
 import android.app.AlertDialog;
 import android.content.Context;
 import android.graphics.Color;
 import android.graphics.Typeface;
 import android.graphics.drawable.GradientDrawable;
+import android.os.Handler;
+import android.os.Looper;
 import android.view.ContextThemeWrapper;
 import android.view.Gravity;
 import android.widget.*;
@@ -14,6 +17,8 @@ import java.util.function.Supplier;
 
 /** Native, scrollable settings forms. The deck remains a native Canvas surface. */
 final class ClientSettingsPanel {
+  private static final Handler mainHandler = new Handler(Looper.getMainLooper());
+  private static final ThreadLocal<Integer> reopeningScroll = new ThreadLocal<>();
   private static final java.util.Set<AlertDialog> openDialogs =
       java.util.Collections.newSetFromMap(new java.util.WeakHashMap<>());
   private static final java.util.Set<ClientSettingsPanel> openPanels =
@@ -23,11 +28,26 @@ final class ClientSettingsPanel {
     for (ClientSettingsPanel panel : new java.util.ArrayList<>(openPanels)) {
       for (SettingsControlBinding binding : panel.bindings) binding.refresh();
       if (panel.reopen != null
+          && !panel.reopening
           && !panel.theme.equals(String.valueOf(panel.host.value("theme")))
           && panel.bindings.stream().noneMatch(SettingsControlBinding::isEditing)) {
+        panel.reopening = true;
+        int scrollY = panel.scroll.getScrollY();
         for (AlertDialog child : panel.childDialogs) child.dismiss();
         panel.dialog.dismiss();
-        panel.content.post(panel.reopen);
+        // The dismissed view is detached; its View.post queue may never run again.
+        mainHandler.post(
+            () -> {
+              if (panel.ownerActivity == null
+                  || panel.ownerActivity.isFinishing()
+                  || panel.ownerActivity.isDestroyed()) return;
+              reopeningScroll.set(scrollY);
+              try {
+                panel.reopen.run();
+              } finally {
+                reopeningScroll.remove();
+              }
+            });
       }
     }
   }
@@ -51,14 +71,17 @@ final class ClientSettingsPanel {
   }
 
   private final Context context;
+  private final Activity ownerActivity;
   private final Host host;
   private final LinearLayout content;
+  private final ScrollView scroll;
   private final AlertDialog dialog;
   private final int ink, muted, surface, accent;
   private final java.util.List<SettingsControlBinding> bindings = new java.util.ArrayList<>();
   private final java.util.List<AlertDialog> childDialogs = new java.util.ArrayList<>();
   private final String theme;
   private Runnable reopen;
+  private boolean reopening;
 
   ClientSettingsPanel onThemeChanged(Runnable reopen) {
     this.reopen = reopen;
@@ -74,6 +97,7 @@ final class ClientSettingsPanel {
 
   ClientSettingsPanel(Context owner, Host host, String title, String description) {
     this.host = host;
+    ownerActivity = owner instanceof Activity activity ? activity : null;
     String mode = String.valueOf(host.value("theme"));
     theme = mode;
     boolean light =
@@ -98,7 +122,7 @@ final class ClientSettingsPanel {
             : android.view.View.LAYOUT_DIRECTION_LTR);
     content.setPadding(dp(20), dp(4), dp(20), dp(16));
     if (!description.isEmpty()) note(description);
-    ScrollView scroll = new ScrollView(context);
+    scroll = new ScrollView(context);
     scroll.setFillViewport(true);
     scroll.addView(content);
     dialog =
@@ -341,6 +365,19 @@ final class ClientSettingsPanel {
       int height =
           Math.min(dp(760), context.getResources().getDisplayMetrics().heightPixels - dp(60));
       dialog.getWindow().setLayout(width, height);
+    }
+    Integer restoreY = reopeningScroll.get();
+    if (restoreY != null) {
+      scroll
+          .getViewTreeObserver()
+          .addOnGlobalLayoutListener(
+              new android.view.ViewTreeObserver.OnGlobalLayoutListener() {
+                @Override
+                public void onGlobalLayout() {
+                  scroll.getViewTreeObserver().removeOnGlobalLayoutListener(this);
+                  if (dialog.isShowing()) scroll.scrollTo(0, restoreY);
+                }
+              });
     }
   }
 }
