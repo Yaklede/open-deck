@@ -516,7 +516,11 @@ function updateLive() {
               "\n전체 TPS " +
               (data.tps.value == null ? "—" : data.tps.value.toFixed(2)) +
               " · 전체 QPS " +
-              (data.qps?.value == null ? "—" : data.qps.value.toFixed(2))
+              (data.qps?.value == null ? "—" : data.qps.value.toFixed(2)) +
+              " · DB 연결 " +
+              (data.database?.connections == null
+                ? "—"
+                : data.database.connections.toFixed(0))
           : data?.message || "지표 조회 대기");
       c.querySelector(".system-reading").style.whiteSpace = "pre-line";
     }

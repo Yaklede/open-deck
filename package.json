@@ -1,6 +1,6 @@
 {
   "name": "open-deck",
-  "version": "0.8.2",
+  "version": "0.8.3",
   "private": true,
   "type": "module",
   "description": "A local-first macro deck with a macOS host and a native Android companion",

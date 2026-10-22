@@ -223,7 +223,7 @@ export function createHost({
             error: "Wi-Fi에서는 태블릿 연결만 허용됩니다.",
           });
         if (req.method === "GET" && u.pathname === "/health")
-          return send(res, 200, { name: "Open Deck", version: "0.8.2" });
+          return send(res, 200, { name: "Open Deck", version: "0.8.3" });
         if (req.method === "POST" && u.pathname === "/api/pair") {
           const now = Date.now(),
             key = req.socket.remoteAddress,

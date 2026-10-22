@@ -3748,11 +3748,8 @@ public class MainActivity extends Activity {
       paint.setColor(color("#2c3846"));
       c.drawRoundRect(rect, dp(3), dp(3), paint);
       if (!Double.isFinite(value)) return;
-      String level = monitorLevel(widget, key);
-      paint.setColor(
-          level.equals("warning") || level.equals("critical")
-              ? monitorColor(level)
-              : color("#657b92"));
+      int ink = monitorValueColor(widget, key, value);
+      paint.setColor(ink == monitorColor("normal") ? color("#657b92") : ink);
       c.drawRoundRect(
           new RectF(
               rect.left,
@@ -3781,6 +3778,166 @@ public class MainActivity extends Activity {
       float width = paint.measureText(value), available = rect.width() - dp(40);
       float fitted = width > available ? size * available / width : size;
       label(c, value, rect.left + dp(20), y, fitted, ink, Paint.Align.LEFT);
+    }
+
+    int nodeSeriesColor(String name) {
+      int[] palette = {color("#8fb5e7"), color("#b6a4d9"), color("#7fbcb0"), color("#96a7b5")};
+      return palette[Math.floorMod(name.hashCode(), palette.length)];
+    }
+
+    void monitorGauge(
+        Canvas c,
+        JSONObject widget,
+        String key,
+        double value,
+        float cx,
+        float cy,
+        float radius,
+        float numberSize,
+        int normalInk) {
+      RectF dial = new RectF(cx - radius, cy - radius, cx + radius, cy + radius);
+      paint.setStyle(Paint.Style.STROKE);
+      paint.setStrokeCap(Paint.Cap.BUTT);
+      paint.setStrokeWidth(dp(7));
+      paint.setColor(color("#35414c"));
+      c.drawArc(dial, 135, 270, false, paint);
+      int statusInk = monitorValueColor(widget, key, value);
+      if (Double.isFinite(value)) {
+        paint.setColor(statusInk == monitorColor("normal") ? normalInk : statusInk);
+        c.drawArc(dial, 135, (float) (270 * Math.max(0, Math.min(1, value / 100))), false, paint);
+      }
+      JSONObject health = monitorHealth(widget),
+          metrics = health == null ? null : health.optJSONObject("metrics"),
+          rule = metrics == null ? null : metrics.optJSONObject(key);
+      if (rule != null && rule.optBoolean("enabled")) {
+        for (String threshold : new String[] {"warning", "critical"}) {
+          double limit = rule.optDouble(threshold, Double.NaN);
+          if (!Double.isFinite(limit) || limit < 0 || limit > 100) continue;
+          double angle = Math.toRadians(135 + 270 * limit / 100);
+          float dx = (float) Math.cos(angle), dy = (float) Math.sin(angle);
+          line(
+              c,
+              cx + dx * (radius - dp(5)),
+              cy + dy * (radius - dp(5)),
+              cx + dx * (radius + dp(5)),
+              cy + dy * (radius + dp(5)),
+              monitorColor(threshold),
+              dp(1.5f));
+        }
+      }
+      paint.setStyle(Paint.Style.FILL);
+      String number = metricPercent(value);
+      paint.setTypeface(font);
+      paint.setTextSize(dp(numberSize));
+      float fitted =
+          Math.min(numberSize, numberSize * radius * 1.7f / Math.max(1, paint.measureText(number)));
+      label(c, number, cx, cy + dp(8), fitted, statusInk, Paint.Align.CENTER);
+      label(c, "CPU", cx, cy + radius * .67f, 11, color("#93a0ae"), Paint.Align.CENTER);
+    }
+
+    void monitorSeries(
+        Canvas c, JSONArray points, RectF plot, long from, long to, double max, int ink) {
+      if (points == null || to <= from || max <= 0 || plot.height() < dp(8)) return;
+      iconPath.rewind();
+      boolean started = false;
+      long previous = 0;
+      for (int i = 0; i < Math.min(points.length(), 60); i++) {
+        JSONArray point = points.optJSONArray(i);
+        if (point == null) {
+          started = false;
+          continue;
+        }
+        long at = point.optLong(0);
+        double value = point.optDouble(1, Double.NaN);
+        if (at < from || at > to || !Double.isFinite(value)) {
+          started = false;
+          continue;
+        }
+        float x = plot.left + plot.width() * (at - from) / (float) (to - from),
+            y = plot.bottom - plot.height() * (float) Math.max(0, Math.min(1, value / max));
+        if (started && at - previous <= 120000) iconPath.lineTo(x, y);
+        else iconPath.moveTo(x, y);
+        previous = at;
+        started = true;
+      }
+      paint.setStyle(Paint.Style.STROKE);
+      paint.setStrokeWidth(dp(1.8f));
+      paint.setStrokeCap(Paint.Cap.ROUND);
+      paint.setColor(ink);
+      c.drawPath(iconPath, paint);
+      paint.setStyle(Paint.Style.FILL);
+    }
+
+    void monitorPlotGrid(Canvas c, RectF plot, long to, double max) {
+      int muted = color("#8291a3");
+      for (int i = 0; i <= 2; i++) {
+        float y = plot.top + plot.height() * i / 2;
+        line(c, plot.left, y, plot.right, y, color("#33404b"), dp(.6f));
+        label(
+            c,
+            String.format(Locale.KOREA, "%.0f", max * (2 - i) / 2),
+            plot.left - dp(7),
+            y + dp(3),
+            9,
+            muted,
+            Paint.Align.RIGHT);
+      }
+      label(
+          c,
+          osDate(to - 3600000, "HH:mm"),
+          plot.left,
+          plot.bottom + dp(15),
+          9,
+          muted,
+          Paint.Align.LEFT);
+      label(
+          c,
+          osDate(to - 1800000, "HH:mm"),
+          plot.centerX(),
+          plot.bottom + dp(15),
+          9,
+          muted,
+          Paint.Align.CENTER);
+      label(c, osDate(to, "HH:mm"), plot.right, plot.bottom + dp(15), 9, muted, Paint.Align.RIGHT);
+    }
+
+    void monitorStat(
+        Canvas c,
+        JSONObject widget,
+        JSONObject data,
+        String key,
+        String heading,
+        RectF cell,
+        float labelY,
+        float valueY,
+        float numberSize) {
+      monitorText(c, heading, cell, labelY, 11, color("#93a0ae"));
+      monitorNumber(
+          c,
+          grafanaNumber(data, key, false),
+          new RectF(cell.left, cell.top, cell.left + cell.width() * .58f + dp(20), cell.bottom),
+          valueY,
+          numberSize,
+          monitorColor(widget, key));
+      JSONObject metric = data.optJSONObject(key);
+      JSONArray points = metric == null ? null : metric.optJSONArray("points");
+      double max = 1;
+      if (points != null)
+        for (int i = 0; i < points.length(); i++) {
+          JSONArray p = points.optJSONArray(i);
+          if (p != null) max = Math.max(max, p.optDouble(1, 0));
+        }
+      long to = data.optLong("capturedAt");
+      monitorSeries(
+          c,
+          points,
+          new RectF(cell.left + cell.width() * .60f, labelY + dp(8), cell.right - dp(20), valueY),
+          to - 3600000,
+          to,
+          max,
+          monitorLevel(widget, key).equals("normal")
+              ? color("#788fa7")
+              : monitorColor(widget, key));
     }
 
     void drawGrafana(Canvas c, JSONObject widget, RectF r) {
@@ -3823,132 +3980,181 @@ public class MainActivity extends Activity {
         JSONObject cpu = data.optJSONObject("system"),
             collection = data.optJSONObject("collection");
         double value = metric(cpu, "value");
-        monitorText(c, "시스템 CPU", r, r.top + dp(92), 13, muted);
-        monitorNumber(
-            c,
-            metricPercent(value),
-            r,
-            r.top + dp(153),
-            style == null ? 56 : style.optInt("valueSize", 56),
-            monitorColor(widget, "cpu"));
-        monitorCapacity(
+        float base = style == null ? 56 : style.optInt("valueSize", 56);
+        monitorText(c, "시스템 CPU · 서비스 보고값 중 최대", r, r.top + dp(68), 12, muted);
+        monitorGauge(
             c,
             widget,
             "cpu",
             value,
-            new RectF(r.left + dp(20), r.top + dp(182), r.right - dp(20), r.top + dp(188)));
+            r.centerX(),
+            r.top + dp(174),
+            Math.min(dp(87), r.width() * .30f),
+            base,
+            color("#8fb5e7"));
         int healthy = collection == null ? 0 : collection.optInt("healthy"),
             total = collection == null ? 0 : collection.optInt("total");
         JSONArray services = cpu == null ? null : cpu.optJSONArray("nodes");
-        String collected = total > 0 ? "수집 " + healthy + " / " + total : "수집 대상 없음";
         monitorText(
             c,
-            collected + " · 서비스 " + (services == null ? 0 : services.length()) + "개",
+            total > 0
+                ? "수집 "
+                    + healthy
+                    + " / "
+                    + total
+                    + "  ·  서비스 "
+                    + (services == null ? 0 : services.length())
+                    + "개"
+                : "수집 대상 없음",
             r,
-            r.top + dp(217),
+            r.top + dp(293),
             12,
             monitorLevel(widget, "collection").equals("critical")
                 ? monitorColor("critical")
                 : muted);
-        float chartTop = r.top + dp(285);
-        monitorText(c, "CPU 추이 · 최근 1시간", r, chartTop - dp(15), 11, muted);
-        grafanaTrend(
+        monitorText(c, "CPU 추이 · %", r, r.top + dp(329), 11, muted);
+        RectF plot =
+            new RectF(r.left + dp(43), r.top + dp(347), r.right - dp(20), r.bottom - dp(84));
+        long to = data.optLong("capturedAt");
+        monitorPlotGrid(c, plot, to, 100);
+        monitorSeries(
             c,
             cpu == null ? null : cpu.optJSONArray("points"),
-            new RectF(r.left + dp(20), chartTop, r.right - dp(20), r.bottom - dp(84)),
-            level.equals("critical") || level.equals("warning")
-                ? monitorColor(widget, "cpu")
-                : color("#788fa7"),
-            true);
+            plot,
+            to - 3600000,
+            to,
+            100,
+            monitorLevel(widget, "cpu").equals("normal")
+                ? color("#8fb5e7")
+                : monitorColor(widget, "cpu"));
       } else {
         JSONObject database = data.optJSONObject("database");
         JSONArray nodes = database == null ? null : database.optJSONArray("nodes");
         int count = nodes == null ? 0 : nodes.length(), shown = Math.min(count, 4);
         float base = style == null ? 44 : style.optInt("valueSize", 44);
-        RectF nameColumn = new RectF(r.left, r.top, r.left + r.width() * .29f, r.bottom),
-            cpuColumn = new RectF(nameColumn.right, r.top, r.left + r.width() * .66f, r.bottom),
-            memColumn = new RectF(cpuColumn.right, r.top, r.right, r.bottom);
-        monitorText(c, "노드별 사용량 · CPU 한도 대비", r, r.top + dp(66), 11, muted);
-        monitorText(c, "노드", nameColumn, r.top + dp(101), 12, muted);
-        monitorText(c, "CPU", cpuColumn, r.top + dp(101), 13, text);
-        monitorText(c, "MEM", memColumn, r.top + dp(101), 12, muted);
-        float rowsTop = r.top + dp(117), rowsBottom = r.bottom - dp(151);
-        float rowHeight = (rowsBottom - rowsTop) / Math.max(3, shown);
-        if (count == 0) {
-          monitorText(c, "DB 노드 지표 수집 없음", r, rowsTop + dp(44), 18, muted);
-        }
+        monitorText(c, "DB CPU · 노드별 한도 대비", r, r.top + dp(65), 12, muted);
+        long to = data.optLong("capturedAt");
+        RectF queryTime = new RectF(r.centerX(), r.top, r.right, r.bottom);
+        monitorText(
+            c, "조회 " + osDate(to, "HH:mm:ss") + " · 30초 갱신", queryTime, r.top + dp(65), 10, muted);
+        float width = (r.width() - dp(24)) / Math.max(1, shown);
+        double chartMax = 100;
+        if (shown == 0) monitorText(c, "DB 노드 지표 수집 없음", r, r.top + dp(170), 21, muted);
         for (int i = 0; i < shown; i++) {
           JSONObject node = nodes.optJSONObject(i);
           if (node == null) continue;
-          float top = rowsTop + i * rowHeight;
+          RectF cell =
+              new RectF(
+                  r.left + dp(12) + i * width, r.top, r.left + dp(12) + (i + 1) * width, r.bottom);
+          String name = node.optString("name", "노드");
+          int seriesInk = nodeSeriesColor(name);
           double cpuValue = metric(node, "cpuPercent"), memoryValue = metric(node, "memoryPercent");
-          monitorText(c, node.optString("name", "노드"), nameColumn, top + dp(28), 15, text);
-          monitorNumber(
+          paint.setColor(seriesInk);
+          c.drawCircle(cell.left + dp(20), r.top + dp(90), dp(3), paint);
+          monitorText(
               c,
-              metricPercent(cpuValue),
-              cpuColumn,
-              top + dp(30),
-              base * .68f,
-              monitorValueColor(widget, "cpu", cpuValue));
+              name,
+              new RectF(cell.left + dp(13), cell.top, cell.right, cell.bottom),
+              r.top + dp(94),
+              13,
+              text);
+          monitorGauge(
+              c,
+              widget,
+              "cpu",
+              cpuValue,
+              cell.centerX(),
+              r.top + dp(174),
+              Math.min(dp(59), width * .32f),
+              base * .75f,
+              seriesInk);
+          monitorText(c, "MEM", cell, r.top + dp(257), 10, muted);
+          RectF memValue = new RectF(cell.left + dp(37), cell.top, cell.right, cell.bottom);
           monitorNumber(
               c,
               metricPercent(memoryValue),
-              memColumn,
-              top + dp(30),
-              base * .55f,
+              memValue,
+              r.top + dp(258),
+              base * .40f,
               monitorValueColor(widget, "memory", memoryValue));
           monitorText(
               c,
               metricGiB(metric(node, "memoryUsedBytes")) + " 사용",
-              memColumn,
-              top + dp(53),
-              12,
+              cell,
+              r.top + dp(280),
+              11,
               muted);
-          grafanaTrend(
+          monitorCapacity(
+              c,
+              widget,
+              "memory",
+              memoryValue,
+              new RectF(cell.left + dp(20), r.top + dp(290), cell.right - dp(20), r.top + dp(294)));
+          if (i > 0)
+            line(c, cell.left, r.top + dp(86), cell.left, r.top + dp(294), lineColor, dp(.5f));
+          JSONArray points = node.optJSONArray("cpuPoints");
+          if (points != null)
+            for (int j = 0; j < points.length(); j++) {
+              JSONArray p = points.optJSONArray(j);
+              if (p != null && p.optDouble(1, 0) > chartMax)
+                chartMax = Math.ceil(p.optDouble(1) / 50) * 50;
+            }
+        }
+        monitorText(
+            c,
+            "노드별 CPU 추이 · %" + (count > shown ? " · 외 " + (count - shown) + "개는 상세 보기" : ""),
+            r,
+            r.top + dp(324),
+            11,
+            muted);
+        RectF plot =
+            new RectF(r.left + dp(43), r.top + dp(337), r.right - dp(20), r.bottom - dp(149));
+        monitorPlotGrid(c, plot, to, chartMax);
+        for (int i = 0; i < shown; i++) {
+          JSONObject node = nodes.optJSONObject(i);
+          if (node == null) continue;
+          monitorSeries(
               c,
               node.optJSONArray("cpuPoints"),
-              new RectF(
-                  cpuColumn.left + dp(20),
-                  top + dp(44),
-                  cpuColumn.right - dp(20),
-                  top + rowHeight - dp(15)),
-              monitorValueColor(widget, "cpu", cpuValue) == monitorColor("normal")
-                  ? color("#788fa7")
-                  : monitorValueColor(widget, "cpu", cpuValue),
-              true);
-          line(
-              c,
-              r.left + dp(20),
-              top + rowHeight,
-              r.right - dp(20),
-              top + rowHeight,
-              lineColor,
-              dp(1));
+              plot,
+              to - 3600000,
+              to,
+              chartMax,
+              nodeSeriesColor(node.optString("name")));
         }
-        if (count > shown) {
-          monitorText(
-              c, "외 " + (count - shown) + "개 노드 · 눌러서 전체 보기", r, rowsBottom + dp(17), 11, muted);
-        } else {
-          monitorText(c, "노드별 CPU 추이 · 최근 1시간", r, rowsBottom + dp(17), 10, muted);
-        }
-        RectF totalLeft = new RectF(r.left, r.top, r.centerX(), r.bottom),
-            totalRight = new RectF(r.centerX(), r.top, r.right, r.bottom);
-        monitorText(c, "전체 TPS · 커밋/초", totalLeft, r.bottom - dp(106), 11, muted);
+        float statWidth = r.width() / 3;
+        RectF tpsCell = new RectF(r.left, r.top, r.left + statWidth, r.bottom),
+            qpsCell = new RectF(tpsCell.right, r.top, tpsCell.right + statWidth, r.bottom),
+            connectionsCell = new RectF(qpsCell.right, r.top, r.right, r.bottom);
+        monitorStat(
+            c,
+            widget,
+            data,
+            "tps",
+            "전체 TPS · 커밋/초",
+            tpsCell,
+            r.bottom - dp(110),
+            r.bottom - dp(76),
+            base * .53f);
+        monitorStat(
+            c,
+            widget,
+            data,
+            "qps",
+            "전체 QPS · 쿼리/초",
+            qpsCell,
+            r.bottom - dp(110),
+            r.bottom - dp(76),
+            base * .53f);
+        monitorText(c, "DB 연결 수", connectionsCell, r.bottom - dp(110), 11, muted);
+        double connections = metric(database, "connections");
         monitorNumber(
             c,
-            grafanaNumber(data, "tps", false),
-            totalLeft,
-            r.bottom - dp(72),
-            base * .5f,
-            monitorColor(widget, "tps"));
-        monitorText(c, "전체 QPS · 쿼리/초", totalRight, r.bottom - dp(106), 11, muted);
-        monitorNumber(
-            c,
-            grafanaNumber(data, "qps", false),
-            totalRight,
-            r.bottom - dp(72),
-            base * .5f,
-            monitorColor(widget, "qps"));
+            Double.isFinite(connections) ? String.format(Locale.KOREA, "%,.0f", connections) : "—",
+            connectionsCell,
+            r.bottom - dp(76),
+            base * .53f,
+            monitorColor(widget, "connections"));
       }
       line(
           c,
