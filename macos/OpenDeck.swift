@@ -113,7 +113,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, WKUI
         recovery=job;DispatchQueue.main.asyncAfter(deadline:.now()+min(15,Double(2 << attempt)),execute:job)
     }
     @objc func show(){window.makeKeyAndOrderFront(nil);NSApp.activate(ignoringOtherApps:true)}
-    @objc func about(){showError("Open Deck 0.8.4\n맥 호스트 + 네이티브 Android 컨트롤 패널\nMIT 오픈소스 · 계정과 구독 없음\nhttps://github.com/Yaklede/open-deck")}
+    @objc func about(){showError("Open Deck 0.8.5\n맥 호스트 + 네이티브 Android 컨트롤 패널\nMIT 오픈소스 · 계정과 구독 없음\nhttps://github.com/Yaklede/open-deck")}
     @objc func quit(){NSApp.terminate(nil)}
     func userContentController(_ controller:WKUserContentController,didReceive message:WKScriptMessage){
         guard message.name=="exportConfig",message.frameInfo.isMainFrame,message.frameInfo.request.url?.host=="127.0.0.1",let body=message.body as? String,body.utf8.count<16777216 else{return}
