@@ -133,11 +133,13 @@
 
 ## 최종 설치 파일·릴리즈 확인
 
-소스 검증과 실제 화면·기기 동작 검증은 위와 같이 완료했다. **최종 배포 소스·설치 파일·GitHub 릴리즈 대조는 현재 진행 중이며 아직 완료로 기록하지 않는다.** 담당자는 [릴리즈 확인 결과](evidence/0.10.0/release-results.json)에 다음 값을 추가할 예정이다. 이 링크의 파일은 최종 확인이 끝난 후 생성한다.
+[Open Deck 0.10.0](https://github.com/Yaklede/open-deck/releases/tag/v0.10.0)을 최신 릴리즈로 게시했다. 실제 배포 소스는 `cb83101c9e4c722d391908cc6153ea40d832ec17`이며, [GitHub 검증](https://github.com/Yaklede/open-deck/actions/runs/39757808561)의 host·Android 작업이 모두 통과했다. 아래 값과 공개 파일의 SHA-256은 [릴리즈 확인 결과](evidence/0.10.0/release-results.json)에 기록했다.
 
-- 실제 배포 소스 commit, Mac/Android 버전과 빌드 번호
-- 해당 소스에서 빌드한 macOS 앱과 기존 서명을 유지한 Android APK의 설치 확인
-- 비공개 네이티브 내보내기 파일의 구조·재가져오기 검사 결과
-- GitHub release URL, macOS ZIP·APK·`SHA256SUMS.txt`의 업로드 상태와 공개 digest 대조
+- **Mac:** `/Applications/Open Deck.app`을 0.10.0 / build 16으로 업데이트했다. 설치된 build-info의 커밋과 배포 소스가 일치하며, 기존 자동 시작 설정과 시스템 글꼴 247개 목록을 확인했다. Mac을 재부팅하지 않았다.
+- **실제 태블릿:** Samsung SM-T870의 운영 패키지 `app.opendeck.client`를 기존 서명을 유지한 `adb install -r`로 업데이트했다. versionName 0.10.0 / versionCode 16을 확인하고, 설치된 APK를 다시 가져와 배포 APK와 바이트 해시가 같은지 검증했다. 실제 설정 화면의 버전 표시와 운영 화면의 암호화 Wi-Fi 연결을 확인했다.
+- **사용자 데이터:** 기존 3개 페이지·26개 위젯의 ID와 동작 전체를 업데이트 전 값과 비교했다. 태블릿 페어링의 ID·인증 해시도 일치한다. 운영 데이터와 인증 값 자체는 공개하지 않는다.
+- **Mac 내보내기:** 실제 네이티브 파일 저장 창으로 저장한 파일의 권한은 0600, ZIP 무결성은 정상이다. importer로 읽은 결과 3개 페이지·26개 위젯을 확인했으며, 이 파일을 운영 덱에 다시 적용하지 않았다.
+- **공개 배포:** macOS ZIP·Android APK·`SHA256SUMS.txt`를 공개 URL에서 직접 내려받아 로컬 빌드 및 GitHub asset digest와 대조했다. 공개 Mac ZIP에 포함된 build-info의 소스 커밋도 일치한다.
+- **정리:** 이번 검증용 Android 패키지와 격리 호스트를 제거/종료했다. 검증용 USB 터널 18840은 없고 기존 운영 USB 터널 8840은 유지했다.
 
-0.9.0의 설치·릴리즈 결과를 0.10.0 증거로 대신 사용하지 않는다.
+증거를 추가한 문서 커밋은 배포 소스 커밋 이후에 만들어졌다. 릴리즈 태그와 앱 build-info는 위의 실제 빌드 소스를 가리킨다. 0.9.0의 설치·릴리즈 결과를 0.10.0 증거로 대신 사용하지 않았다.
