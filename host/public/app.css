@@ -842,3 +842,8 @@ input[type="checkbox"] {
 #ecosystem button {
   margin: 8px 8px 0 0;
 }
+
+.card.data-stale {
+  outline: 2px solid #efbd73;
+  outline-offset: -2px;
+}

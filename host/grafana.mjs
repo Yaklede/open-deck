@@ -58,6 +58,34 @@ function series(result, scale, now) {
   }
   return rows;
 }
+// Evaluation timestamps from rate/aggregate queries are not source scrape times.
+export function sourceTimestampQuery(query, refId) {
+  if (query.datasource?.type !== "prometheus" || typeof query.expr !== "string")
+    return null;
+  const selectors = [
+    ...query.expr.matchAll(/([a-zA-Z_:][a-zA-Z0-9_:]*\{[^{}]*\})/g),
+  ].map((m) => m[1]);
+  const unique = [...new Set(selectors)];
+  if (unique.length !== 1) return null;
+  return {
+    ...query,
+    expr: `min(timestamp(${unique[0]}))`,
+    refId,
+    range: false,
+    instant: true,
+    maxDataPoints: 1,
+  };
+}
+export function freshnessStatus(sampleAt, now, warnAfterMs, staleAfterMs) {
+  if (!finite(sampleAt) || sampleAt === 0 || sampleAt > now + 60000)
+    return "missing";
+  const age = Math.max(0, now - sampleAt);
+  return age >= staleAfterMs
+    ? "stale"
+    : age >= warnAfterMs
+      ? "delayed"
+      : "fresh";
+}
 export function parseGrafanaMetrics(data, now = Date.now()) {
   const cpu = series(data.results?.A, 100, now),
     tps = series(data.results?.B, 1, now);
@@ -125,9 +153,54 @@ export function parseGrafanaMetrics(data, now = Date.now()) {
     cpuAt: one(cpu, name)?.at ?? null,
     memoryAt: one(memory, name)?.at ?? null,
   }));
+  const oldest = (rows) =>
+    rows.length ? Math.min(...rows.map((r) => r.at)) : null;
+  const sourceTime = (key, rows, prometheus = false) => {
+    if (!rows.length)
+      return {
+        sampleAt: null,
+        kind: "missing",
+        warnAfterMs: prometheus ? 90000 : 180000,
+        staleAfterMs: 300000,
+      };
+    const timestamps = optional(key)
+      .map((row) => row.value * 1000)
+      .filter((at) => finite(at) && at > 0 && at <= now + 60000);
+    return {
+      sampleAt: prometheus
+        ? timestamps.length
+          ? Math.min(...timestamps)
+          : null
+        : oldest(rows),
+      kind: prometheus
+        ? timestamps.length
+          ? "source"
+          : "unavailable"
+        : "point",
+      warnAfterMs: prometheus ? 90000 : 180000,
+      staleAfterMs: 300000,
+    };
+  };
+  const freshness = {
+    cpu: sourceTime(null, cpu),
+    memory: sourceTime(null, memory),
+    system: sourceTime("TD", system, true),
+    tps: sourceTime("TB", tps, true),
+    qps: sourceTime("TG", qps, true),
+    connections: sourceTime("TF", connections, true),
+    ready: sourceTime("TC", ready, true),
+    collection: sourceTime("TE", up, true),
+  };
+  freshness.cpu.missingSeries = nodes.filter(
+    (n) => n.cpuPercent === null,
+  ).length;
+  freshness.memory.missingSeries = nodes.filter(
+    (n) => n.memoryPercent === null,
+  ).length;
   return {
     status: "ready",
     capturedAt: now,
+    freshness,
     cpu: {
       value: cpu.length ? Math.max(...cpu.map((r) => r.value)) : null,
       nodes: cpu.map(({ points, ...row }) => row),
@@ -204,6 +277,7 @@ export class GrafanaMonitor {
     this.controllers = new Set();
     this.active = 0;
     this.closed = false;
+    this.generation = 0;
   }
   entries() {
     const entries = [];
@@ -261,11 +335,12 @@ export class GrafanaMonitor {
       this.controllers.delete(controller);
     }
   }
-  async collect(entry) {
+  async collect(entry, generation = this.generation) {
     const { source, project, widget } = entry;
     const token = widget.auth
       ? await this.secret(grafanaSecretId(source.origin))
       : "";
+    if (this.closed || generation !== this.generation) throw Error("RESUMED");
     if (widget.auth && !token) throw Error("AUTH");
     const key = JSON.stringify([source.origin, source.uid, !!widget.auth]);
     let dashboard = this.dashboards.get(key);
@@ -275,6 +350,7 @@ export class GrafanaMonitor {
         "/api/dashboards/uid/" + source.uid,
         token,
       );
+      if (generation !== this.generation) throw Error("RESUMED");
       dashboard = { at: this.clock(), value: result.dashboard };
       this.dashboards.set(key, dashboard);
     }
@@ -317,6 +393,12 @@ export class GrafanaMonitor {
       };
     });
     if (queries.some((q) => !q.datasource?.uid)) throw Error("CONFIG");
+    queries.push(
+      ...queries
+        .map((q) => sourceTimestampQuery(q, "T" + q.refId))
+        .filter(Boolean),
+    );
+    if (generation !== this.generation) throw Error("RESUMED");
     const now = this.clock();
     return parseGrafanaMetrics(
       await this.request(source, "/api/ds/query", token, {
@@ -345,24 +427,41 @@ export class GrafanaMonitor {
       };
       this.cache.set(entry.key, record);
       this.active++;
-      this.collect(entry)
+      const generation = this.generation;
+      this.collect(entry, generation)
         .then((data) => {
-          if (!this.closed && this.cache.get(entry.key) === record)
+          if (
+            !this.closed &&
+            generation === this.generation &&
+            this.cache.get(entry.key) === record
+          ) {
+            for (const [key, item] of Object.entries(data.freshness || {})) {
+              item.lastSampleAt =
+                item.sampleAt ||
+                record.data?.freshness?.[key]?.sampleAt ||
+                record.data?.freshness?.[key]?.lastSampleAt ||
+                null;
+            }
             Object.assign(record, {
               status: "ready",
               data,
               message: undefined,
             });
+          }
         })
         .catch((error) => {
-          if (!this.closed && this.cache.get(entry.key) === record)
+          if (
+            !this.closed &&
+            generation === this.generation &&
+            this.cache.get(entry.key) === record
+          )
             Object.assign(record, {
               status: "error",
               message: message(error.message),
-              data: undefined,
             });
         })
         .finally(() => {
+          if (generation !== this.generation) return;
           record.running = false;
           this.active--;
           if (!this.closed) this.onChange();
@@ -378,13 +477,47 @@ export class GrafanaMonitor {
         data =
           this.clock() - record.data.capturedAt < 90000
             ? record.data
-            : { status: "stale", message: "지표 갱신이 지연되고 있어요" };
+            : {
+                ...record.data,
+                status: "stale",
+                message: "지표 조회가 중단됐어요 · 다시 연결 중",
+              };
       else if (record?.status === "error")
-        data = { status: "error", message: record.message };
+        data = { ...record.data, status: "error", message: record.message };
+      if (data.freshness)
+        data = {
+          ...data,
+          freshness: Object.fromEntries(
+            Object.entries(data.freshness).map(([key, item]) => [
+              key,
+              {
+                ...item,
+                status: freshnessStatus(
+                  item.sampleAt || item.lastSampleAt,
+                  this.clock(),
+                  item.warnAfterMs,
+                  item.staleAfterMs,
+                ),
+              },
+            ]),
+          ),
+        };
       widgets[entry.widget.id] ??= { projects: {} };
       widgets[entry.widget.id].projects[entry.project.value] = data;
     }
     return { widgets };
+  }
+  resume() {
+    if (this.closed) return;
+    this.generation++;
+    for (const controller of this.controllers) controller.abort();
+    this.active = 0;
+    this.dashboards.clear();
+    for (const record of this.cache.values()) {
+      record.running = false;
+      record.next = 0;
+    }
+    this.tick();
   }
   refresh() {
     this.dashboards.clear();

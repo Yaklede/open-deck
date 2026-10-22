@@ -9,6 +9,8 @@ import {
   parseGrafanaMetrics,
   grafanaSource,
   grafanaSecretId,
+  sourceTimestampQuery,
+  freshnessStatus,
 } from "../host/grafana.mjs";
 import { createHost, deviceConfig } from "../host/server.mjs";
 import { defaultConfig } from "../host/config.mjs";
@@ -67,6 +69,108 @@ const settle = async (predicate) => {
   }
   throw Error("Timed out");
 };
+test("freshness uses source scrape timestamps rather than query evaluation time and cannot invent unavailable times", () => {
+  const raw = response();
+  raw.results.TB = {
+    frames: [
+      frame("timestamp", [
+        (now - 150000) / 1000,
+        (now - 120000) / 1000,
+        (now - 100000) / 1000,
+      ]),
+    ],
+  };
+  let data = parseGrafanaMetrics(raw, now);
+  assert.equal(data.freshness.tps.sampleAt, now - 100000);
+  assert.equal(data.freshness.cpu.sampleAt, now);
+  assert.equal(data.freshness.cpu.kind, "point");
+  assert.equal(
+    freshnessStatus(data.freshness.tps.sampleAt, now, 90000, 300000),
+    "delayed",
+  );
+  assert.equal(freshnessStatus(now - 300000, now, 90000, 300000), "stale");
+  assert.equal(freshnessStatus(now + 61000, now, 90000, 300000), "missing");
+  delete raw.results.TB;
+  data = parseGrafanaMetrics(raw, now);
+  assert.equal(data.freshness.tps.sampleAt, null);
+  assert.equal(data.freshness.tps.kind, "unavailable");
+  const query = sourceTimestampQuery(
+    {
+      datasource: { type: "prometheus", uid: "p" },
+      expr: 'sum(rate(commits{namespace="alpha"}[5m]))',
+    },
+    "TB",
+  );
+  assert.equal(query.expr, 'min(timestamp(commits{namespace="alpha"}))');
+  assert.equal(query.instant, true);
+  assert.equal(
+    sourceTimestampQuery(
+      { datasource: { type: "prometheus" }, expr: 'a{x="y"} + b{x="y"}' },
+      "T",
+    ),
+    null,
+  );
+});
+test("wake recovery supersedes in-flight queries and late old results cannot consume slots or overwrite fresh data", async (t) => {
+  const w = { ...widget(), projects: [{ value: "alpha", label: "A" }] };
+  const pending = [];
+  let changes = 0;
+  const monitor = new GrafanaMonitor(
+    () => ({ pages: [{ widgets: [w] }] }),
+    () => changes++,
+    {
+      clock: () => now,
+      secret: async () => "TOKEN",
+      fetcher: async (url, init) => {
+        if (url.includes("dashboards")) return Response.json({ dashboard });
+        return await new Promise((resolve) =>
+          pending.push({ resolve, signal: init.signal }),
+        );
+      },
+    },
+  );
+  t.after(() => monitor.close());
+  monitor.tick();
+  await settle(() => pending.length === 1);
+  monitor.resume();
+  await settle(() => pending.length === 2);
+  assert.equal(pending[0].signal.aborted, true);
+  const fresh = response();
+  fresh.results.B.frames = [frame("TPS", [9, 9, 9])];
+  pending[1].resolve(Response.json(fresh));
+  await settle(() => monitor.active === 0);
+  pending[0].resolve(Response.json(response()));
+  await new Promise((r) => setTimeout(r, 10));
+  assert.equal(monitor.active, 0);
+  assert.equal(monitor.state().widgets.db.projects.alpha.tps.value, 9);
+  assert.equal(changes, 1);
+});
+test("a new successful query cannot make expired source samples live again and preserves the last collection time", async (t) => {
+  let time = now;
+  const w = { ...widget(), projects: [{ value: "alpha", label: "A" }] };
+  const monitor = new GrafanaMonitor(
+    () => ({ pages: [{ widgets: [w] }] }),
+    () => {},
+    {
+      clock: () => time,
+      secret: async () => "TOKEN",
+      fetcher: async (url) =>
+        Response.json(url.includes("dashboards") ? { dashboard } : response()),
+    },
+  );
+  t.after(() => monitor.close());
+  monitor.tick();
+  await settle(() => monitor.active === 0);
+  time += 301000;
+  monitor.tick();
+  await settle(() => monitor.active === 0);
+  const data = monitor.state().widgets.db.projects.alpha;
+  assert.equal(data.status, "ready");
+  assert.equal(data.capturedAt, time);
+  assert.equal(data.cpu.value, null);
+  assert.equal(data.freshness.cpu.lastSampleAt, now);
+  assert.equal(data.freshness.cpu.status, "stale");
+});
 test("system CPU stays separate from DB CPU and a failed exporter prevents a healthy DB badge", () => {
   const raw = response();
   raw.results.C = { frames: [frame("ready", [1, 1, 1])] };
@@ -275,7 +379,9 @@ test("project queries are isolated, authenticated only on the Mac and cached wit
   const state = monitor.state();
   assert.equal(state.widgets.db.projects.alpha.status, "error");
   assert(!JSON.stringify(state).includes("PRIVATE"));
-  assert.equal(state.widgets.db.projects.alpha.cpu, undefined);
+  assert.equal(state.widgets.db.projects.alpha.cpu.value, 40);
+  assert.equal(state.widgets.db.projects.alpha.freshness.cpu.status, "fresh");
+  // Historical values remain labeled error, so clients can show the last source time without treating them as live.
 });
 test("dashboard address validation and device snapshots exclude Grafana connection details", () => {
   assert.throws(() =>
@@ -362,6 +468,40 @@ test("paired snapshots expose native metrics while LAN cannot store a Grafana cr
   assert.equal(snap.state.grafana.widgets.db.projects.alpha.cpu.value, 40);
   assert(!JSON.stringify(snap).includes("PRIVATE_TOKEN"));
   assert(!JSON.stringify(snap.config).includes("grafana.example"));
+  assert.equal(
+    (
+      await fetch(base + "/api/admin/resume", {
+        method: "POST",
+        headers: { Authorization: "Bearer " + pair.token },
+      })
+    ).status,
+    403,
+  );
+  const eventResponse = await fetch(base + "/api/events", {
+    headers: { Authorization: "Bearer " + pair.token },
+    signal: AbortSignal.timeout(2000),
+  });
+  const eventReader = eventResponse.body.getReader();
+  await eventReader.read();
+  const resumed = await fetch(base + "/api/admin/resume", {
+    method: "POST",
+    headers: { "X-Open-Deck-Admin": h.adminKey },
+  });
+  assert.equal(resumed.status, 200);
+  while (!(await eventReader.read()).done) {}
+  const nextStream = await fetch(base + "/api/events", {
+    headers: { Authorization: "Bearer " + pair.token },
+    signal: AbortSignal.timeout(2000),
+  });
+  const nextReader = nextStream.body.getReader();
+  assert.equal((await nextReader.read()).done, false);
+  await nextReader.cancel();
+  const adminInfo = await (
+    await fetch(base + "/api/admin/info", {
+      headers: { "X-Open-Deck-Admin": h.adminKey },
+    })
+  ).json();
+  assert.equal(adminInfo.recovery.count, 1);
   const write = await fetch(base + "/api/admin/grafana-token", {
     method: "POST",
     headers: {

@@ -11,6 +11,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, WKUI
     var poll: Timer?
     var usbTimer: Timer?
     var attempts = 0
+    var recovery: DispatchWorkItem?
+    var lastRecovery = Date.distantPast
     let directory = FileManager.default.homeDirectoryForCurrentUser.appendingPathComponent("Library/Application Support/OpenDeck")
 
     func applicationDidFinishLaunching(_ notification: Notification) {
@@ -30,6 +32,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, WKUI
         menu.addItem(NSMenuItem.separator()); menu.addItem(withTitle:"종료",action:#selector(quit),keyEquivalent:""); menuItem.menu=menu
         window.makeKeyAndOrderFront(nil); NSApp.activate(ignoringOtherApps:true)
         startHost()
+        let workspace = NSWorkspace.shared.notificationCenter
+        workspace.addObserver(self, selector:#selector(resumeConnection), name:NSWorkspace.didWakeNotification, object:nil)
+        workspace.addObserver(self, selector:#selector(resumeConnection), name:NSWorkspace.screensDidWakeNotification, object:nil)
+        workspace.addObserver(self, selector:#selector(resumeConnection), name:NSWorkspace.sessionDidBecomeActiveNotification, object:nil)
+        DistributedNotificationCenter.default().addObserver(self, selector:#selector(resumeConnection), name:NSNotification.Name("com.apple.screenIsUnlocked"), object:nil)
         connectUSB(); usbTimer=Timer.scheduledTimer(withTimeInterval:15,repeats:true){[weak self] _ in self?.connectUSB()}
     }
     func beginEditorPolling(){
@@ -80,8 +87,33 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, WKUI
             }catch{}
         }
     }
+    @objc func resumeConnection(_ notification: Notification) {
+        DispatchQueue.main.async { [weak self] in
+            guard let self=self, Date().timeIntervalSince(self.lastRecovery)>2 else{return}
+            self.lastRecovery=Date(); self.recovery?.cancel(); self.recoverConnection(attempt:0)
+        }
+    }
+    func recoverConnection(attempt:Int) {
+        connectUSB()
+        let runtime=directory.appendingPathComponent("runtime.json")
+        guard let data=try? Data(contentsOf:runtime), let json=(try? JSONSerialization.jsonObject(with:data)) as? [String:Any],
+              let port=json["port"] as? Int,port==8840,let key=json["adminKey"] as? String else { retryRecovery(attempt:attempt);return }
+        var request=URLRequest(url:URL(string:"http://127.0.0.1:\(port)/api/admin/resume")!)
+        request.httpMethod="POST";request.timeoutInterval=3;request.setValue(key,forHTTPHeaderField:"X-Open-Deck-Admin")
+        URLSession.shared.dataTask(with:request){[weak self] _, response, _ in
+            DispatchQueue.main.async {
+                guard let self=self else{return}
+                if (response as? HTTPURLResponse)?.statusCode != 200 { self.retryRecovery(attempt:attempt) }
+            }
+        }.resume()
+    }
+    func retryRecovery(attempt:Int) {
+        guard attempt<5 else{return}
+        let job=DispatchWorkItem{[weak self] in self?.recoverConnection(attempt:attempt+1)}
+        recovery=job;DispatchQueue.main.asyncAfter(deadline:.now()+min(15,Double(2 << attempt)),execute:job)
+    }
     @objc func show(){window.makeKeyAndOrderFront(nil);NSApp.activate(ignoringOtherApps:true)}
-    @objc func about(){showError("Open Deck 0.8.3\n맥 호스트 + 네이티브 Android 컨트롤 패널\nMIT 오픈소스 · 계정과 구독 없음\nhttps://github.com/Yaklede/open-deck")}
+    @objc func about(){showError("Open Deck 0.8.4\n맥 호스트 + 네이티브 Android 컨트롤 패널\nMIT 오픈소스 · 계정과 구독 없음\nhttps://github.com/Yaklede/open-deck")}
     @objc func quit(){NSApp.terminate(nil)}
     func userContentController(_ controller:WKUserContentController,didReceive message:WKScriptMessage){
         guard message.name=="exportConfig",message.frameInfo.isMainFrame,message.frameInfo.request.url?.host=="127.0.0.1",let body=message.body as? String,body.utf8.count<16777216 else{return}
@@ -89,7 +121,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, WKUI
     }
     func webView(_ webView:WKWebView,runOpenPanelWith parameters:WKOpenPanelParameters,initiatedByFrame frame:WKFrameInfo,completionHandler:@escaping([URL]?)->Void){let p=NSOpenPanel();p.allowsMultipleSelection=false;p.canChooseDirectories=false;p.beginSheetModal(for:window){r in completionHandler(r == .OK ? p.urls:nil)}}
     func windowShouldClose(_ sender:NSWindow)->Bool{sender.orderOut(nil);return false}
-    func applicationShouldTerminate(_ sender:NSApplication)->NSApplication.TerminateReply {poll?.invalidate();usbTimer?.invalidate();host?.terminate();if let pid=adoptedHostPID{kill(pid,SIGTERM)};return .terminateNow}
+    func applicationShouldTerminate(_ sender:NSApplication)->NSApplication.TerminateReply {poll?.invalidate();usbTimer?.invalidate();recovery?.cancel();NSWorkspace.shared.notificationCenter.removeObserver(self);DistributedNotificationCenter.default().removeObserver(self);host?.terminate();if let pid=adoptedHostPID{kill(pid,SIGTERM)};return .terminateNow}
     func webView(_ webView:WKWebView,runJavaScriptAlertPanelWithMessage message:String,initiatedByFrame frame:WKFrameInfo,completionHandler:@escaping()->Void){showError(message);completionHandler()}
     func webView(_ webView:WKWebView,runJavaScriptConfirmPanelWithMessage message:String,initiatedByFrame frame:WKFrameInfo,completionHandler:@escaping(Bool)->Void){let a=NSAlert();a.messageText=message;a.addButton(withTitle:"확인");a.addButton(withTitle:"취소");completionHandler(a.runModal() == .alertFirstButtonReturn)}
     func webView(_ webView:WKWebView,runJavaScriptTextInputPanelWithPrompt prompt:String,defaultText:String?,initiatedByFrame frame:WKFrameInfo,completionHandler:@escaping(String?)->Void){let a=NSAlert();a.messageText=prompt;let field=NSTextField(frame:NSRect(x:0,y:0,width:300,height:24));field.stringValue=defaultText ?? "";a.accessoryView=field;a.addButton(withTitle:"확인");a.addButton(withTitle:"취소");completionHandler(a.runModal() == .alertFirstButtonReturn ? field.stringValue:nil)}

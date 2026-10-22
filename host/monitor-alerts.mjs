@@ -76,13 +76,21 @@ export class MonitorAlerts {
                 };
           const metrics = {};
           for (const [key, rule] of Object.entries(settings.rules)) {
-            const value = fresh ? values[key] : null;
+            const source = data?.freshness?.[key];
+            const value =
+              fresh &&
+              (!source || (source.status === "fresh" && !source.missingSeries))
+                ? values[key]
+                : null;
             metrics[key] = { ...rule, value, level: monitorLevel(value, rule) };
           }
           if (widget.type === "grafana" && widget.metric !== "system")
             metrics.ready = {
               level:
-                !fresh || data?.database?.ready == null
+                !fresh ||
+                (data?.freshness?.ready &&
+                  data.freshness.ready.status !== "fresh") ||
+                data?.database?.ready == null
                   ? "unknown"
                   : data.database.ready
                     ? "normal"
@@ -93,7 +101,10 @@ export class MonitorAlerts {
           if (widget.type === "grafana" && widget.metric === "system")
             metrics.collection = {
               level:
-                !fresh || !data?.collection?.total
+                !fresh ||
+                (data?.freshness?.collection &&
+                  data.freshness.collection.status !== "fresh") ||
+                !data?.collection?.total
                   ? "unknown"
                   : data.collection.healthy === data.collection.total
                     ? "normal"

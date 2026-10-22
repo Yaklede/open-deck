@@ -197,3 +197,20 @@ test("a different sustained critical metric gets its own alert before the repeat
   assert.equal(h.alerts.notifications.length, 2);
   assert.match(h.alerts.notifications.at(-1).body, /MEM/);
 });
+
+test("successful queries cannot continue a CPU danger hold when source collection is delayed", () => {
+  const h = harness();
+  h.values.a.cpu.value = 95;
+  h.values.a.freshness = { cpu: { status: "fresh" } };
+  h.evaluate();
+  h.advance(60000);
+  h.values.a.freshness.cpu.status = "delayed";
+  h.evaluate();
+  assert.equal(h.alerts.notifications.length, 0);
+  assert.equal(h.alerts.widgets.db.projects.a.metrics.cpu.level, "unknown");
+  h.values.a.freshness.cpu.status = "fresh";
+  h.evaluate();
+  h.advance(60000);
+  h.evaluate();
+  assert.equal(h.alerts.notifications.length, 1);
+});

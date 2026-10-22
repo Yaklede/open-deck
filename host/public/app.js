@@ -483,11 +483,12 @@ function updateLive() {
           w.projects?.find((p) => p.value === w.defaultProject) ||
           w.projects?.[0],
         data = state.grafana?.widgets?.[w.id]?.projects?.[p?.value];
+      const disconnected = !state.at || Date.now() - state.at >= 8000;
       const pct = (v) => (v == null ? "수집 없음" : v.toFixed(1) + "%");
       c.querySelector(".system-reading").textContent =
         (p?.label || "프로젝트 선택") +
         "\n" +
-        (data?.status === "ready"
+        (data?.status === "ready" && !disconnected
           ? w.metric === "system"
             ? "시스템 CPU " +
               pct(data.system?.value) +
@@ -521,7 +522,34 @@ function updateLive() {
               (data.database?.connections == null
                 ? "—"
                 : data.database.connections.toFixed(0))
-          : data?.message || "지표 조회 대기");
+          : disconnected
+            ? "연결 끊김 · 자동 재연결 중"
+            : data?.message || "지표 조회 대기");
+      const key = w.metric === "system" ? "system" : "cpu",
+        source = data?.freshness?.[key];
+      const at = source?.sampleAt || source?.lastSampleAt;
+      const stamp = at
+        ? new Date(at).toLocaleTimeString("ko-KR", {
+            hour12: false,
+            timeZone: "Asia/Seoul",
+          })
+        : "확인 불가";
+      const age = at ? Math.max(0, Math.floor((Date.now() - at) / 1000)) : null;
+      c.querySelector(".system-reading").textContent +=
+        "\n원본 수집 " +
+        stamp +
+        (age == null ? "" : " · " + age + "초 전") +
+        (source?.status === "delayed"
+          ? " · 수집 지연"
+          : source?.status === "stale"
+            ? " · 오래된 데이터"
+            : "");
+      c.classList.toggle(
+        "data-stale",
+        disconnected ||
+          data?.status !== "ready" ||
+          ["delayed", "stale", "missing"].includes(source?.status),
+      );
       c.querySelector(".system-reading").style.whiteSpace = "pre-line";
     }
     if (w.type === "gauges")
@@ -2147,6 +2175,10 @@ try {
   await refreshPlugins();
   render();
   const events = new EventSource("/api/events");
+  events.onopen = () => {
+    if ($("#notice").textContent === "맥 호스트 연결을 기다리는 중입니다.")
+      notice(dirty ? "저장하지 않은 변경" : "다시 연결됨");
+  };
   events.addEventListener("snapshot", (e) => {
     const snapshot = JSON.parse(e.data);
     state = snapshot.state;
@@ -2248,3 +2280,7 @@ function renderEcosystem() {
       render();
     });
 }
+
+setInterval(() => {
+  if (config && !document.hidden) updateLive();
+}, 5000);

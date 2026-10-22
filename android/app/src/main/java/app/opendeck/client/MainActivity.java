@@ -32,7 +32,8 @@ public class MainActivity extends Activity {
       new ThreadPoolExecutor(0, 4, 15, TimeUnit.SECONDS, new SynchronousQueue<>());
   private final Map<String, Long> pending = new HashMap<>();
   private final Map<String, Integer> colors = new HashMap<>();
-  private long serverTime = 0, receivedAt = 0;
+  private long serverTime = 0, receivedAt = 0, lastReconnectAt = -5000;
+  private volatile long lastEventAt = 0, streamOpenedAt = 0;
   private String renderedConfig = "";
   private final Set<String> runningIds = new HashSet<>();
   private volatile boolean stopped = false, connected = false;
@@ -71,7 +72,22 @@ public class MainActivity extends Activity {
   private final Runnable tick =
       new Runnable() {
         public void run() {
-          if (deck != null && hasWindowFocus()) deck.tick();
+          if (foreground
+              && !token.isEmpty()
+              && !streamFresh()
+              && connected
+              && SystemClock.elapsedRealtime() - Math.max(lastEventAt, streamOpenedAt) >= 8000
+              && SystemClock.elapsedRealtime() - lastReconnectAt >= 5000) {
+            lastReconnectAt = SystemClock.elapsedRealtime();
+            connected = false;
+            connectionRevision++;
+            disconnectEvents();
+            if (deck != null) {
+              deck.updateState();
+              deck.invalidate();
+            }
+          }
+          if (deck != null && foreground) deck.tick();
           ui.postDelayed(this, 1000);
         }
       };
@@ -122,6 +138,10 @@ public class MainActivity extends Activity {
   public void onResume() {
     super.onResume();
     foreground = true;
+    if (!token.isEmpty() && !streamFresh()) {
+      connectionRevision++;
+      disconnectEvents();
+    }
     if (deck != null) {
       deck.rebuild();
       deck.updateState();
@@ -804,7 +824,7 @@ public class MainActivity extends Activity {
     GrafanaHistoryView(JSONObject widget) {
       super(new int[] {0}, new String[] {"cpu"});
       this.widget = widget;
-      chartMetric = widget.optString("metric").equals("system") ? "system" : "tps";
+      chartMetric = widget.optString("metric").equals("system") ? "system" : "cpu";
       setContentDescription("Grafana 최근 1시간 추이 그래프");
     }
 
@@ -948,10 +968,95 @@ public class MainActivity extends Activity {
     JSONObject projects = entry == null ? null : entry.optJSONObject("projects");
     JSONObject data =
         projects == null ? null : projects.optJSONObject(grafanaProject(widget).optString("value"));
-    if (data != null
-        && data.optString("status").equals("ready")
-        && hostNow() - data.optLong("capturedAt") > 90000) return null;
     return data;
+  }
+
+  private boolean streamFresh() {
+    return DataFreshness.streamFresh(connected, SystemClock.elapsedRealtime(), lastEventAt);
+  }
+
+  private JSONObject sourceMeta(JSONObject data, String key) {
+    JSONObject freshness = data == null ? null : data.optJSONObject("freshness");
+    return freshness == null ? null : freshness.optJSONObject(key);
+  }
+
+  private String sourceKey(JSONObject widget, String key) {
+    return key.equals("cpu") && widget.optString("metric").equals("system") ? "system" : key;
+  }
+
+  private int sourceState(JSONObject data, String key) {
+    JSONObject meta = sourceMeta(data, key);
+    return meta == null
+        ? DataFreshness.MISSING
+        : DataFreshness.classify(
+            hostNow(),
+            meta.optLong("sampleAt") > 0 ? meta.optLong("sampleAt") : meta.optLong("lastSampleAt"),
+            meta.optLong("warnAfterMs", 180000),
+            meta.optLong("staleAfterMs", 300000));
+  }
+
+  private boolean queryFresh(JSONObject data) {
+    return streamFresh()
+        && data != null
+        && data.optString("status").equals("ready")
+        && hostNow() - data.optLong("capturedAt") < 90000;
+  }
+
+  private double visibleGrafanaValue(JSONObject widget, String key, double value) {
+    JSONObject data = grafanaData(widget);
+    int status = sourceState(data, sourceKey(widget, key));
+    return queryFresh(data) && status != DataFreshness.STALE && status != DataFreshness.MISSING
+        ? value
+        : Double.NaN;
+  }
+
+  private int grafanaReadingColor(JSONObject widget, String key, double value) {
+    JSONObject data = grafanaData(widget);
+    int status = sourceState(data, sourceKey(widget, key));
+    if (!queryFresh(data) || status == DataFreshness.STALE || status == DataFreshness.MISSING)
+      return monitorColor("unknown");
+    int severity = monitorValueColor(widget, key, value);
+    return status == DataFreshness.DELAYED && severity != monitorColor("critical")
+        ? monitorColor("warning")
+        : severity;
+  }
+
+  private String sourceAge(long at) {
+    if (at <= 0) return "시각 없음";
+    long seconds = Math.max(0, (hostNow() - at) / 1000);
+    return seconds < 60
+        ? seconds + "초 전"
+        : seconds < 3600 ? seconds / 60 + "분 전" : seconds / 3600 + "시간 전";
+  }
+
+  private String sourceStamp(JSONObject data, String key) {
+    JSONObject meta = sourceMeta(data, key);
+    long at = meta == null ? 0 : meta.optLong("sampleAt");
+    if (at <= 0) {
+      long last = meta == null ? 0 : meta.optLong("lastSampleAt");
+      return last > 0 ? "마지막 수집 " + osDate(last, "HH:mm:ss") + " · " + sourceAge(last) : "수집 시각 없음";
+    }
+    return "수집 " + osDate(at, "HH:mm:ss") + " · " + sourceAge(at);
+  }
+
+  private String freshnessNotice(JSONObject widget, JSONObject data) {
+    if (!streamFresh()) return "연결 끊김";
+    if (!queryFresh(data)) return "조회 중단";
+    String[] keys =
+        widget.optString("metric").equals("system")
+            ? new String[] {"system", "collection"}
+            : new String[] {"cpu", "memory", "tps", "qps", "connections", "ready"};
+    boolean delayed = false, missing = false, any = false;
+    for (String key : keys) {
+      int status = sourceState(data, key);
+      if (status == DataFreshness.STALE) return "오래된 데이터";
+      if (status == DataFreshness.DELAYED) delayed = true;
+      JSONObject meta = sourceMeta(data, key);
+      if (meta != null && meta.optInt("missingSeries") > 0) missing = true;
+      if (status == DataFreshness.MISSING) missing = true;
+      else any = true;
+    }
+    return delayed ? "수집 지연" : missing ? (any ? "일부 수집 없음" : "수집 없음") : null;
   }
 
   private String metricGiB(double value) {
@@ -1029,6 +1134,9 @@ public class MainActivity extends Activity {
 
   private String grafanaNumber(JSONObject data, String key, boolean percent) {
     double value = metric(data == null ? null : data.optJSONObject(key), "value");
+    if (!queryFresh(data)
+        || sourceState(data, key) == DataFreshness.STALE
+        || sourceState(data, key) == DataFreshness.MISSING) value = Double.NaN;
     return percent
         ? metricPercent(value)
         : Double.isFinite(value) ? String.format(Locale.KOREA, "%,.2f", value) : "—";
@@ -1141,7 +1249,7 @@ public class MainActivity extends Activity {
               for (int j = 0; j < buttons.length; j++)
                 if (buttons[j] != null) buttons[j].setAlpha(j == index ? 1f : .5f);
             });
-        button.setAlpha(i == 0 ? 1f : .5f);
+        button.setAlpha(keys[i].equals(graph.chartMetric) ? 1f : .5f);
       }
       charts.addView(chartTabs);
     }
@@ -1154,11 +1262,11 @@ public class MainActivity extends Activity {
     Runnable render =
         () -> {
           JSONObject data = grafanaData(widget);
-          String signature = String.valueOf(data);
+          String signature = String.valueOf(data) + ":" + hostNow() / 5000 + ":" + streamFresh();
           if (signature.equals(last[0])) return;
           last[0] = signature;
           nodes.removeAllViews();
-          boolean ready = data != null && data.optString("status").equals("ready");
+          boolean ready = queryFresh(data);
           for (TextView value : values) value.setText("—");
           if (!ready) {
             updated.setText(
@@ -1223,7 +1331,10 @@ public class MainActivity extends Activity {
               name.setPadding(0, (int) dp(9), 0, 0);
               nodes.addView(name);
               TextView value = new TextView(this);
-              value.setText(metricPercent(metric(row, system ? "value" : "cpuPercent")));
+              value.setText(
+                  metricPercent(
+                      visibleGrafanaValue(
+                          widget, "cpu", metric(row, system ? "value" : "cpuPercent"))));
               value.setTextSize(22);
               value.setIncludeFontPadding(false);
               value.setTypeface(font, android.graphics.Typeface.BOLD);
@@ -1231,26 +1342,33 @@ public class MainActivity extends Activity {
               styleOSText(name);
               styleOSText(value);
               value.setTextColor(
-                  monitorValueColor(widget, "cpu", metric(row, system ? "value" : "cpuPercent")));
+                  grafanaReadingColor(widget, "cpu", metric(row, system ? "value" : "cpuPercent")));
               if (!system) {
                 TextView memory = new TextView(this);
                 memory.setText(
                     "MEM "
-                        + metricPercent(metric(row, "memoryPercent"))
+                        + metricPercent(
+                            visibleGrafanaValue(widget, "memory", metric(row, "memoryPercent")))
                         + " · "
-                        + metricGiB(metric(row, "memoryUsedBytes"))
+                        + metricGiB(
+                            visibleGrafanaValue(widget, "memory", metric(row, "memoryUsedBytes")))
                         + " 사용");
                 memory.setTextSize(14);
                 memory.setIncludeFontPadding(false);
                 nodes.addView(memory);
                 styleOSText(memory);
                 memory.setTextColor(
-                    monitorValueColor(widget, "memory", metric(row, "memoryPercent")));
+                    grafanaReadingColor(widget, "memory", metric(row, "memoryPercent")));
               }
             }
           styleOSText(nodeTitle);
           updated.setText(
-              "조회 "
+              sourceStamp(data, system ? "system" : "cpu")
+                  + " · "
+                  + (freshnessNotice(widget, data) == null
+                      ? "정상 수집"
+                      : freshnessNotice(widget, data))
+                  + "\n조회 "
                   + osDate(data.optLong("capturedAt"), "HH:mm:ss")
                   + " · 30초 갱신 · 최근 1시간 추이"
                   + (system ? " · 수집 성공 기준" : " · TPS는 Galera 로컬 커밋, QPS는 Questions 기준"));
@@ -2042,6 +2160,7 @@ public class MainActivity extends Activity {
           return;
         }
         if (c.getResponseCode() != 200) throw new IOException("Host unavailable");
+        streamOpenedAt = SystemClock.elapsedRealtime();
         connected = true;
         connectionError = "";
         delay = 1000;
@@ -2055,6 +2174,7 @@ public class MainActivity extends Activity {
           while (!stopped && (line = reader.readLine()) != null) {
             if (line.startsWith("data: ")) {
               JSONObject snapshot = new JSONObject(line.substring(6));
+              lastEventAt = SystemClock.elapsedRealtime();
               boolean learned = learnNetwork(snapshot.optJSONObject("network"));
               if ("auto".equals(transport)
                   && base.startsWith("http:")
@@ -2097,7 +2217,10 @@ public class MainActivity extends Activity {
           connected = false;
           ui.post(
               () -> {
-                if (deck != null) deck.invalidate();
+                if (deck != null) {
+                  deck.updateState();
+                  deck.invalidate();
+                }
               });
         }
       } finally {
@@ -2554,7 +2677,7 @@ public class MainActivity extends Activity {
       "화면 켜짐 유지: " + (prefs.getBoolean("awake", true) ? "켜짐" : "꺼짐"),
       "연결 방식 · Wi-Fi / USB",
       "연결 초기화",
-      "Open Deck 0.4.0 · MIT · 무료"
+      "Open Deck 0.8.4 · MIT · 무료"
     };
     new AlertDialog.Builder(this)
         .setTitle("Open Deck")
@@ -3103,7 +3226,12 @@ public class MainActivity extends Activity {
       String osSignature =
           String.valueOf(osProvider()) + String.valueOf(state.optJSONArray("notifications"));
       String systemSignature = String.valueOf(state.optJSONObject("system"));
-      String grafanaSignature = String.valueOf(state.optJSONObject("grafana"));
+      String grafanaSignature =
+          String.valueOf(state.optJSONObject("grafana"))
+              + ":"
+              + streamFresh()
+              + ":"
+              + hostNow() / 5000;
       for (Tile tile : cachedTiles.values()) {
         if (tile.getVisibility() != View.VISIBLE) continue;
         String next;
@@ -3134,26 +3262,38 @@ public class MainActivity extends Activity {
             boolean server = tile.widget.optString("metric").equals("system");
             double rate = metric(tps, "value");
             tile.setContentDescription(
-                tile.widget.optString("label", "Grafana")
-                    + " · "
-                    + grafanaProject(tile.widget).optString("label")
-                    + (server ? ", CPU " : ", DB CPU ")
-                    + metricPercent(metric(cpu, "value"))
-                    + (server
-                        ? ""
-                        : ", MEM "
-                            + grafanaNumber(data, "memory", true)
-                            + " · "
-                            + metricGiB(
-                                metric(
-                                    data == null ? null : data.optJSONObject("memory"),
-                                    "usedBytes"))
-                            + ", TPS "
-                            + grafanaNumber(data, "tps", false)
-                            + ", QPS "
-                            + grafanaNumber(data, "qps", false))
-                    + (server ? "" : grafanaNodeDescription(data))
-                    + ", 길게 눌러 프로젝트 변경");
+                !queryFresh(data)
+                    ? tile.widget.optString("label", "Grafana")
+                        + ", "
+                        + freshnessNotice(tile.widget, data)
+                        + ", 마지막 "
+                        + sourceStamp(data, server ? "system" : "cpu")
+                    : tile.widget.optString("label", "Grafana")
+                        + " · "
+                        + grafanaProject(tile.widget).optString("label")
+                        + (server ? ", CPU " : ", DB CPU ")
+                        + metricPercent(metric(cpu, "value"))
+                        + (server
+                            ? ""
+                            : ", MEM "
+                                + grafanaNumber(data, "memory", true)
+                                + " · "
+                                + metricGiB(
+                                    metric(
+                                        data == null ? null : data.optJSONObject("memory"),
+                                        "usedBytes"))
+                                + ", TPS "
+                                + grafanaNumber(data, "tps", false)
+                                + ", QPS "
+                                + grafanaNumber(data, "qps", false))
+                        + (server ? "" : grafanaNodeDescription(data))
+                        + ", "
+                        + sourceStamp(data, server ? "system" : "cpu")
+                        + ", "
+                        + (freshnessNotice(tile.widget, data) == null
+                            ? "정상 수집"
+                            : freshnessNotice(tile.widget, data))
+                        + ", 길게 눌러 프로젝트 변경");
           }
           if (tile.getVisibility() == View.VISIBLE) tile.invalidate();
         }
@@ -3169,6 +3309,11 @@ public class MainActivity extends Activity {
     void tick() {
       for (Tile tile : cachedTiles.values()) {
         if (tile.getVisibility() != View.VISIBLE) continue;
+        if ((tile.type.equals("grafana") || tile.type.equals("system"))
+            && tile.freshnessBucket != hostNow() / 5000) {
+          tile.freshnessBucket = hostNow() / 5000;
+          tile.invalidate();
+        }
         if (tile.type.equals("clock") && hostNow() / 60000 != tile.clockMinute) tile.invalidate();
         if (tile.type.equals("timer")) {
           JSONObject all = state.optJSONObject("timers"),
@@ -3183,7 +3328,7 @@ public class MainActivity extends Activity {
       final String id, type;
       final RectF bounds = new RectF();
       String signature = "";
-      long clockMinute = -1;
+      long clockMinute = -1, freshnessBucket = -1;
 
       Tile(JSONObject w, JSONObject page) {
         super(MainActivity.this);
@@ -3288,7 +3433,7 @@ public class MainActivity extends Activity {
           Paint.Align.LEFT);
       label(
           c,
-          connected
+          streamFresh()
               ? (base.startsWith("https:") ? "Wi-Fi · 암호화 연결됨" : "USB · 연결됨")
                   + (pageId.equals("jimin-os-page")
                       ? (osData() == null ? "  · OS 연결 대기" : "  · OS 동기화됨")
@@ -3297,7 +3442,7 @@ public class MainActivity extends Activity {
           dp(18),
           dp(49),
           10,
-          color(connected ? "#70c9a8" : "#e7b16c"),
+          color(streamFresh() ? "#70c9a8" : "#ff7d8b"),
           Paint.Align.LEFT);
       label(c, "⚙", getWidth() - dp(18), dp(40), 24, color("#879dbd"), Paint.Align.RIGHT);
       if (tiles.isEmpty())
@@ -3721,10 +3866,16 @@ public class MainActivity extends Activity {
     }
 
     void monitorBadge(Canvas c, RectF r, String level, String normal) {
+      monitorBadge(c, r, level, normal, null);
+    }
+
+    void monitorBadge(Canvas c, RectF r, String level, String normal, String override) {
       String text =
-          level.equals("critical")
-              ? "위험"
-              : level.equals("warning") ? "주의" : level.equals("normal") ? normal : "확인 중";
+          override != null
+              ? override
+              : level.equals("critical")
+                  ? "위험"
+                  : level.equals("warning") ? "주의" : level.equals("normal") ? normal : "확인 중";
       int ink = level.equals("normal") ? color("#93b7a7") : monitorColor(level);
       paint.setTypeface(font);
       paint.setTextSize(dp(11));
@@ -3795,13 +3946,15 @@ public class MainActivity extends Activity {
         float radius,
         float numberSize,
         int normalInk) {
+      if (widget.optString("type").equals("grafana"))
+        value = visibleGrafanaValue(widget, key, value);
       RectF dial = new RectF(cx - radius, cy - radius, cx + radius, cy + radius);
       paint.setStyle(Paint.Style.STROKE);
       paint.setStrokeCap(Paint.Cap.BUTT);
       paint.setStrokeWidth(dp(7));
       paint.setColor(color("#35414c"));
       c.drawArc(dial, 135, 270, false, paint);
-      int statusInk = monitorValueColor(widget, key, value);
+      int statusInk = grafanaReadingColor(widget, key, value);
       if (Double.isFinite(value)) {
         paint.setColor(statusInk == monitorColor("normal") ? normalInk : statusInk);
         c.drawArc(dial, 135, (float) (270 * Math.max(0, Math.min(1, value / 100))), false, paint);
@@ -3919,6 +4072,13 @@ public class MainActivity extends Activity {
           valueY,
           numberSize,
           monitorColor(widget, key));
+      monitorText(
+          c,
+          sourceStamp(data, key),
+          cell,
+          valueY + dp(19),
+          9,
+          grafanaReadingColor(widget, key, metric(data.optJSONObject(key), "value")));
       JSONObject metric = data.optJSONObject(key);
       JSONArray points = metric == null ? null : metric.optJSONArray("points");
       double max = 1;
@@ -3947,6 +4107,12 @@ public class MainActivity extends Activity {
           health = monitorHealth(widget),
           data = grafanaData(widget);
       String level = health == null ? "unknown" : health.optString("level", "unknown");
+      String notice = freshnessNotice(widget, data);
+      if (notice != null && !level.equals("critical"))
+        level =
+            notice.equals("연결 끊김") || notice.equals("조회 중단") || notice.equals("오래된 데이터")
+                ? "critical"
+                : "warning";
       if (level.equals("critical") || level.equals("warning")) {
         paint.setStyle(Paint.Style.STROKE);
         paint.setStrokeWidth(dp(1.5f));
@@ -3966,14 +4132,31 @@ public class MainActivity extends Activity {
           r.top + dp(34),
           style == null ? 16 : style.optInt("textSize", 16),
           text);
-      monitorBadge(c, r, level, "정상");
-      if (data == null || !data.optString("status").equals("ready")) {
-        monitorText(c, "지표 연결 확인", r, r.top + dp(116), 24, text);
+      monitorBadge(c, r, level, "정상", notice);
+      if (!queryFresh(data)) {
         monitorText(
             c,
-            data == null ? "최신 데이터를 기다리고 있어요" : data.optString("message", "지표를 조회하고 있어요"),
+            notice == null ? "지표 연결 확인" : notice,
+            r,
+            r.top + dp(116),
+            24,
+            monitorColor("critical"));
+        monitorText(
+            c,
+            !streamFresh()
+                ? "맥에서 다시 연결되면 자동으로 갱신됩니다"
+                : data == null
+                    ? "최신 데이터를 기다리고 있어요"
+                    : data.optString("message", "지표 조회가 오래됐어요 · 다시 연결 중"),
             r,
             r.top + dp(148),
+            12,
+            muted);
+        monitorText(
+            c,
+            "마지막 " + sourceStamp(data, server ? "system" : "cpu"),
+            r,
+            r.top + dp(181),
             12,
             muted);
       } else if (server) {
@@ -3992,6 +4175,13 @@ public class MainActivity extends Activity {
             Math.min(dp(87), r.width() * .30f),
             base,
             color("#8fb5e7"));
+        monitorText(
+            c,
+            sourceStamp(data, "system"),
+            r,
+            r.top + dp(272),
+            11,
+            grafanaReadingColor(widget, "cpu", value));
         int healthy = collection == null ? 0 : collection.optInt("healthy"),
             total = collection == null ? 0 : collection.optInt("total");
         JSONArray services = cpu == null ? null : cpu.optJSONArray("nodes");
@@ -4032,11 +4222,22 @@ public class MainActivity extends Activity {
         JSONArray nodes = database == null ? null : database.optJSONArray("nodes");
         int count = nodes == null ? 0 : nodes.length(), shown = Math.min(count, 4);
         float base = style == null ? 44 : style.optInt("valueSize", 44);
-        monitorText(c, "DB CPU · 노드별 한도 대비", r, r.top + dp(65), 12, muted);
+        monitorText(
+            c,
+            "CPU " + sourceStamp(data, "cpu"),
+            new RectF(r.left, r.top, r.centerX(), r.bottom),
+            r.top + dp(65),
+            10,
+            grafanaReadingColor(widget, "cpu", metric(data.optJSONObject("cpu"), "value")));
         long to = data.optLong("capturedAt");
         RectF queryTime = new RectF(r.centerX(), r.top, r.right, r.bottom);
         monitorText(
-            c, "조회 " + osDate(to, "HH:mm:ss") + " · 30초 갱신", queryTime, r.top + dp(65), 10, muted);
+            c,
+            "MEM " + sourceStamp(data, "memory"),
+            queryTime,
+            r.top + dp(65),
+            10,
+            grafanaReadingColor(widget, "memory", metric(data.optJSONObject("memory"), "value")));
         float width = (r.width() - dp(24)) / Math.max(1, shown);
         double chartMax = 100;
         if (shown == 0) monitorText(c, "DB 노드 지표 수집 없음", r, r.top + dp(170), 21, muted);
@@ -4068,6 +4269,15 @@ public class MainActivity extends Activity {
               Math.min(dp(59), width * .32f),
               base * .75f,
               seriesInk);
+          monitorText(
+              c,
+              sourceAge(node.optLong("cpuAt")),
+              cell,
+              r.top + dp(239),
+              10,
+              grafanaReadingColor(widget, "cpu", cpuValue));
+          cpuValue = visibleGrafanaValue(widget, "cpu", cpuValue);
+          memoryValue = visibleGrafanaValue(widget, "memory", memoryValue);
           monitorText(c, "MEM", cell, r.top + dp(257), 10, muted);
           RectF memValue = new RectF(cell.left + dp(37), cell.top, cell.right, cell.bottom);
           monitorNumber(
@@ -4076,10 +4286,12 @@ public class MainActivity extends Activity {
               memValue,
               r.top + dp(258),
               base * .40f,
-              monitorValueColor(widget, "memory", memoryValue));
+              grafanaReadingColor(widget, "memory", memoryValue));
           monitorText(
               c,
-              metricGiB(metric(node, "memoryUsedBytes")) + " 사용",
+              metricGiB(visibleGrafanaValue(widget, "memory", metric(node, "memoryUsedBytes")))
+                  + " · "
+                  + sourceAge(node.optLong("memoryAt")),
               cell,
               r.top + dp(280),
               11,
@@ -4147,14 +4359,17 @@ public class MainActivity extends Activity {
             r.bottom - dp(76),
             base * .53f);
         monitorText(c, "DB 연결 수", connectionsCell, r.bottom - dp(110), 11, muted);
-        double connections = metric(database, "connections");
+        double connections =
+            visibleGrafanaValue(widget, "connections", metric(database, "connections"));
         monitorNumber(
             c,
             Double.isFinite(connections) ? String.format(Locale.KOREA, "%,.0f", connections) : "—",
             connectionsCell,
             r.bottom - dp(76),
             base * .53f,
-            monitorColor(widget, "connections"));
+            grafanaReadingColor(widget, "connections", connections));
+        monitorText(
+            c, sourceStamp(data, "connections"), connectionsCell, r.bottom - dp(57), 9, muted);
       }
       line(
           c,

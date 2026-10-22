@@ -140,6 +140,15 @@ export function createHost({
   engine.grafana = grafana;
   if (metrics) grafana.tick();
   if (metrics) engine.systemMonitor = new MacMetrics(broadcast);
+  const recovery = { count: 0, at: 0 };
+  const resumeConnections = () => {
+    if (Date.now() - recovery.at < 2000) return;
+    recovery.count++;
+    recovery.at = Date.now();
+    grafana.resume();
+    for (const stream of streams) stream.end();
+    streams.clear();
+  };
   const stateFile = path.join(dir, "state.json");
   try {
     const saved = JSON.parse(fs.readFileSync(stateFile, "utf8"));
@@ -223,7 +232,7 @@ export function createHost({
             error: "Wi-Fi에서는 태블릿 연결만 허용됩니다.",
           });
         if (req.method === "GET" && u.pathname === "/health")
-          return send(res, 200, { name: "Open Deck", version: "0.8.3" });
+          return send(res, 200, { name: "Open Deck", version: "0.8.4" });
         if (req.method === "POST" && u.pathname === "/api/pair") {
           const now = Date.now(),
             key = req.socket.remoteAddress,
@@ -266,11 +275,16 @@ export function createHost({
             devices: devices.map(({ hash, ...d }) => d),
             config,
             network: network(),
+            recovery: { ...recovery },
             connections: [...streams].map((s) => ({
               transport: s.socket?.encrypted ? "wifi" : "usb",
               address: s.socket?.remoteAddress,
             })),
           });
+        if (req.method === "POST" && u.pathname === "/api/admin/resume") {
+          resumeConnections();
+          return send(res, 200, { ok: true });
+        }
         if (req.method === "POST" && u.pathname === "/api/admin/pin") {
           pin = String(crypto.randomInt(100000, 1000000));
           pinExpires = Date.now() + 600000;
@@ -549,7 +563,15 @@ export function createHost({
       console.error("Wi-Fi unavailable:", e.message);
     }
   }
-  const interval = metrics ? setInterval(() => engine.metrics(), 1000) : null;
+  let lastTick = Date.now();
+  const interval = metrics
+    ? setInterval(() => {
+        const now = Date.now();
+        if (now - lastTick > 10000) resumeConnections();
+        lastTick = now;
+        engine.metrics();
+      }, 1000)
+    : null;
   const scheduler = new Scheduler(
     () => config,
     (id) => engine.run(id),

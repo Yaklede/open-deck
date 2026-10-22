@@ -6,7 +6,7 @@ A local macro deck with a **macOS host and a native Android app**. Build your co
 
 ![Native monitor page on Android](assets/screenshots/monitor.png)
 
-> Version 0.8.3 is a working USB + encrypted Wi-Fi alpha for Apple Silicon Macs (macOS 13+) and Android 8+. It implements the core desk-control workflow; it does not claim full feature or plugin compatibility with Macro Deck or Touch Portal.
+> Version 0.8.4 is a working USB + encrypted Wi-Fi alpha for Apple Silicon Macs (macOS 13+) and Android 8+. It implements the core desk-control workflow; it does not claim full feature or plugin compatibility with Macro Deck or Touch Portal.
 
 ## Download
 
