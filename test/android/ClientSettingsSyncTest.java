@@ -31,6 +31,7 @@ public final class ClientSettingsSyncTest {
     startupSelectionUsesProfileDefault();
     duplicateNavigationNamesRemainSelectable();
     idleDisableRespectsManualPreview();
+    offlineNavigationCatalogKeepsOnlyLabels();
     System.out.println("Client settings synchronization: " + checks + " checks passed");
   }
 
@@ -469,5 +470,48 @@ public final class ClientSettingsSyncTest {
         ClientSettingsPolicy.shouldWakeAfterIdleChange(7, 8, true),
         false,
         "changing an enabled delay does not dismiss the current screen saver");
+  }
+
+  private static void offlineNavigationCatalogKeepsOnlyLabels() {
+    Map<String, Object> page = new LinkedHashMap<>();
+    page.put("id", "page-id");
+    page.put("name", "Saved page name");
+    page.put("widgets", java.util.List.of(Map.of("action", "private-command")));
+    page.put("url", "https://private.invalid");
+    page.put("token", "private-token");
+    page.put("state", Map.of("tasks", "private-task"));
+    Map<String, Object> cachedPage = ProfileNavigation.catalogEntry(page, false);
+    equal(
+        cachedPage,
+        Map.of("id", "page-id", "name", "Saved page name"),
+        "offline catalog retains names but no actions, URLs, credentials, or task data");
+    Map<String, Object> profile = new LinkedHashMap<>(page);
+    profile.put("defaultPageId", "page-id");
+    profile.put("pageIds", java.util.List.of("page-id", 5, Map.of("token", "private-token")));
+    Map<String, Object> cachedProfile = ProfileNavigation.catalogEntry(profile, true);
+    equal(
+        cachedProfile.keySet(),
+        java.util.Set.of("id", "name", "defaultPageId", "pageIds"),
+        "profile cache has an explicit metadata-only field whitelist");
+    equal(
+        cachedProfile.get("pageIds"),
+        java.util.List.of("page-id"),
+        "nested untrusted data is not retained in page IDs");
+    Map<String, String> restoredNames = new LinkedHashMap<>();
+    restoredNames.put((String) cachedPage.get("id"), (String) cachedPage.get("name"));
+    Map<String, String> choices = ProfileNavigation.choices("Profile default", restoredNames);
+    equal(
+        choices.get("Saved page name"),
+        "page-id",
+        "restored settings can show the saved page label without the host");
+    equal(
+        choices.containsKey("page-id"),
+        false,
+        "offline choice exposes the human label rather than an internal ID");
+    equal(
+        ProfileNavigation.catalogEntry(Map.of("id", 1, "name", Map.of("token", "secret")), false)
+            .isEmpty(),
+        true,
+        "malformed identifier or label values cannot cache nested data");
   }
 }

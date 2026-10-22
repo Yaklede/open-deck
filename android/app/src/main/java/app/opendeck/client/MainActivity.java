@@ -48,6 +48,7 @@ public class MainActivity extends Activity {
   private String connectionError = "";
   private long lastWifiProbe = -15000;
   private volatile JSONObject config = new JSONObject(), state = new JSONObject();
+  private JSONObject savedNavigationCatalog = new JSONObject();
   private DeckView deck;
   private final ExecutorService images = Executors.newFixedThreadPool(2);
   private final Set<String> loadingImages = ConcurrentHashMap.newKeySet();
@@ -161,6 +162,7 @@ public class MainActivity extends Activity {
     monitorChannel.setLockscreenVisibility(Notification.VISIBILITY_PRIVATE);
     notificationManager.createNotificationChannel(monitorChannel);
     token = readToken();
+    loadNavigationCatalog();
     applyClientSettings();
     if (token.isEmpty()) pairScreen();
     else showDeck();
@@ -2357,7 +2359,10 @@ public class MainActivity extends Activity {
                   () -> {
                     if (connectionGeneration != pairingGeneration) return;
                     boolean changed = cfg != null && !renderedConfig.equals(configJson);
-                    if (cfg != null) config = cfg;
+                    if (cfg != null) {
+                      config = cfg;
+                      cacheNavigationCatalog(cfg);
+                    }
                     receiveDeviceSettings(snapshot.optJSONObject("device"));
                     if (cfg != null && firstConfig) {
                       firstConfig = false;
@@ -2829,9 +2834,60 @@ public class MainActivity extends Activity {
     return false;
   }
 
+  private JSONObject navigationCatalog() {
+    return config.optJSONArray("pages") != null ? config : savedNavigationCatalog;
+  }
+
+  private void loadNavigationCatalog() {
+    if (token.isEmpty()) return;
+    try {
+      savedNavigationCatalog = new JSONObject(prefs.getString("navigationCatalog", "{}"));
+    } catch (Exception ignored) {
+      savedNavigationCatalog = new JSONObject();
+    }
+  }
+
+  private void cacheNavigationCatalog(JSONObject source) {
+    try {
+      JSONObject catalog = new JSONObject();
+      catalog.put("defaultProfileId", source.optString("defaultProfileId"));
+      for (String kind : new String[] {"profiles", "pages"}) {
+        JSONArray items = source.optJSONArray(kind), entries = new JSONArray();
+        if (items != null)
+          for (int i = 0; i < items.length(); i++) {
+            JSONObject item = items.optJSONObject(i);
+            if (item == null) continue;
+            Map<String, Object> values = new LinkedHashMap<>();
+            Iterator<String> keys = item.keys();
+            while (keys.hasNext()) {
+              String key = keys.next();
+              Object value = item.opt(key);
+              if (key.equals("pageIds") && value instanceof JSONArray ids) {
+                List<String> list = new ArrayList<>();
+                for (int j = 0; j < ids.length(); j++)
+                  if (ids.opt(j) instanceof String id) list.add(id);
+                value = list;
+              }
+              values.put(key, value);
+            }
+            entries.put(
+                new JSONObject(ProfileNavigation.catalogEntry(values, kind.equals("profiles"))));
+          }
+        catalog.put(kind, entries);
+      }
+      String encoded = catalog.toString();
+      if (!encoded.equals(savedNavigationCatalog.toString())) {
+        savedNavigationCatalog = catalog;
+        prefs.edit().putString("navigationCatalog", encoded).apply();
+      }
+    } catch (Exception ignored) {
+      // A malformed catalog cannot replace the last usable names or prevent connection.
+    }
+  }
+
   private Map<String, List<String>> profilePageCatalog() {
     Map<String, List<String>> catalog = new LinkedHashMap<>();
-    JSONArray profiles = config.optJSONArray("profiles");
+    JSONArray profiles = navigationCatalog().optJSONArray("profiles");
     if (profiles != null)
       for (int i = 0; i < profiles.length(); i++) {
         JSONObject profile = profiles.optJSONObject(i);
@@ -2845,9 +2901,10 @@ public class MainActivity extends Activity {
   }
 
   private String profileDefaultPage() {
+    JSONObject catalog = navigationCatalog();
     String active = settingString("profileId");
-    if (active.isEmpty()) active = config.optString("defaultProfileId");
-    JSONArray profiles = config.optJSONArray("profiles");
+    if (active.isEmpty()) active = catalog.optString("defaultProfileId");
+    JSONArray profiles = catalog.optJSONArray("profiles");
     if (profiles != null)
       for (int i = 0; i < profiles.length(); i++) {
         JSONObject profile = profiles.optJSONObject(i);
@@ -3187,7 +3244,8 @@ public class MainActivity extends Activity {
     navigationProfileRequested = false;
     lastScreenSaverAt = 0;
     settingsSync.clearProfile();
-    prefs.edit().remove("lastScreenSaverAt").apply();
+    savedNavigationCatalog = new JSONObject();
+    prefs.edit().remove("lastScreenSaverAt").remove("navigationCatalog").apply();
     persistClientSettings();
   }
 
@@ -3649,7 +3707,7 @@ public class MainActivity extends Activity {
 
   private Map<String, ?> currentProfileChoices() {
     Map<String, String> namesById = new LinkedHashMap<>();
-    JSONArray profiles = config.optJSONArray("profiles");
+    JSONArray profiles = navigationCatalog().optJSONArray("profiles");
     if (profiles != null)
       for (int i = 0; i < profiles.length(); i++) {
         JSONObject profile = profiles.optJSONObject(i);
@@ -3659,11 +3717,12 @@ public class MainActivity extends Activity {
   }
 
   private Map<String, ?> currentStartPageChoices() {
+    JSONObject catalog = navigationCatalog();
     Map<String, String> namesById = new LinkedHashMap<>();
     String profile = settingString("profileId");
-    if (profile.isEmpty()) profile = config.optString("defaultProfileId");
+    if (profile.isEmpty()) profile = catalog.optString("defaultProfileId");
     List<String> allowed = profilePageCatalog().getOrDefault(profile, Collections.emptyList());
-    JSONArray pages = config.optJSONArray("pages");
+    JSONArray pages = catalog.optJSONArray("pages");
     if (pages != null)
       for (int i = 0; i < pages.length(); i++) {
         JSONObject page = pages.optJSONObject(i);

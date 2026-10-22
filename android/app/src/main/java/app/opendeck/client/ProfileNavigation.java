@@ -1,5 +1,6 @@
 package app.opendeck.client;
 
+import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -18,6 +19,23 @@ public final class ProfileNavigation {
     if (visiblePages.contains(selected)) return selected;
     if (visiblePages.contains(profileDefault)) return profileDefault;
     return visiblePages.isEmpty() ? "" : visiblePages.get(0);
+  }
+
+  /** Offline labels never retain actions, addresses, tokens, or live business data. */
+  public static Map<String, Object> catalogEntry(Map<String, ?> source, boolean profile) {
+    Map<String, Object> entry = new LinkedHashMap<>();
+    for (String key : profile ? List.of("id", "name", "defaultPageId") : List.of("id", "name")) {
+      Object value = source.get(key);
+      if (value instanceof String) entry.put(key, value);
+    }
+    if (profile) {
+      List<String> ids = new ArrayList<>();
+      Object pages = source.get("pageIds");
+      if (pages instanceof List<?> values)
+        for (Object value : values) if (value instanceof String id) ids.add(id);
+      entry.put("pageIds", ids);
+    }
+    return entry;
   }
 
   public static Map<String, String> choices(String defaultLabel, Map<String, String> namesById) {
