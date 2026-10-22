@@ -1489,5 +1489,6 @@
   "프로필": "Profilo",
   "APK 버전 정보를 확인하세요.": "Controlla le informazioni sulla versione APK.",
   "연결된 태블릿 앱 자동 업데이트": "Aggiorna automaticamente le app dei tablet collegati",
-  "Open Deck이 이미 설치된 ADB 기기만 업데이트합니다. 새 버전과 체크섬을 확인하며 기존 앱과 서명이 일치해야 설치됩니다. 기본값은 끔입니다.": "Aggiorna solo i dispositivi ADB su cui Open Deck è già installato. Controlla versione e checksum; Android richiede la firma dell’app esistente. Disattivato per impostazione predefinita."
+  "Open Deck이 이미 설치된 ADB 기기만 업데이트합니다. 새 버전과 체크섬을 확인하며 기존 앱과 서명이 일치해야 설치됩니다. 기본값은 끔입니다.": "Aggiorna solo i dispositivi ADB su cui Open Deck è già installato. Controlla versione e checksum; Android richiede la firma dell’app esistente. Disattivato per impostazione predefinita.",
+  "직접 입력": "Inserisci un valore"
 }

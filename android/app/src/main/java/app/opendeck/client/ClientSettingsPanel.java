@@ -202,6 +202,18 @@ final class ClientSettingsPanel {
   }
 
   void choices(String key, String title, Supplier<Map<String, ?>> source) {
+    choices(key, title, source, null);
+  }
+
+  void numericChoices(
+      String key, String title, Map<String, ?> presets, int min, int max, String unit) {
+    choices(key, title, () -> presets, new NumericRange(min, max, unit));
+  }
+
+  private record NumericRange(int min, int max, String unit) {}
+
+  private void choices(
+      String key, String title, Supplier<Map<String, ?>> source, NumericRange range) {
     LinearLayout row = row(title, "");
     TextView value = text("", 14, accent);
     row.addView(value);
@@ -213,7 +225,7 @@ final class ClientSettingsPanel {
             selection -> {
               ChoiceSelection selected = (ChoiceSelection) selection;
               Object current = selected.value();
-              String label = String.valueOf(current);
+              String label = String.valueOf(current) + (range == null ? "" : range.unit());
               for (Map.Entry<String, ?> entry : selected.choices().entrySet())
                 if (java.util.Objects.equals(entry.getValue(), current)) label = entry.getKey();
               value.setText(label + "  ›");
@@ -240,7 +252,7 @@ final class ClientSettingsPanel {
           for (int i = 0; i < values.length; i++)
             if (values[i].equals(host.value(key))) checked = i;
           pickerValues[0] = values;
-          picker[0] =
+          AlertDialog.Builder builder =
               new AlertDialog.Builder(context)
                   .setTitle(title)
                   .setSingleChoiceItems(
@@ -252,8 +264,11 @@ final class ClientSettingsPanel {
                               pickerValues[0][index], selected -> host.save(key, selected));
                         d.dismiss();
                       })
-                  .setNegativeButton(L10n.text("취소"), null)
-                  .show();
+                  .setNegativeButton(L10n.text("취소"), null);
+          if (range != null)
+            builder.setNeutralButton(
+                L10n.text("직접 입력"), (d, which) -> numericInput(key, title, range, binding));
+          picker[0] = builder.show();
           openDialogs.add(picker[0]);
           childDialogs.add(picker[0]);
           picker[0].setOnDismissListener(d -> openDialogs.remove((AlertDialog) d));
@@ -261,6 +276,53 @@ final class ClientSettingsPanel {
   }
 
   private record ChoiceSelection(Object value, Map<String, ?> choices) {}
+
+  private void numericInput(
+      String key, String title, NumericRange range, SettingsControlBinding binding) {
+    EditText field = new EditText(context);
+    field.setInputType(
+        android.text.InputType.TYPE_CLASS_NUMBER
+            | (range.min() < 0 ? android.text.InputType.TYPE_NUMBER_FLAG_SIGNED : 0));
+    field.setSingleLine(true);
+    field.setText(String.valueOf(host.value(key)));
+    field.selectAll();
+    field.setPadding(dp(20), dp(10), dp(20), dp(10));
+    String hint = range.min() + "–" + range.max() + range.unit();
+    if (range.min() == -1) hint += "\n−1 · " + L10n.text("기기 설정 따르기");
+    AlertDialog prompt =
+        new AlertDialog.Builder(context)
+            .setTitle(title)
+            .setMessage(hint)
+            .setView(field)
+            .setNegativeButton(L10n.text("취소"), null)
+            .setPositiveButton(L10n.text("저장"), null)
+            .create();
+    binding.beginEdit();
+    prompt.setOnShowListener(
+        d ->
+            prompt
+                .getButton(AlertDialog.BUTTON_POSITIVE)
+                .setOnClickListener(
+                    v -> {
+                      try {
+                        int value =
+                            ClientSettingsPolicy.parseNumericInput(key, field.getText().toString());
+                        binding.change(value, next -> host.save(key, next));
+                        prompt.dismiss();
+                      } catch (IllegalArgumentException e) {
+                        field.setError(L10n.error(e.getMessage()));
+                      }
+                    }));
+    prompt.setOnDismissListener(
+        d -> {
+          openDialogs.remove(prompt);
+          binding.endEdit();
+          refreshOpenPanels();
+        });
+    openDialogs.add(prompt);
+    childDialogs.add(prompt);
+    prompt.show();
+  }
 
   void slider(String key, String title, int min, int max, int step, String unit) {
     LinearLayout row = row(title, "");

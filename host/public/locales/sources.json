@@ -2040,6 +2040,8 @@
   {
     "source": "기기 설정 따르기",
     "files": [
+      "host/public/settings-ui.mjs",
+      "android/app/src/main/java/app/opendeck/client/ClientSettingsPanel.java",
       "android/app/src/main/java/app/opendeck/client/MainActivity.java"
     ]
   },
@@ -2195,6 +2197,7 @@
   {
     "source": "기본값은 꺼짐입니다. 이 옵션을 켜면 사설 LAN의 HTTP 주소에 연결할 수 있으며 페어링 토큰과 데이터가 암호화되지 않습니다. 신뢰하는 네트워크에서만 사용하세요.",
     "files": [
+      "host/public/settings-ui.mjs",
       "android/app/src/main/java/app/opendeck/client/MainActivity.java"
     ]
   },
@@ -4021,7 +4024,8 @@
   {
     "source": "분",
     "files": [
-      "host/public/settings-ui.mjs"
+      "host/public/settings-ui.mjs",
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
     ],
     "english": " min"
   },
@@ -5396,6 +5400,7 @@
   {
     "source": "암호화하지 않는 Wi-Fi 허용",
     "files": [
+      "host/public/settings-ui.mjs",
       "android/app/src/main/java/app/opendeck/client/MainActivity.java"
     ]
   },
@@ -5550,6 +5555,7 @@
   {
     "source": "언어",
     "files": [
+      "host/public/settings-ui.mjs",
       "android/app/src/main/java/app/opendeck/client/MainActivity.java"
     ]
   },
@@ -7642,6 +7648,12 @@
     "source": "지표별 임계치를 확인하세요.",
     "files": [
       "host/public/monitor-rules.mjs"
+    ]
+  },
+  {
+    "source": "직접 입력",
+    "files": [
+      "android/app/src/main/java/app/opendeck/client/ClientSettingsPanel.java"
     ]
   },
   {

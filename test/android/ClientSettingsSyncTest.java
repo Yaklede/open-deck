@@ -23,6 +23,14 @@ public final class ClientSettingsSyncTest {
     openSwitchTracksRemoteWithoutSaving();
     sliderDefersRemoteUntilGestureEnds();
     sliderCommitKeepsNewUserIntent();
+    allSettingsRoundTripAndRestart();
+    everyFieldSurvivesInFlightEditAndNewerSnapshot();
+    everyFieldKeepsSameValueReedit();
+    completeRemoteMapUpdatesEveryOpenControl();
+    numericNormalizationAndCancelledInput();
+    startupSelectionUsesProfileDefault();
+    duplicateNavigationNamesRemainSelectable();
+    idleDisableRespectsManualPreview();
     System.out.println("Client settings synchronization: " + checks + " checks passed");
   }
 
@@ -187,5 +195,279 @@ public final class ClientSettingsSyncTest {
     binding.endEdit();
     equal(view.get(), 140, "gesture commit wins over a host value received during dragging");
     equal(sync.pending().get("textScale"), 140, "committed gesture is queued for the Mac");
+  }
+
+  private static Map<String, Object> allChangedSettings() {
+    Map<String, Object> values = new LinkedHashMap<>();
+    values.put("awake", false);
+    values.put("orientation", "portrait");
+    values.put("theme", "light");
+    values.put("language", "ar");
+    values.put("allowInsecureWifi", true);
+    values.put("timeFormat", "12h");
+    values.put("renderMode", "simple");
+    values.put("fullscreen", false);
+    values.put("brightness", 35);
+    values.put("textScale", 117);
+    values.put("haptics", false);
+    values.put("fixedVibration", true);
+    values.put("vibrationMs", 83);
+    values.put("sound", true);
+    values.put("swipeEnabled", false);
+    values.put("reducedMotion", true);
+    values.put("showHeader", false);
+    values.put("showNavigation", false);
+    values.put("settingsButtonHidden", true);
+    values.put("screenSaverMinutes", 7);
+    values.put("screenSaverMode", "clock");
+    values.put("dimPercent", 17);
+    values.put("firstTouchWakes", false);
+    values.put("rememberPage", false);
+    values.put("startPageId", "work-home");
+    values.put("profileId", "work");
+    values.put("iconResolution", 512);
+    values.put("osNotifications", false);
+    values.put("monitorNotifications", false);
+    values.put("notificationBanner", false);
+    return values;
+  }
+
+  private static void allSettingsRoundTripAndRestart() {
+    Map<String, Object> changed = allChangedSettings();
+    equal(
+        changed.keySet(),
+        ClientSettingsPolicy.defaults().keySet(),
+        "all supported keys have explicit non-default fixtures");
+    ClientSettingsSync first = new ClientSettingsSync();
+    for (Map.Entry<String, Object> item : changed.entrySet()) {
+      equal(
+          first.edit(item.getKey(), item.getValue()),
+          true,
+          item.getKey() + " has a non-default local edit");
+    }
+    equal(first.snapshot().values, changed, "a full-map patch contains every local change");
+    ClientSettingsSync restarted = new ClientSettingsSync();
+    restarted.restore(new LinkedHashMap<>(first.values()), new LinkedHashMap<>(first.pending()));
+    restarted.receive(ClientSettingsPolicy.defaults(), 90);
+    for (String key : changed.keySet()) {
+      equal(restarted.values().get(key), changed.get(key), key + " survives offline restart");
+      equal(
+          restarted.pending().get(key),
+          changed.get(key),
+          key + " remains queued after the old host snapshot");
+    }
+    ClientSettingsSync.Patch retry = restarted.snapshot();
+    restarted.acknowledge(retry);
+    restarted.receive(changed, 91);
+    equal(
+        restarted.pending().isEmpty(), true, "one full-map acknowledgement clears all sent edits");
+    ClientSettingsSync cleanRestart = new ClientSettingsSync();
+    cleanRestart.restore(
+        new LinkedHashMap<>(restarted.values()), new LinkedHashMap<>(restarted.pending()));
+    equal(cleanRestart.values(), changed, "all accepted settings survive another app restart");
+    cleanRestart.receive(ClientSettingsPolicy.defaults(), 92);
+    for (String key : changed.keySet())
+      equal(
+          cleanRestart.values().get(key),
+          ClientSettingsPolicy.defaults().get(key),
+          key + " accepts a later Mac edit after restart");
+  }
+
+  private static void everyFieldSurvivesInFlightEditAndNewerSnapshot() {
+    Map<String, Object> changed = allChangedSettings(), defaults = ClientSettingsPolicy.defaults();
+    for (String key : changed.keySet()) {
+      ClientSettingsSync sync = new ClientSettingsSync();
+      sync.receive(defaults, 1);
+      sync.edit(key, changed.get(key));
+      ClientSettingsSync.Patch sent = sync.snapshot();
+      Map<String, Object> putResponse = new LinkedHashMap<>(defaults);
+      putResponse.put(key, changed.get(key));
+      Map<String, Object> newestHost = new LinkedHashMap<>(changed);
+      newestHost.put(key, defaults.get(key));
+      sync.receive(putResponse, 2);
+      sync.receive(newestHost, 3);
+      equal(
+          sync.values().get(key),
+          changed.get(key),
+          key + " keeps pending intent over a racing Mac snapshot");
+      sync.acknowledge(sent);
+      sync.receive(putResponse, 2);
+      equal(
+          sync.values(),
+          newestHost,
+          key + " reconciles the latest full host map after a delayed ACK");
+      equal(sync.pending().isEmpty(), true, key + " old request acknowledgement is complete");
+    }
+  }
+
+  private static void everyFieldKeepsSameValueReedit() {
+    ClientSettingsSync sync = new ClientSettingsSync();
+    Map<String, Object> changed = allChangedSettings(), defaults = ClientSettingsPolicy.defaults();
+    changed.forEach(sync::queue);
+    ClientSettingsSync.Patch first = sync.snapshot();
+    defaults.forEach(sync::queue);
+    changed.forEach(sync::queue);
+    sync.receive(defaults, 6);
+    sync.acknowledge(first);
+    sync.receive(changed, 5);
+    for (String key : changed.keySet()) {
+      equal(
+          sync.pending().get(key),
+          changed.get(key),
+          key + " same-value later edit is not cleared by the old ACK");
+      equal(sync.values().get(key), changed.get(key), key + " latest local edit stays visible");
+    }
+  }
+
+  private static void completeRemoteMapUpdatesEveryOpenControl() {
+    ClientSettingsSync sync = new ClientSettingsSync();
+    Map<String, Object> displayed = new LinkedHashMap<>();
+    Map<String, SettingsControlBinding> bindings = new LinkedHashMap<>();
+    for (String key : ClientSettingsPolicy.defaults().keySet()) {
+      SettingsControlBinding binding =
+          new SettingsControlBinding(
+              () -> sync.values().get(key), value -> displayed.put(key, value));
+      bindings.put(key, binding);
+      binding.refresh();
+    }
+    sync.receive(allChangedSettings(), 2);
+    bindings.values().forEach(SettingsControlBinding::refresh);
+    for (String key : allChangedSettings().keySet())
+      equal(
+          displayed.get(key),
+          allChangedSettings().get(key),
+          key + " open binding displays its remote value");
+    equal(sync.pending().isEmpty(), true, "remote rendering of all controls does not queue edits");
+  }
+
+  private static void numericNormalizationAndCancelledInput() {
+    ClientSettingsSync sync = new ClientSettingsSync();
+    sync.receive(
+        Map.of(
+            "brightness",
+            35L,
+            "textScale",
+            117.0,
+            "vibrationMs",
+            83L,
+            "dimPercent",
+            17.0,
+            "screenSaverMinutes",
+            7L),
+        1);
+    for (String key :
+        new String[] {
+          "brightness", "textScale", "vibrationMs", "dimPercent", "screenSaverMinutes"
+        }) {
+      equal(
+          sync.values().get(key).getClass(),
+          Integer.class,
+          key + " JSON numeric representation is normalized");
+      equal(
+          sync.values().get(key),
+          allChangedSettings().get(key),
+          key + " keeps its exact integer value");
+    }
+    equal(
+        ClientSettingsPolicy.parseNumericInput("brightness", " -1 "),
+        -1,
+        "system brightness sentinel remains supported");
+    equal(
+        ClientSettingsPolicy.parseNumericInput("brightness", "35"),
+        35,
+        "custom brightness accepts non-preset values");
+    equal(
+        ClientSettingsPolicy.parseNumericInput("screenSaverMinutes", "120"),
+        120,
+        "maximum custom idle interval is available");
+    for (String input : new String[] {"", "1.5", "abc", "121", "999999999999999999"}) {
+      boolean rejected = false;
+      try {
+        ClientSettingsPolicy.parseNumericInput("screenSaverMinutes", input);
+      } catch (IllegalArgumentException expected) {
+        rejected = true;
+      }
+      equal(rejected, true, "invalid custom input is rejected: " + input);
+    }
+    AtomicReference<Object> displayed = new AtomicReference<>();
+    SettingsControlBinding binding =
+        new SettingsControlBinding(() -> sync.values().get("brightness"), displayed::set);
+    binding.refresh();
+    binding.beginEdit(); // Opening and typing in the number prompt does not commit.
+    sync.receive(Map.of("brightness", 42), 2);
+    binding.refresh();
+    equal(displayed.get(), 35, "typing is not overwritten by a Mac update");
+    binding.endEdit(); // Cancel, with no binding.change call.
+    equal(displayed.get(), 42, "cancel returns to the latest Mac value");
+    equal(sync.pending().isEmpty(), true, "cancel never saves the typed number");
+  }
+
+  private static void startupSelectionUsesProfileDefault() {
+    java.util.List<String> pages = java.util.List.of("first", "preferred", "remembered");
+    equal(
+        ProfileNavigation.startupPage(false, "remembered", "", "preferred", pages),
+        "preferred",
+        "disabled remember uses the profile default even when not first");
+    equal(
+        ProfileNavigation.startupPage(true, "remembered", "first", "preferred", pages),
+        "remembered",
+        "valid remembered page takes precedence");
+    equal(
+        ProfileNavigation.startupPage(false, "remembered", "first", "preferred", pages),
+        "first",
+        "explicit startup page takes precedence over the profile default");
+    equal(
+        ProfileNavigation.startupPage(true, "removed", "", "preferred", pages),
+        "preferred",
+        "removed remembered page falls back to the profile default");
+    equal(
+        ProfileNavigation.startupPage(false, "", "removed", "preferred", pages),
+        "preferred",
+        "invalid explicit page falls back safely");
+    equal(
+        ProfileNavigation.startupPage(false, "", "", "removed", pages),
+        "first",
+        "only invalid profile defaults use the first available page");
+    equal(
+        ProfileNavigation.startupPage(false, "", "", "", java.util.List.of()),
+        "",
+        "empty profiles do not produce an invalid navigation target");
+  }
+
+  private static void duplicateNavigationNamesRemainSelectable() {
+    Map<String, String> names = new LinkedHashMap<>();
+    names.put("work", "Work");
+    names.put("work-copy", "Work");
+    names.put("default-copy", "Follow Mac");
+    names.put("literal", "Work · work");
+    Map<String, String> options = ProfileNavigation.choices("Follow Mac", names);
+    equal(options.size(), 5, "all same-name entries and the default remain selectable");
+    equal(options.get("Follow Mac"), "", "reserved default cannot be overwritten");
+    equal(options.get("Work · work"), "work", "first duplicate includes its stable ID");
+    equal(options.get("Work · work-copy"), "work-copy", "second duplicate includes its own ID");
+    equal(
+        options.get("Follow Mac · default-copy"),
+        "default-copy",
+        "same name as default remains selectable");
+    equal(options.containsValue("literal"), true, "literal suffix collisions cannot drop a page");
+  }
+
+  private static void idleDisableRespectsManualPreview() {
+    equal(
+        ClientSettingsPolicy.shouldWakeAfterIdleChange(7, 0, true),
+        true,
+        "disabling automatic idle wakes an automatically dimmed screen");
+    equal(
+        ClientSettingsPolicy.shouldWakeAfterIdleChange(7, 0, false),
+        false,
+        "manual preview survives a change to automatic idle settings");
+    equal(
+        ClientSettingsPolicy.shouldWakeAfterIdleChange(0, 0, true),
+        false,
+        "unrelated setting snapshots cannot wake an already disabled idle timer");
+    equal(
+        ClientSettingsPolicy.shouldWakeAfterIdleChange(7, 8, true),
+        false,
+        "changing an enabled delay does not dismiss the current screen saver");
   }
 }

@@ -962,6 +962,7 @@ export function createSettingsCenter({
             );
             const read = () =>
               key === "name" ? deviceDrafts.view(id)?.name : (ds[key] ?? value);
+            input.dataset.deviceSetting = key;
             const binding = {
               input,
               read,
@@ -1193,6 +1194,39 @@ export function createSettingsCenter({
           );
           deviceRow(
             s,
+            "language",
+            "언어",
+            "Language",
+            ds.language,
+            (v) => (ds.language = v),
+            {
+              choices: Object.fromEntries(
+                locales.map(({ code, name }) => [
+                  code,
+                  code === "system"
+                    ? ["기기 설정 따르기", "Follow device settings"]
+                    : name,
+                ]),
+              ),
+            },
+          );
+          deviceRow(
+            s,
+            "allowInsecureWifi",
+            "암호화하지 않는 Wi-Fi 허용",
+            "Allow unencrypted Wi-Fi",
+            ds.allowInsecureWifi,
+            (v) => (ds.allowInsecureWifi = v),
+            {
+              type: "checkbox",
+              help: [
+                "기본값은 꺼짐입니다. 이 옵션을 켜면 사설 LAN의 HTTP 주소에 연결할 수 있으며 페어링 토큰과 데이터가 암호화되지 않습니다. 신뢰하는 네트워크에서만 사용하세요.",
+                "Off by default. Enabling this allows private-LAN HTTP connections; pairing tokens and data are unencrypted. Use only on trusted networks.",
+              ],
+            },
+          );
+          deviceRow(
+            s,
             "vibrationMs",
             "진동 길이 (ms)",
             "Vibration duration (ms)",
@@ -1285,6 +1319,8 @@ export function createSettingsCenter({
                 "Orientation",
                 "앱 테마",
                 "App theme",
+                "언어",
+                "Language",
                 "렌더링 모드",
                 "Rendering mode",
                 "이미지 해상도",
@@ -1296,6 +1332,11 @@ export function createSettingsCenter({
                 "글자 크기 (%)",
                 "Text size (%)",
               ],
+            },
+            {
+              ko: "Wi-Fi 연결",
+              en: "Wi-Fi connection",
+              labels: ["암호화하지 않는 Wi-Fi 허용", "Allow unencrypted Wi-Fi"],
             },
             {
               ko: "터치 · 페이지 이동",

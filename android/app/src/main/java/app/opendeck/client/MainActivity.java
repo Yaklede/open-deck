@@ -75,7 +75,7 @@ public class MainActivity extends Activity {
   private final ArrayDeque<String> connectionLog = new ArrayDeque<>();
   private String deviceName = Build.MANUFACTURER + " " + Build.MODEL;
   private long lastInteraction = SystemClock.elapsedRealtime();
-  private boolean idleDimmed, cornerConsumed, firstConfig = true;
+  private boolean idleDimmed, automaticIdle, cornerConsumed, firstConfig = true;
   private final WakeInteractionGuard wakeGuard = new WakeInteractionGuard();
   private long lastScreenSaverAt;
   private volatile long pairingGeneration;
@@ -117,7 +117,7 @@ public class MainActivity extends Activity {
                     SystemClock.elapsedRealtime(),
                     lastInteraction,
                     settingInt("screenSaverMinutes"),
-                    true)) setIdleDimmed(true);
+                    true)) setIdleDimmed(true, true);
             deck.tick();
             if (idleDimmed && settingString("screenSaverMode").equals("clock")) deck.invalidate();
           }
@@ -2361,8 +2361,22 @@ public class MainActivity extends Activity {
                     receiveDeviceSettings(snapshot.optJSONObject("device"));
                     if (cfg != null && firstConfig) {
                       firstConfig = false;
-                      if (!settingBool("rememberPage") || pageId.isEmpty())
-                        pageId = settingString("startPageId");
+                      if (!getIntent().getBooleanExtra("openOS", false)
+                          && !getIntent().hasExtra("openPage")) {
+                        List<String> visible = new ArrayList<>();
+                        JSONArray pages = cfg.optJSONArray("pages");
+                        if (pages != null)
+                          for (int i = 0; i < pages.length(); i++)
+                            visible.add(pages.optJSONObject(i).optString("id"));
+                        pageId =
+                            ProfileNavigation.startupPage(
+                                settingBool("rememberPage"),
+                                prefs.getString("page", ""),
+                                settingString("startPageId"),
+                                profileDefaultPage(),
+                                visible);
+                        prefs.edit().putString("page", pageId).apply();
+                      }
                     }
                     resolveRequestedNavigation();
                     state = st;
@@ -3260,6 +3274,7 @@ public class MainActivity extends Activity {
     String previousProfile = settingString("profileId"),
         previousStartPage = settingString("startPageId");
     boolean previousInsecureWifi = settingBool("allowInsecureWifi");
+    int previousIdleMinutes = settingInt("screenSaverMinutes");
     boolean newer = ClientSettingsPolicy.acceptRevision(revision, settingsSync.revision());
     boolean changed = settingsSync.receive(settingsMap(device.optJSONObject("settings")), revision);
     if (config.optJSONArray("profiles") != null
@@ -3283,6 +3298,8 @@ public class MainActivity extends Activity {
       }
       resolveRequestedNavigation();
     }
+    if (ClientSettingsPolicy.shouldWakeAfterIdleChange(
+        previousIdleMinutes, settingInt("screenSaverMinutes"), automaticIdle)) wakeDisplay();
     if (changed) applyClientSettings();
     if (previousInsecureWifi != settingBool("allowInsecureWifi")) reconnect(transport);
     ClientSettingsPanel.refreshOpenPanels();
@@ -3305,6 +3322,7 @@ public class MainActivity extends Activity {
       if (deck != null) {
         deck.dateFormat.applyPattern(L10n.datePattern("M월 d일 EEEE"));
         deck.dateFormat.setDateFormatSymbols(new java.text.DateFormatSymbols(L10n.locale()));
+        deck.timeFormat.setDateFormatSymbols(new java.text.DateFormatSymbols(L10n.locale()));
       }
     }
     if (settingBool("awake")) getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
@@ -3339,6 +3357,11 @@ public class MainActivity extends Activity {
   }
 
   private void setIdleDimmed(boolean value) {
+    setIdleDimmed(value, false);
+  }
+
+  private void setIdleDimmed(boolean value, boolean automatic) {
+    automaticIdle = value && automatic;
     if (idleDimmed == value) return;
     idleDimmed = value;
     if (deck != null) {
@@ -3531,12 +3554,15 @@ public class MainActivity extends Activity {
             "portrait"));
     p.toggle("fullscreen", L10n.text("전체 화면"), L10n.text("Android 상태 표시줄과 탐색 막대를 숨깁니다."));
     p.toggle("awake", L10n.text("화면 켜짐 유지"), L10n.text("Open Deck이 열려 있는 동안 자동 꺼짐을 막습니다."));
-    p.choices(
+    p.numericChoices(
         "brightness",
         L10n.text("앱 밝기"),
         choices(
-            L10n.text("기기 설정 따르기"), -1, "10%", 10, "25%", 25, "50%", 50, "75%", 75, "100%", 100));
-    p.slider("textScale", L10n.text("덱 글자 크기"), 80, 160, 10, "%");
+            L10n.text("기기 설정 따르기"), -1, "10%", 10, "25%", 25, "50%", 50, "75%", 75, "100%", 100),
+        -1,
+        100,
+        "%");
+    p.slider("textScale", L10n.text("덱 글자 크기"), 80, 160, 1, "%");
     p.choices(
         "timeFormat",
         L10n.text("시계 표시"),
@@ -3558,7 +3584,7 @@ public class MainActivity extends Activity {
             .onThemeChanged(this::inputSettings);
     p.toggle("haptics", L10n.text("터치 진동"), L10n.text("Android 터치 진동 설정을 따릅니다."));
     p.toggle("fixedVibration", L10n.text("고정 길이 진동"), L10n.text("짧은 진동이 잘 느껴지지 않는 기기에 사용합니다."));
-    p.slider("vibrationMs", L10n.text("진동 길이"), 20, 200, 10, " ms");
+    p.slider("vibrationMs", L10n.text("진동 길이"), 20, 200, 1, " ms");
     p.toggle("sound", L10n.text("터치 효과음"), L10n.text("버튼 실행 시 기기의 클릭 효과음을 냅니다."));
     p.toggle("swipeEnabled", L10n.text("좌우 제스처"), L10n.text("손가락으로 페이지를 이동합니다."));
     p.toggle("reducedMotion", L10n.text("동작 효과 줄이기"), L10n.text("페이지 전환과 버튼 누름 애니메이션을 줄입니다."));
@@ -3573,7 +3599,7 @@ public class MainActivity extends Activity {
     ClientSettingsPanel p =
         panel(L10n.text("화면 보호"), L10n.text("설정한 시간 동안 사용하지 않으면 앱 밝기를 낮춥니다. 앱을 벗어나면 기기 밝기로 돌아갑니다."))
             .onThemeChanged(this::idleSettings);
-    p.choices(
+    p.numericChoices(
         "screenSaverMinutes",
         L10n.text("사용하지 않을 때"),
         choices(
@@ -3592,12 +3618,15 @@ public class MainActivity extends Activity {
             L10n.text("30분 후"),
             30,
             L10n.text("1시간 후"),
-            60));
+            60),
+        0,
+        120,
+        L10n.text("분"));
     p.choices(
         "screenSaverMode",
         L10n.text("화면 보호 방식"),
         choices(L10n.text("덱 밝기 낮추기"), "dim", L10n.text("시계 화면"), "clock"));
-    p.slider("dimPercent", L10n.text("화면 보호 밝기"), 5, 50, 5, "%");
+    p.slider("dimPercent", L10n.text("화면 보호 밝기"), 5, 50, 1, "%");
     p.toggle(
         "firstTouchWakes",
         L10n.text("첫 터치는 화면만 깨우기"),
@@ -3619,18 +3648,18 @@ public class MainActivity extends Activity {
   }
 
   private Map<String, ?> currentProfileChoices() {
-    Map<String, Object> choices = choices(L10n.text("맥 기본 프로필 따르기"), "");
+    Map<String, String> namesById = new LinkedHashMap<>();
     JSONArray profiles = config.optJSONArray("profiles");
     if (profiles != null)
       for (int i = 0; i < profiles.length(); i++) {
         JSONObject profile = profiles.optJSONObject(i);
-        if (profile != null) choices.put(profile.optString("name"), profile.optString("id"));
+        if (profile != null) namesById.put(profile.optString("id"), profile.optString("name"));
       }
-    return choices;
+    return ProfileNavigation.choices(L10n.text("맥 기본 프로필 따르기"), namesById);
   }
 
   private Map<String, ?> currentStartPageChoices() {
-    Map<String, Object> choices = choices(L10n.text("프로필 첫 페이지"), "");
+    Map<String, String> namesById = new LinkedHashMap<>();
     String profile = settingString("profileId");
     if (profile.isEmpty()) profile = config.optString("defaultProfileId");
     List<String> allowed = profilePageCatalog().getOrDefault(profile, Collections.emptyList());
@@ -3639,9 +3668,9 @@ public class MainActivity extends Activity {
       for (int i = 0; i < pages.length(); i++) {
         JSONObject page = pages.optJSONObject(i);
         if (page != null && allowed.contains(page.optString("id")))
-          choices.put(page.optString("name"), page.optString("id"));
+          namesById.put(page.optString("id"), page.optString("name"));
       }
-    return choices;
+    return ProfileNavigation.choices(L10n.text("프로필 첫 페이지"), namesById);
   }
 
   private void choosePage() {
@@ -3826,7 +3855,7 @@ public class MainActivity extends Activity {
     final Paint paint = new Paint(Paint.ANTI_ALIAS_FLAG);
     final Path iconPath = new Path();
     final RectF arcBounds = new RectF();
-    final SimpleDateFormat timeFormat = new SimpleDateFormat("HH:mm", Locale.getDefault());
+    final SimpleDateFormat timeFormat = new SimpleDateFormat("HH:mm", L10n.locale());
     final Date screenSaverDate = new Date();
     final SimpleDateFormat dateFormat =
         new SimpleDateFormat(L10n.datePattern("M월 d일 EEEE"), L10n.locale());

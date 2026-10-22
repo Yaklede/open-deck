@@ -138,5 +138,25 @@
     "zh-TW": "請檢查 APK 版本資訊。",
     "tr": "APK sürüm bilgilerini kontrol edin.",
     "uk": "Перевірте відомості про версію APK."
+  },
+  "직접 입력": {
+    "en": "Enter a value",
+    "ar": "إدخال قيمة",
+    "pt-BR": "Inserir um valor",
+    "cs": "Zadat hodnotu",
+    "nl": "Waarde invoeren",
+    "fr": "Saisir une valeur",
+    "de": "Wert eingeben",
+    "hi": "मान दर्ज करें",
+    "id": "Masukkan nilai",
+    "it": "Inserisci un valore",
+    "ja": "値を入力",
+    "pl": "Wpisz wartość",
+    "ru": "Ввести значение",
+    "zh": "输入数值",
+    "es": "Introducir un valor",
+    "zh-TW": "輸入數值",
+    "tr": "Değer gir",
+    "uk": "Ввести значення"
   }
 }

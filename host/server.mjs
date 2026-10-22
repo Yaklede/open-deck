@@ -334,7 +334,9 @@ export function createHost({
     }
     if (versionBackupReady) writeJson(marker, { version: APP_VERSION });
   }
-  const updateDevice = (d, input) => {
+  const updateDevice = (d, input, metadata = {}) => {
+    if (!input || typeof input !== "object" || Array.isArray(input))
+      throw Error("기기 설정 요청 객체가 필요합니다.");
     if (!d)
       throw Object.assign(Error("기기를 찾을 수 없습니다."), { status: 404 });
     if (
@@ -346,10 +348,11 @@ export function createHost({
       throw Error("기기 이름을 확인하세요.");
     const next = validateDeviceSettings(
       d.settings || {},
-      input.settings || {},
+      Object.hasOwn(input, "settings") ? input.settings : {},
       config,
     );
     if (input.name !== undefined) d.name = input.name.trim();
+    Object.assign(d, metadata);
     d.settings = next;
     d.settingsRevision = (d.settingsRevision || 0) + 1;
     writeJson(devicesFile, devices);
@@ -731,15 +734,16 @@ export function createHost({
               )
             )
               throw Error("지원하지 않는 기기 필드입니다.");
+            const metadata = {};
             if (input.model !== undefined && typeof input.model === "string")
-              d.model = input.model.slice(0, 80);
+              metadata.model = input.model.slice(0, 80);
             if (
               input.appVersion !== undefined &&
               /^\d+\.\d+\.\d+$/.test(input.appVersion)
             )
-              d.appVersion = input.appVersion;
+              metadata.appVersion = input.appVersion;
+            updateDevice(d, input, metadata);
             focusSessions.delete(d.id);
-            updateDevice(d, input);
           } else if (req.method !== "GET")
             return send(res, 405, { error: "지원하지 않는 메서드입니다." });
           return send(res, 200, devicePayload(d));
@@ -762,12 +766,13 @@ export function createHost({
         }
         if (req.method === "PUT" && u.pathname === "/api/admin/devices") {
           const input = await body(req);
+          const updated = updateDevice(
+            devices.find((d) => d.id === input.id),
+            input,
+          );
           focusSessions.delete(input.id);
           return send(res, 200, {
-            device: updateDevice(
-              devices.find((d) => d.id === input.id),
-              input,
-            ),
+            device: updated,
           });
         }
         if (req.method === "POST" && u.pathname === "/api/admin/focus") {

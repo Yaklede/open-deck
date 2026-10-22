@@ -91,6 +91,14 @@ public final class ClientSettingsPolicy {
     return validWifiUrl(value, false);
   }
 
+  public static int parseNumericInput(String key, String text) {
+    try {
+      return (Integer) validate(key, Integer.parseInt(text.trim()));
+    } catch (NumberFormatException e) {
+      throw new IllegalArgumentException("정수 값이 필요합니다.");
+    }
+  }
+
   public static boolean validWifiUrl(String value, boolean allowInsecureWifi) {
     try {
       URI u = new URI(value);
@@ -130,6 +138,11 @@ public final class ClientSettingsPolicy {
         && minutes > 0
         && now >= lastInteraction
         && now - lastInteraction >= minutes * 60_000L;
+  }
+
+  public static boolean shouldWakeAfterIdleChange(
+      int previousMinutes, int minutes, boolean automatic) {
+    return automatic && previousMinutes > 0 && minutes == 0;
   }
 
   public static float brightness(int configured, boolean dimmed, int dimPercent) {
