@@ -56,8 +56,8 @@ export async function readSecret(id) {
     return "";
   }
 }
-export async function httpRequest(i, fetcher = fetch) {
-  const headers = { Accept: "application/json" };
+export async function httpRequest(i, fetcher = fetch, userAgent = "OpenDeck") {
+  const headers = { Accept: "application/json", "User-Agent":userAgent || "OpenDeck" };
   if (i.auth) {
     const token = await readSecret(i.id);
     if (!token) throw Error("맥에서 연동 인증 토큰을 등록하세요.");
@@ -120,7 +120,7 @@ export class Connectors {
     this.status[id] = { state: "loading", at: Date.now() };
     this.onChange();
     try {
-      const value = await httpRequest(i);
+      const value = await httpRequest(i, fetch, this.getSettings?.().http.userAgent);
       if (this.closed) return;
       const current = this.getConfig().integrations.find((x) => x.id === id);
       if (!current) return;

@@ -1,3 +1,4 @@
+import { effectivePages, profileDesignKeys } from "./public/profiles.mjs";
 import fs from "node:fs";
 import { validateMonitorSettings } from "./public/monitor-rules.mjs";
 import path from "node:path";
@@ -244,6 +245,9 @@ export function validateConfig(input) {
       !themes[p.theme]
     )
       throw Error("페이지 배치 값을 확인하세요.");
+    for (const key of ["shadow", "showEmptyCells", "inheritProfileDesign"])
+      if (p[key] !== undefined && typeof p[key] !== "boolean")
+        throw Error("페이지 표시 설정을 확인하세요.");
     if (
       (p.background && !color(p.background)) ||
       (p.gradient && !color(p.gradient))
@@ -291,6 +295,62 @@ export function validateConfig(input) {
       if (w.provider && w.provider !== "jimin-os")
         throw Error("지원하지 않는 연결입니다.");
       if (w.color && !color(w.color)) throw Error("색상은 #RRGGBB 형식입니다.");
+      if (
+        w.pinScope !== undefined &&
+        !["none", "profile", "global"].includes(w.pinScope)
+      )
+        throw Error("고정 범위를 확인하세요.");
+      if (w.stateVariable && typeof c.variables[w.stateVariable] !== "boolean")
+        throw Error("상태에는 Boolean 변수를 선택하세요.");
+      for (const key of ["activeLabel", "activeIcon"])
+        if (
+          w[key] !== undefined &&
+          (typeof w[key] !== "string" || w[key].length > 120)
+        )
+          throw Error("상태 표시 값을 확인하세요.");
+      if (w.activeStyle !== undefined) {
+        if (!plain(w.activeStyle)) throw Error("상태 스타일을 확인하세요.");
+        const allowed = [
+          "background",
+          "textColor",
+          "borderColor",
+          "borderWidth",
+          "opacity",
+          "textSize",
+          "valueSize",
+          "iconSize",
+          "labelPosition",
+          "align",
+          "font",
+        ];
+        if (Object.keys(w.activeStyle).some((k) => !allowed.includes(k)))
+          throw Error("상태 스타일 필드를 확인하세요.");
+        for (const key of ["background", "textColor", "borderColor"])
+          if (w.activeStyle[key] && !color(w.activeStyle[key]))
+            throw Error("상태 스타일 색상을 확인하세요.");
+        for (const [key, min, max] of [
+          ["textSize", 9, 36],
+          ["valueSize", 20, 60],
+          ["iconSize", 10, 65],
+          ["borderWidth", 0, 5],
+          ["opacity", 20, 100],
+        ])
+          if (
+            w.activeStyle[key] !== undefined &&
+            !integer(w.activeStyle[key], min, max)
+          )
+            throw Error("상태 스타일 크기를 확인하세요.");
+        for (const [key, values] of [
+          ["labelPosition", ["top", "center", "bottom", "hidden"]],
+          ["align", ["left", "center", "right"]],
+          ["font", ["sans", "mono", "serif"]],
+        ])
+          if (
+            w.activeStyle[key] !== undefined &&
+            !values.includes(w.activeStyle[key])
+          )
+            throw Error("상태 글자 스타일을 확인하세요.");
+      }
       if (!plain(w.style)) throw Error("잘못된 스타일입니다.");
       for (const k of ["background", "textColor", "borderColor"])
         if (w.style[k] && !color(w.style[k]))
@@ -419,6 +479,29 @@ export function validateConfig(input) {
       validateActions(w.doubleActions || []);
     }
   }
+  for (const p of c.profiles) {
+    if (p.defaults !== undefined) {
+      const d = p.defaults;
+      if (
+        !plain(d) ||
+        Object.keys(d).some((k) => !profileDesignKeys.includes(k))
+      )
+        throw Error("프로필 기본 디자인을 확인하세요.");
+      for (const key of ["background", "gradient"])
+        if (d[key] !== undefined && !color(d[key]))
+          throw Error("프로필 배경색을 확인하세요.");
+      if (
+        (d.gap !== undefined && !integer(d.gap, 0, 32)) ||
+        (d.radius !== undefined && !integer(d.radius, 0, 40)) ||
+        (d.theme !== undefined && !themes[d.theme])
+      )
+        throw Error("프로필 기본 디자인 범위를 확인하세요.");
+      for (const key of ["shadow", "showEmptyCells"])
+        if (d[key] !== undefined && typeof d[key] !== "boolean")
+          throw Error("프로필 표시 설정을 확인하세요.");
+    }
+  }
+  effectivePages(c); // Reject impossible pinned layouts before replacing a working configuration.
   if (count > 1024) throw Error("위젯은 최대 1024개입니다.");
   if (
     c.automations &&

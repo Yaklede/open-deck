@@ -40,7 +40,8 @@ public class MainActivity extends Activity {
   private boolean foreground = false;
   private volatile HttpURLConnection eventConnection;
   private volatile String token = "", base = "http://127.0.0.1:8840";
-  private String pageId = "";
+  private String pageId = "", requestedNavigationPage = "";
+  private boolean navigationProfileRequested, deviceMetadataSent;
   private volatile String wifiPin = "", transport = "auto";
   private volatile List<String> wifiUrls = new ArrayList<>();
   private volatile int connectionRevision = 0;
@@ -67,6 +68,28 @@ public class MainActivity extends Activity {
   private final Set<String> deliveredNotifications = new HashSet<>();
   private Thread events;
   private SharedPreferences prefs;
+  private final Map<String, Object> clientSettings = ClientSettingsPolicy.defaults();
+  private final Map<String, Object> pendingSettings = new LinkedHashMap<>();
+  private final ExecutorService settingRequests = Executors.newSingleThreadExecutor();
+  private final ArrayDeque<String> connectionLog = new ArrayDeque<>();
+  private String deviceName = Build.MANUFACTURER + " " + Build.MODEL;
+  private long settingsRevision = -1, lastInteraction = SystemClock.elapsedRealtime();
+  private boolean idleDimmed, cornerConsumed, firstConfig = true;
+  private final WakeInteractionGuard wakeGuard = new WakeInteractionGuard();
+  private long lastScreenSaverAt;
+  private volatile long pairingGeneration;
+  private float cornerX, cornerY;
+  private final Runnable cornerSettings =
+      () -> {
+        cornerConsumed = true;
+        if (deck != null) {
+          deck.releasePress();
+          deck.gestureBlocked = true;
+        }
+        settings();
+      };
+  private android.net.nsd.NsdManager discoveryManager;
+  private android.net.nsd.NsdManager.DiscoveryListener discoveryListener;
   private PopupWindow monitorBanner;
   private final Map<String, Long> lastErrors = new HashMap<>();
   private final Runnable tick =
@@ -87,7 +110,16 @@ public class MainActivity extends Activity {
               deck.invalidate();
             }
           }
-          if (deck != null && foreground) deck.tick();
+          if (deck != null && foreground) {
+            if (!idleDimmed
+                && ClientSettingsPolicy.shouldDim(
+                    SystemClock.elapsedRealtime(),
+                    lastInteraction,
+                    settingInt("screenSaverMinutes"),
+                    true)) setIdleDimmed(true);
+            deck.tick();
+            if (idleDimmed && settingString("screenSaverMode").equals("clock")) deck.invalidate();
+          }
           ui.postDelayed(this, 1000);
         }
       };
@@ -100,7 +132,9 @@ public class MainActivity extends Activity {
             .setFontVariationSettings("'wght' 500")
             .build();
     prefs = getSharedPreferences("open-deck", MODE_PRIVATE);
-    pageId = prefs.getString("page", "");
+    loadClientSettings();
+    pageId =
+        settingBool("rememberPage") ? prefs.getString("page", "") : settingString("startPageId");
     applyNotificationIntent(getIntent());
     transport = prefs.getString("transport", "auto");
     wifiPin = prefs.getString("wifiPin", "");
@@ -125,19 +159,19 @@ public class MainActivity extends Activity {
     monitorChannel.setLockscreenVisibility(Notification.VISIBILITY_PRIVATE);
     notificationManager.createNotificationChannel(monitorChannel);
     token = readToken();
-    immersive();
-    if (prefs.getBoolean("awake", true))
-      getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
+    applyClientSettings();
     if (token.isEmpty()) pairScreen();
     else showDeck();
     ui.post(tick);
     if (getIntent().getBooleanExtra("openOS", false)) pageId = "jimin-os-page";
+    if (getIntent().getBooleanExtra("openSettings", false)) ui.post(this::settings);
   }
 
   @Override
   public void onResume() {
     super.onResume();
     foreground = true;
+    wakeDisplay();
     if (!token.isEmpty() && !streamFresh()) {
       connectionRevision++;
       disconnectEvents();
@@ -151,6 +185,8 @@ public class MainActivity extends Activity {
   @Override
   public void onPause() {
     foreground = false;
+    ui.removeCallbacks(cornerSettings);
+    setIdleDimmed(false);
     if (monitorBanner != null) monitorBanner.dismiss();
     if (deck != null) {
       deck.finishPageTransition();
@@ -164,6 +200,7 @@ public class MainActivity extends Activity {
   protected void onNewIntent(Intent intent) {
     super.onNewIntent(intent);
     setIntent(intent);
+    if (intent.getBooleanExtra("openSettings", false)) ui.post(this::settings);
     String previousPage = pageId;
     applyNotificationIntent(intent);
     if (deck != null && (intent.hasExtra("openPage") || intent.getBooleanExtra("openOS", false))) {
@@ -180,6 +217,10 @@ public class MainActivity extends Activity {
         group = intent.getStringExtra("projectGroup"),
         project = intent.getStringExtra("project");
     if (page != null && !page.isEmpty()) pageId = page;
+    if (intent.getBooleanExtra("openOS", false) || (page != null && !page.isEmpty())) {
+      requestedNavigationPage = pageId;
+      navigationProfileRequested = false;
+    }
     if (group != null && project != null)
       prefs.edit().putString("grafana-project-" + group, project).apply();
   }
@@ -364,6 +405,11 @@ public class MainActivity extends Activity {
       String id = n.optString("id");
       if (id.isEmpty() || deliveredNotifications.contains(id)) continue;
       boolean monitor = n.optString("kind").equals("monitor");
+      if (!(monitor ? settingBool("monitorNotifications") : settingBool("osNotifications"))) {
+        deliveredNotifications.add(id);
+        updated = true;
+        continue;
+      }
       if (!permission && !(monitor && foreground)) continue;
       deliveredNotifications.add(id);
       updated = true;
@@ -386,7 +432,8 @@ public class MainActivity extends Activity {
                       .putExtra("project", n.optString("project"));
               }
           }
-        if (foreground && shown == 0) showMonitorBanner(n, open);
+        if (foreground && shown == 0 && settingBool("notificationBanner"))
+          showMonitorBanner(n, open);
       } else open.putExtra("openOS", true);
       PendingIntent pending =
           PendingIntent.getActivity(
@@ -407,6 +454,7 @@ public class MainActivity extends Activity {
               .build();
       if (permission)
         getSystemService(NotificationManager.class).notify(id.hashCode(), notification);
+      wakeDisplay();
       shown++;
     }
     if (updated) {
@@ -1980,7 +2028,10 @@ public class MainActivity extends Activity {
     disconnectEvents();
     if (events != null) events.interrupt();
     commands.shutdownNow();
+    stopHostDiscovery();
     images.shutdownNow();
+    settingRequests.shutdownNow();
+    ui.removeCallbacks(cornerSettings);
     ui.removeCallbacks(tick);
     super.onDestroy();
   }
@@ -1992,6 +2043,10 @@ public class MainActivity extends Activity {
   }
 
   private void immersive() {
+    if (!settingBool("fullscreen")) {
+      getWindow().getDecorView().setSystemUiVisibility(View.SYSTEM_UI_FLAG_LAYOUT_STABLE);
+      return;
+    }
     getWindow()
         .getDecorView()
         .setSystemUiVisibility(
@@ -2085,11 +2140,9 @@ public class MainActivity extends Activity {
           commands.execute(
               () -> {
                 try {
-                  JSONObject request =
-                      new JSONObject()
-                          .put("pin", pin)
-                          .put("name", Build.MANUFACTURER + " " + Build.MODEL);
+                  JSONObject request = new JSONObject().put("pin", pin).put("name", deviceName);
                   JSONObject r = request("/api/pair", "POST", request, false);
+                  ui.post(this::resetDeviceIdentity);
                   token = r.getString("token");
                   saveToken(token);
                   prefs.edit().putString("host", base).apply();
@@ -2111,6 +2164,10 @@ public class MainActivity extends Activity {
     TextView note = text("계정 없이 · 구독 없이 · 내 기기에서만", 12, color("#7185a7"));
     note.setPadding(0, (int) dp(22), 0, 0);
     card.addView(note);
+    Button settingsEntry = new Button(this);
+    settingsEntry.setText("앱 설정");
+    settingsEntry.setOnClickListener(v -> settings());
+    card.addView(settingsEntry);
     wrap.addView(
         card,
         new LinearLayout.LayoutParams(
@@ -2132,11 +2189,16 @@ public class MainActivity extends Activity {
 
   private JSONObject request(String route, String method, JSONObject body, boolean auth)
       throws Exception {
+    return requestWithToken(route, method, body, auth ? token : null);
+  }
+
+  private JSONObject requestWithToken(
+      String route, String method, JSONObject body, String pairedToken) throws Exception {
     HttpURLConnection c = PinnedConnection.open(base + route, wifiPin);
     c.setConnectTimeout(2200);
     c.setReadTimeout(12000);
     c.setRequestMethod(method);
-    if (auth) c.setRequestProperty("Authorization", "Bearer " + token);
+    if (pairedToken != null) c.setRequestProperty("Authorization", "Bearer " + pairedToken);
     if (body != null) {
       c.setDoOutput(true);
       c.setRequestProperty("Content-Type", "application/json");
@@ -2188,13 +2250,18 @@ public class MainActivity extends Activity {
         if (c.getResponseCode() == 401) {
           token = "";
           prefs.edit().remove("token").apply();
-          ui.post(this::pairScreen);
+          ui.post(
+              () -> {
+                resetDeviceIdentity();
+                pairScreen();
+              });
           return;
         }
         if (c.getResponseCode() != 200) throw new IOException("Host unavailable");
         streamOpenedAt = SystemClock.elapsedRealtime();
         connected = true;
         connectionError = "";
+        recordConnection("connected", base.startsWith("https:") ? "Wi-Fi" : "USB");
         delay = 1000;
         ui.post(
             () -> {
@@ -2220,6 +2287,13 @@ public class MainActivity extends Activity {
                   () -> {
                     boolean changed = cfg != null && !renderedConfig.equals(configJson);
                     if (cfg != null) config = cfg;
+                    receiveDeviceSettings(snapshot.optJSONObject("device"));
+                    if (cfg != null && firstConfig) {
+                      firstConfig = false;
+                      if (!settingBool("rememberPage") || pageId.isEmpty())
+                        pageId = settingString("startPageId");
+                    }
+                    resolveRequestedNavigation();
                     state = st;
                     serverTime = st.optLong("at", System.currentTimeMillis());
                     receivedAt = SystemClock.elapsedRealtime();
@@ -2245,6 +2319,7 @@ public class MainActivity extends Activity {
         }
       } catch (Exception e) {
         connectionError = e.getMessage() == null ? "연결할 수 없습니다." : e.getMessage();
+        recordConnection("retry", e.getClass().getSimpleName());
         if (!stopped) {
           connected = false;
           ui.post(
@@ -2328,19 +2403,7 @@ public class MainActivity extends Activity {
   }
 
   private boolean validWifiUrl(String value) {
-    try {
-      URI u = new URI(value);
-      return "https".equals(u.getScheme())
-          && u.getUserInfo() == null
-          && u.getQuery() == null
-          && u.getFragment() == null
-          && (u.getPath() == null || u.getPath().isEmpty())
-          && u.getPort() == 8841
-          && u.getHost() != null
-          && u.getHost().matches("(?:10\\.|192\\.168\\.|172\\.(?:1[6-9]|2[0-9]|3[01])\\.)[0-9.]+");
-    } catch (Exception e) {
-      return false;
-    }
+    return ClientSettingsPolicy.validWifiUrl(value);
   }
 
   private void reconnect(String mode) {
@@ -2359,7 +2422,7 @@ public class MainActivity extends Activity {
         .setTitle("연결: " + mode)
         .setItems(
             new String[] {
-              "자동: Wi-Fi 우선 · USB 대체", "Wi-Fi로만 연결", "USB로만 연결", "맥 Wi-Fi 주소 변경", "현재 연결 정보"
+              "자동: Wi-Fi 우선 · USB 대체", "Wi-Fi로만 연결", "USB로만 연결", "맥 Wi-Fi 주소 관리", "현재 연결 정보"
             },
             (d, index) -> {
               if (index < 3) {
@@ -2369,32 +2432,7 @@ public class MainActivity extends Activity {
                 }
                 reconnect(new String[] {"auto", "wifi", "usb"}[index]);
               } else if (index == 3) {
-                EditText input = new EditText(this);
-                input.setSingleLine(true);
-                input.setInputType(InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_VARIATION_URI);
-                input.setText(wifiUrls.isEmpty() ? "https://192.168.0.1:8841" : wifiUrls.get(0));
-                new AlertDialog.Builder(this)
-                    .setTitle("맥 편집기에 표시된 HTTPS 주소")
-                    .setView(input)
-                    .setNegativeButton("취소", null)
-                    .setPositiveButton(
-                        "저장",
-                        (x, y) -> {
-                          String address = input.getText().toString().trim();
-                          if (!validWifiUrl(address)) {
-                            Toast.makeText(
-                                    this, "사설 IP의 https://주소:8841 형식으로 입력하세요.", Toast.LENGTH_LONG)
-                                .show();
-                            return;
-                          }
-                          wifiUrls = new ArrayList<>(Collections.singletonList(address));
-                          prefs
-                              .edit()
-                              .putString("wifiUrls", new JSONArray(wifiUrls).toString())
-                              .apply();
-                          reconnect(transport);
-                        })
-                    .show();
+                wifiAddressSettings();
               } else {
                 new AlertDialog.Builder(this)
                     .setTitle("연결 정보")
@@ -2410,6 +2448,189 @@ public class MainActivity extends Activity {
             })
         .setNegativeButton("닫기", null)
         .show();
+  }
+
+  private void stopHostDiscovery() {
+    if (discoveryManager != null && discoveryListener != null) {
+      try {
+        discoveryManager.stopServiceDiscovery(discoveryListener);
+      } catch (Exception ignored) {
+      }
+    }
+    discoveryListener = null;
+  }
+
+  private void discoverHosts() {
+    if (wifiPin.isEmpty()) {
+      new AlertDialog.Builder(this)
+          .setTitle("최초 등록이 필요합니다")
+          .setMessage("USB로 한 번 등록한 뒤 같은 맥의 Wi-Fi 주소를 자동으로 찾을 수 있습니다.")
+          .setPositiveButton("확인", null)
+          .show();
+      return;
+    }
+    stopHostDiscovery();
+    LinearLayout rows = new LinearLayout(this);
+    rows.setOrientation(LinearLayout.VERTICAL);
+    rows.setPadding((int) dp(20), (int) dp(12), (int) dp(20), (int) dp(12));
+    TextView status = new TextView(this);
+    status.setText("같은 Wi-Fi에서 등록한 맥을 찾고 있습니다…");
+    rows.addView(status);
+    AlertDialog dialog =
+        new AlertDialog.Builder(this)
+            .setTitle("Wi-Fi 호스트 검색")
+            .setView(rows)
+            .setNegativeButton("닫기", null)
+            .create();
+    Set<String> found = ConcurrentHashMap.newKeySet();
+    discoveryManager = getSystemService(android.net.nsd.NsdManager.class);
+    if (discoveryManager == null) {
+      Toast.makeText(this, "이 기기에서 호스트 검색을 사용할 수 없습니다.", Toast.LENGTH_LONG).show();
+      return;
+    }
+    android.net.nsd.NsdManager.DiscoveryListener listener =
+        new android.net.nsd.NsdManager.DiscoveryListener() {
+          public void onDiscoveryStarted(String type) {}
+
+          public void onDiscoveryStopped(String type) {}
+
+          public void onStartDiscoveryFailed(String type, int error) {
+            ui.post(() -> status.setText("검색을 시작하지 못했습니다. 주소를 직접 추가할 수 있습니다."));
+          }
+
+          public void onStopDiscoveryFailed(String type, int error) {}
+
+          public void onServiceLost(android.net.nsd.NsdServiceInfo service) {}
+
+          public void onServiceFound(android.net.nsd.NsdServiceInfo service) {
+            if (!service.getServiceType().startsWith("_opendeck._tcp")) return;
+            discoveryManager.resolveService(
+                service,
+                new android.net.nsd.NsdManager.ResolveListener() {
+                  public void onResolveFailed(android.net.nsd.NsdServiceInfo info, int error) {}
+
+                  public void onServiceResolved(android.net.nsd.NsdServiceInfo info) {
+                    if (info.getHost() == null) return;
+                    String address =
+                        "https://" + info.getHost().getHostAddress() + ":" + info.getPort();
+                    if (!validWifiUrl(address)
+                        || !found.add(address)
+                        || settingRequests.isShutdown()) return;
+                    settingRequests.execute(
+                        () -> {
+                          HttpURLConnection connection = null;
+                          try {
+                            connection = PinnedConnection.open(address + "/health", wifiPin);
+                            connection.setConnectTimeout(1500);
+                            connection.setReadTimeout(1500);
+                            if (connection.getResponseCode() != 200) return;
+                            ui.post(
+                                () -> {
+                                  if (!dialog.isShowing()) return;
+                                  status.setText("저장된 인증서가 일치하는 맥을 찾았습니다.");
+                                  Button item = new Button(MainActivity.this);
+                                  item.setAllCaps(false);
+                                  item.setText(info.getServiceName() + "\n" + address);
+                                  rows.addView(item);
+                                  item.setOnClickListener(
+                                      v -> {
+                                        List<String> next = new ArrayList<>(wifiUrls);
+                                        next.remove(address);
+                                        next.add(0, address);
+                                        if (next.size() > 8)
+                                          next = new ArrayList<>(next.subList(0, 8));
+                                        saveWifiAddresses(next);
+                                        dialog.dismiss();
+                                        Toast.makeText(
+                                                MainActivity.this,
+                                                "맥 주소를 저장했습니다.",
+                                                Toast.LENGTH_SHORT)
+                                            .show();
+                                      });
+                                });
+                          } catch (Exception ignored) {
+                          } finally {
+                            if (connection != null) connection.disconnect();
+                          }
+                        });
+                  }
+                });
+          }
+        };
+    discoveryListener = listener;
+    dialog.setOnDismissListener(
+        d -> {
+          if (discoveryListener == listener) stopHostDiscovery();
+        });
+    dialog.show();
+    try {
+      discoveryManager.discoverServices(
+          "_opendeck._tcp.", android.net.nsd.NsdManager.PROTOCOL_DNS_SD, listener);
+    } catch (Exception e) {
+      status.setText("검색을 시작하지 못했습니다. 주소를 직접 추가할 수 있습니다.");
+    }
+    ui.postDelayed(
+        () -> {
+          if (dialog.isShowing() && discoveryListener == listener) {
+            stopHostDiscovery();
+            if (rows.getChildCount() == 1)
+              status.setText("등록한 맥을 찾지 못했습니다. 같은 Wi-Fi인지 확인하거나 주소를 직접 추가하세요.");
+          }
+        },
+        10000);
+  }
+
+  private void wifiAddressSettings() {
+    ClientSettingsPanel p = panel("맥 Wi-Fi 주소", "등록한 주소를 순서대로 시도합니다. 기존 인증서가 일치하는 맥에만 연결합니다.");
+    List<String> addresses = new ArrayList<>(wifiUrls);
+    for (String address : addresses)
+      p.action(
+          address,
+          "탭하여 수정하거나 제거",
+          () -> {
+            new AlertDialog.Builder(this)
+                .setTitle(address)
+                .setItems(
+                    new String[] {"주소 수정", "주소 제거"},
+                    (d, index) -> {
+                      if (index == 0) editWifiAddress(address);
+                      else if (wifiUrls.size() <= 1)
+                        Toast.makeText(this, "Wi-Fi 주소는 하나 이상 유지해야 합니다.", Toast.LENGTH_LONG).show();
+                      else {
+                        List<String> next = new ArrayList<>(wifiUrls);
+                        next.remove(address);
+                        saveWifiAddresses(next);
+                        wifiAddressSettings();
+                      }
+                    })
+                .setNegativeButton("취소", null)
+                .show();
+          });
+    p.action("주소 추가", "맥 편집기에 표시된 HTTPS 주소를 입력합니다.", () -> editWifiAddress(null));
+    p.show();
+  }
+
+  private void editWifiAddress(String previous) {
+    ClientSettingsPanel p = panel("Wi-Fi 주소", "");
+    p.input(
+        "맥 Wi-Fi 주소",
+        previous == null ? "https://192.168.0.1:8841" : previous,
+        "사설 IP의 HTTPS 주소와 포트를 입력하세요. 최초 인증서 등록에는 USB가 필요합니다.",
+        value -> {
+          if (!validWifiUrl(value))
+            throw new IllegalArgumentException("예: https://192.168.0.10:8841");
+          List<String> next = new ArrayList<>(wifiUrls);
+          if (previous != null) next.remove(previous);
+          if (!next.contains(value)) next.add(value);
+          if (next.size() > 8) throw new IllegalArgumentException("주소는 최대 8개입니다.");
+          saveWifiAddresses(next);
+        });
+  }
+
+  private void saveWifiAddresses(List<String> values) {
+    wifiUrls = new ArrayList<>(values);
+    prefs.edit().putString("wifiUrls", new JSONArray(values).toString()).apply();
+    reconnect(transport);
   }
 
   private void showErrors() {
@@ -2454,7 +2675,16 @@ public class MainActivity extends Activity {
 
   private void navigate(String id) {
     JSONArray pages = config.optJSONArray("pages");
-    if (pages == null || id.equals(pageId)) return;
+    if (pages == null) return;
+    if (!pageVisible(id)) {
+      requestedNavigationPage = id;
+      navigationProfileRequested = false;
+      resolveRequestedNavigation();
+      return;
+    }
+    requestedNavigationPage = "";
+    navigationProfileRequested = false;
+    if (id.equals(pageId)) return;
     int current = 0;
     for (int i = 0; i < pages.length(); i++)
       if (pages.optJSONObject(i).optString("id").equals(pageId)) current = i;
@@ -2470,6 +2700,75 @@ public class MainActivity extends Activity {
         deck.animatePage(previous, i > current ? 1 : -1);
         return;
       }
+  }
+
+  private boolean pageVisible(String id) {
+    JSONArray pages = config.optJSONArray("pages");
+    if (pages != null)
+      for (int i = 0; i < pages.length(); i++)
+        if (pages.optJSONObject(i).optString("id").equals(id)) return true;
+    return false;
+  }
+
+  private Map<String, List<String>> profilePageCatalog() {
+    Map<String, List<String>> catalog = new LinkedHashMap<>();
+    JSONArray profiles = config.optJSONArray("profiles");
+    if (profiles != null)
+      for (int i = 0; i < profiles.length(); i++) {
+        JSONObject profile = profiles.optJSONObject(i);
+        if (profile == null) continue;
+        List<String> pages = new ArrayList<>();
+        JSONArray ids = profile.optJSONArray("pageIds");
+        if (ids != null) for (int j = 0; j < ids.length(); j++) pages.add(ids.optString(j));
+        catalog.put(profile.optString("id"), pages);
+      }
+    return catalog;
+  }
+
+  private String profileDefaultPage() {
+    String active = settingString("profileId");
+    if (active.isEmpty()) active = config.optString("defaultProfileId");
+    JSONArray profiles = config.optJSONArray("profiles");
+    if (profiles != null)
+      for (int i = 0; i < profiles.length(); i++) {
+        JSONObject profile = profiles.optJSONObject(i);
+        if (profile != null && profile.optString("id").equals(active)) {
+          String first = profile.optString("defaultPageId");
+          JSONArray ids = profile.optJSONArray("pageIds");
+          return !first.isEmpty() ? first : ids != null && ids.length() > 0 ? ids.optString(0) : "";
+        }
+      }
+    return "";
+  }
+
+  private void resolveRequestedNavigation() {
+    if (requestedNavigationPage.isEmpty()) return;
+    if (pageVisible(requestedNavigationPage)) {
+      pageId = requestedNavigationPage;
+      prefs.edit().putString("page", pageId).apply();
+      requestedNavigationPage = "";
+      navigationProfileRequested = false;
+      return;
+    }
+    if (navigationProfileRequested || config.optJSONArray("profiles") == null) return;
+    String target =
+        ProfileNavigation.targetProfile(
+            requestedNavigationPage,
+            settingString("profileId"),
+            config.optString("defaultProfileId"),
+            profilePageCatalog());
+    if (target == null) {
+      requestedNavigationPage = "";
+      return;
+    }
+    // One settings request changes both values. There is no intermediate profile with a stale page.
+    clientSettings.put("profileId", target);
+    clientSettings.put("startPageId", requestedNavigationPage);
+    pendingSettings.put("profileId", target);
+    pendingSettings.put("startPageId", requestedNavigationPage);
+    navigationProfileRequested = true;
+    persistClientSettings();
+    flushDeviceSettings();
   }
 
   private Bitmap bitmap(String id, int target) {
@@ -2644,7 +2943,7 @@ public class MainActivity extends Activity {
     String id = body.optString("id", "volume");
     if (pending.containsKey(id) || runningIds.contains(id)) return;
     pending.put(id, SystemClock.elapsedRealtime());
-    if (deck != null) deck.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP);
+    touchFeedback(HapticFeedbackConstants.KEYBOARD_TAP);
     try {
       commands.execute(
           () -> {
@@ -2704,54 +3003,672 @@ public class MainActivity extends Activity {
     }
   }
 
+  private Object setting(String key) {
+    return clientSettings.get(key);
+  }
+
+  private boolean settingBool(String key) {
+    return Boolean.TRUE.equals(setting(key));
+  }
+
+  private int settingInt(String key) {
+    return ((Number) setting(key)).intValue();
+  }
+
+  private String settingString(String key) {
+    return String.valueOf(setting(key));
+  }
+
+  private boolean reducedMotion() {
+    return settingBool("reducedMotion") || settingString("renderMode").equals("simple");
+  }
+
+  private float contentTop() {
+    return dp(settingBool("showHeader") ? 68 : 12);
+  }
+
+  private float contentBottom() {
+    return dp(settingBool("showNavigation") ? 46 : 12);
+  }
+
+  private void loadClientSettings() {
+    clientSettings.put("awake", prefs.getBoolean("awake", true));
+    deviceName = prefs.getString("deviceName", deviceName);
+    lastScreenSaverAt = prefs.getLong("lastScreenSaverAt", 0);
+    try {
+      JSONObject saved = new JSONObject(prefs.getString("clientSettings", "{}"));
+      for (String key : new ArrayList<>(clientSettings.keySet()))
+        if (saved.has(key)) {
+          try {
+            clientSettings.put(key, ClientSettingsPolicy.validate(key, saved.get(key)));
+          } catch (Exception ignored) {
+          }
+        }
+      JSONObject pending = new JSONObject(prefs.getString("pendingClientSettings", "{}"));
+      for (String key : clientSettings.keySet())
+        if (pending.has(key)) {
+          try {
+            pendingSettings.put(key, ClientSettingsPolicy.validate(key, pending.get(key)));
+          } catch (Exception ignored) {
+          }
+        }
+    } catch (Exception ignored) {
+    }
+  }
+
+  private void resetDeviceIdentity() {
+    pairingGeneration++;
+    settingsSyncRunning = false;
+    settingsSyncRetryAt = 0;
+    settingsRevision = -1;
+    deviceMetadataSent = false;
+    requestedNavigationPage = "";
+    navigationProfileRequested = false;
+    lastScreenSaverAt = 0;
+    clientSettings.put("profileId", "");
+    clientSettings.put("startPageId", "");
+    pendingSettings.remove("profileId");
+    pendingSettings.remove("startPageId");
+    prefs.edit().remove("lastScreenSaverAt").apply();
+    persistClientSettings();
+  }
+
+  private void persistClientSettings() {
+    prefs
+        .edit()
+        .putString("clientSettings", new JSONObject(clientSettings).toString())
+        .putString("pendingClientSettings", new JSONObject(pendingSettings).toString())
+        .putString("deviceName", deviceName)
+        .putBoolean("awake", settingBool("awake"))
+        .apply();
+  }
+
+  private void saveClientSetting(String key, Object value) {
+    Object validated = ClientSettingsPolicy.validate(key, value);
+    if (Objects.equals(clientSettings.get(key), validated)) return;
+    clientSettings.put(key, validated);
+    pendingSettings.put(key, validated);
+    if (key.equals("profileId")) {
+      clientSettings.put("startPageId", "");
+      pendingSettings.put("startPageId", "");
+      requestedNavigationPage = profileDefaultPage();
+      navigationProfileRequested = true;
+    } else if (key.equals("startPageId")) {
+      requestedNavigationPage =
+          settingString("startPageId").isEmpty()
+              ? profileDefaultPage()
+              : settingString("startPageId");
+      navigationProfileRequested = true;
+    }
+    resolveRequestedNavigation();
+    persistClientSettings();
+    wakeDisplay();
+    applyClientSettings();
+    flushDeviceSettings();
+  }
+
+  private boolean settingsSyncRunning;
+  private long settingsSyncRetryAt;
+
+  private void flushDeviceSettings() {
+    if ((pendingSettings.isEmpty() && deviceMetadataSent)
+        || settingsSyncRunning
+        || !connected
+        || token.isEmpty()
+        || SystemClock.elapsedRealtime() < settingsSyncRetryAt) return;
+    Map<String, Object> patch = new LinkedHashMap<>(pendingSettings);
+    long generation = pairingGeneration;
+    String pairedToken = token;
+    settingsSyncRunning = true;
+    settingRequests.execute(
+        () -> {
+          if (generation != pairingGeneration) return;
+          try {
+            JSONObject body =
+                new JSONObject()
+                    .put("settings", new JSONObject(patch))
+                    .put("model", Build.MODEL)
+                    .put("appVersion", appVersion());
+            JSONObject response =
+                requestWithToken("/api/device/settings", "PUT", body, pairedToken);
+            ui.post(
+                () -> {
+                  if (generation != pairingGeneration) return;
+                  deviceMetadataSent = true;
+                  for (Map.Entry<String, Object> item : patch.entrySet())
+                    if (Objects.equals(pendingSettings.get(item.getKey()), item.getValue()))
+                      pendingSettings.remove(item.getKey());
+                  persistClientSettings();
+                  settingsSyncRunning = false;
+                  receiveDeviceSettings(response.optJSONObject("device"));
+                  flushDeviceSettings();
+                });
+          } catch (Exception e) {
+            ui.post(
+                () -> {
+                  if (generation != pairingGeneration) return;
+                  settingsSyncRunning = false;
+                  settingsSyncRetryAt = SystemClock.elapsedRealtime() + 15000;
+                  recordConnection("settings-pending", e.getClass().getSimpleName());
+                });
+          }
+        });
+  }
+
+  private void receiveDeviceSettings(JSONObject device) {
+    if (device == null) return;
+    long revision = device.optLong("settingsRevision", 0);
+    if (ClientSettingsPolicy.acceptRevision(revision, settingsRevision)) {
+      JSONObject remote = device.optJSONObject("settings");
+      String previousProfile = settingString("profileId"),
+          previousStartPage = settingString("startPageId");
+      boolean changed = false;
+      if (remote != null)
+        for (String key : clientSettings.keySet()) {
+          if (!remote.has(key) || pendingSettings.containsKey(key)) continue;
+          try {
+            Object value = ClientSettingsPolicy.validate(key, remote.get(key));
+            if (!Objects.equals(clientSettings.get(key), value)) {
+              clientSettings.put(key, value);
+              changed = true;
+            }
+          } catch (Exception ignored) {
+          }
+        }
+      settingsRevision = revision;
+      if (device.has("name")) deviceName = device.optString("name", deviceName);
+      persistClientSettings();
+      if (!previousProfile.equals(settingString("profileId"))
+          || !previousStartPage.equals(settingString("startPageId"))) {
+        if (requestedNavigationPage.isEmpty()) {
+          requestedNavigationPage =
+              settingString("startPageId").isEmpty()
+                  ? profileDefaultPage()
+                  : settingString("startPageId");
+          navigationProfileRequested = true;
+        }
+        resolveRequestedNavigation();
+      }
+      if (changed) applyClientSettings();
+    }
+    long screenSaverAt = device.optLong("screenSaverAt");
+    if (screenSaverAt > lastScreenSaverAt) {
+      lastScreenSaverAt = screenSaverAt;
+      prefs.edit().putLong("lastScreenSaverAt", screenSaverAt).apply();
+      if (Math.abs(System.currentTimeMillis() - screenSaverAt) < 30000 && foreground)
+        setIdleDimmed(true);
+    }
+    flushDeviceSettings();
+  }
+
+  private void applyClientSettings() {
+    if (prefs == null) return;
+    if (settingBool("awake")) getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
+    else getWindow().clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
+    String orientation = settingString("orientation");
+    int rotation =
+        orientation.equals("landscape")
+            ? android.content.pm.ActivityInfo.SCREEN_ORIENTATION_SENSOR_LANDSCAPE
+            : orientation.equals("portrait")
+                ? android.content.pm.ActivityInfo.SCREEN_ORIENTATION_SENSOR_PORTRAIT
+                : android.content.pm.ActivityInfo.SCREEN_ORIENTATION_FULL_SENSOR;
+    if (getRequestedOrientation() != rotation) setRequestedOrientation(rotation);
+    immersive();
+    applyBrightness();
+    if (deck != null) {
+      deck.rebuild();
+      deck.updateState();
+      for (DeckView.Tile tile : deck.cachedTiles.values()) tile.invalidate();
+    }
+  }
+
+  private void applyBrightness() {
+    WindowManager.LayoutParams params = getWindow().getAttributes();
+    float brightness =
+        ClientSettingsPolicy.brightness(
+            settingInt("brightness"), idleDimmed, settingInt("dimPercent"));
+    if (params.screenBrightness != brightness) {
+      params.screenBrightness = brightness;
+      getWindow().setAttributes(params);
+    }
+  }
+
+  private void setIdleDimmed(boolean value) {
+    if (idleDimmed == value) return;
+    idleDimmed = value;
+    if (deck != null) {
+      deck.finishPageTransition();
+      deck.invalidate();
+    }
+    applyBrightness();
+  }
+
+  private void wakeDisplay() {
+    lastInteraction = SystemClock.elapsedRealtime();
+    setIdleDimmed(false);
+  }
+
+  @Override
+  public boolean dispatchTouchEvent(MotionEvent event) {
+    int action = event.getActionMasked();
+    if (action == MotionEvent.ACTION_DOWN) {
+      boolean wakeTouch =
+          wakeGuard.beginTouch(
+              idleDimmed,
+              settingBool("firstTouchWakes"),
+              settingString("screenSaverMode").equals("clock"));
+      cornerConsumed = false;
+      wakeDisplay();
+      if (!wakeTouch
+          && deck != null
+          && event.getX() > deck.getWidth() - dp(55)
+          && event.getY() < dp(55)) {
+        cornerX = event.getX();
+        cornerY = event.getY();
+        ui.postDelayed(cornerSettings, 900);
+      }
+    } else if (action == MotionEvent.ACTION_MOVE) {
+      lastInteraction = SystemClock.elapsedRealtime();
+      if (Math.abs(event.getX() - cornerX) + Math.abs(event.getY() - cornerY) > dp(12))
+        ui.removeCallbacks(cornerSettings);
+    } else if (action == MotionEvent.ACTION_UP
+        || action == MotionEvent.ACTION_CANCEL
+        || action == MotionEvent.ACTION_POINTER_DOWN) {
+      ui.removeCallbacks(cornerSettings);
+    }
+    if (wakeGuard.consumeTouch(
+            action == MotionEvent.ACTION_UP || action == MotionEvent.ACTION_CANCEL)
+        || cornerConsumed) return true;
+    return super.dispatchTouchEvent(event);
+  }
+
+  @Override
+  public boolean dispatchKeyEvent(KeyEvent event) {
+    boolean volume =
+        event.getKeyCode() == KeyEvent.KEYCODE_VOLUME_UP
+            || event.getKeyCode() == KeyEvent.KEYCODE_VOLUME_DOWN;
+    boolean consumed =
+        !volume
+            && wakeGuard.consumeKey(
+                event.getKeyCode(),
+                event.getAction() == KeyEvent.ACTION_DOWN,
+                idleDimmed,
+                settingBool("firstTouchWakes"),
+                settingString("screenSaverMode").equals("clock"));
+    if (event.getAction() == KeyEvent.ACTION_DOWN) wakeDisplay();
+    return consumed || super.dispatchKeyEvent(event);
+  }
+
+  private void touchFeedback(int feedback) {
+    if (deck == null) return;
+    if (settingBool("sound")) deck.playSoundEffect(SoundEffectConstants.CLICK);
+    if (!settingBool("haptics")) return;
+    if (settingBool("fixedVibration")) {
+      if (android.provider.Settings.System.getInt(
+              getContentResolver(), android.provider.Settings.System.HAPTIC_FEEDBACK_ENABLED, 1)
+          == 0) return;
+      Vibrator vibrator = getSystemService(Vibrator.class);
+      if (vibrator != null && vibrator.hasVibrator())
+        vibrator.vibrate(
+            VibrationEffect.createOneShot(
+                settingInt("vibrationMs"), VibrationEffect.DEFAULT_AMPLITUDE));
+    } else deck.performHapticFeedback(feedback);
+  }
+
+  private synchronized void recordConnection(String event, String detail) {
+    String line =
+        new SimpleDateFormat("MM-dd HH:mm:ss", Locale.ROOT).format(new Date())
+            + " · "
+            + event
+            + " · "
+            + detail;
+    if (connectionLog.size() >= 100) connectionLog.removeFirst();
+    connectionLog.addLast(line);
+  }
+
+  private String appVersion() {
+    try {
+      return getPackageManager().getPackageInfo(getPackageName(), 0).versionName;
+    } catch (Exception ignored) {
+      return "—";
+    }
+  }
+
+  private synchronized String diagnostics() {
+    return "Open Deck "
+        + appVersion()
+        + " · Android "
+        + Build.VERSION.RELEASE
+        + "\n"
+        + Build.MANUFACTURER
+        + " "
+        + Build.MODEL
+        + "\n연결: "
+        + (streamFresh() ? "연결됨" : "재연결 중")
+        + " · "
+        + transport
+        + "\nWi-Fi 인증서: "
+        + (wifiPin.isEmpty() ? "미등록" : "등록됨")
+        + "\n설정 동기화: "
+        + (pendingSettings.isEmpty() ? "완료" : "연결 후 재시도 예정")
+        + "\n설정 버전: "
+        + settingsRevision
+        + "\n\n"
+        + String.join("\n", connectionLog);
+  }
+
+  private ClientSettingsPanel panel(String title, String description) {
+    return new ClientSettingsPanel(
+        this,
+        new ClientSettingsPanel.Host() {
+          public Object value(String key) {
+            return setting(key);
+          }
+
+          public void save(String key, Object value) {
+            saveClientSetting(key, value);
+          }
+        },
+        title,
+        description);
+  }
+
+  private static Map<String, Object> choices(Object... pairs) {
+    Map<String, Object> values = new LinkedHashMap<>();
+    for (int i = 0; i < pairs.length; i += 2) values.put((String) pairs[i], pairs[i + 1]);
+    return values;
+  }
+
   private void settings() {
-    String[] options = {
-      "화면 켜짐 유지: " + (prefs.getBoolean("awake", true) ? "켜짐" : "꺼짐"),
-      "연결 방식 · Wi-Fi / USB",
-      "연결 초기화",
-      "Open Deck 0.8.5 · MIT · 무료"
-    };
+    wakeDisplay();
+    ClientSettingsPanel p = panel("Open Deck · 설정", "이 태블릿의 설정은 자동 저장됩니다. 맥의 기기 설정과도 연결됩니다.");
+    p.action("화면 · 밝기", "테마, 회전, 글자 크기와 렌더링", this::displaySettings);
+    p.action("터치 · 페이지 이동", "진동, 효과음, 제스처와 메뉴 표시", this::inputSettings);
+    p.action("화면 보호", "유휴 밝기, 시계와 첫 터치 동작", this::idleSettings);
+    p.action("프로필 · 시작 페이지", "사용할 프로필과 앱을 열 때 표시할 페이지", this::startupSettings);
+    p.action("연결 · 기기 이름", "Wi-Fi / USB, 재연결과 기기 이름", this::deviceSettings);
+    p.action("알림", "OS 일정, 시스템·DB 경고와 배너", this::notificationSettings);
+    p.action("정보 · 진단 · 초기화", "버전 " + appVersion() + " · 연결 기록", this::diagnosticSettings);
+    p.note("설정 버튼을 숨겨도 화면 오른쪽 위 모서리를 1초간 누르면 다시 열립니다.");
+    p.show();
+  }
+
+  private void displaySettings() {
+    ClientSettingsPanel p = panel("화면 · 밝기", "덱의 페이지 색상과 배치는 맥 편집기에서 설정합니다.");
+    p.choices("theme", "설정 화면 테마", choices("기기 설정 따르기", "system", "밝게", "light", "어둡게", "dark"));
+    p.choices(
+        "orientation", "화면 회전", choices("자동", "auto", "가로 고정", "landscape", "세로 고정", "portrait"));
+    p.toggle("fullscreen", "전체 화면", "Android 상태 표시줄과 탐색 막대를 숨깁니다.");
+    p.toggle("awake", "화면 켜짐 유지", "Open Deck이 열려 있는 동안 자동 꺼짐을 막습니다.");
+    p.choices(
+        "brightness",
+        "앱 밝기",
+        choices("기기 설정 따르기", -1, "10%", 10, "25%", 25, "50%", 50, "75%", 75, "100%", 100));
+    p.slider("textScale", "덱 글자 크기", 80, 160, 10, "%");
+    p.choices("timeFormat", "시계 표시", choices("24시간", "24h", "12시간", "12h"));
+    p.choices(
+        "iconResolution", "아이콘 해상도", choices("자동", 0, "128 px", 128, "256 px", 256, "512 px", 512));
+    p.choices(
+        "renderMode", "렌더링", choices("표준 · 디자인 유지", "standard", "간단 · 그라데이션과 효과 줄임", "simple"));
+    p.show();
+  }
+
+  private void inputSettings() {
+    ClientSettingsPanel p = panel("터치 · 페이지 이동", "버튼을 숨겨도 오른쪽 위 모서리 길게 누르기로 설정에 접근할 수 있습니다.");
+    p.toggle("haptics", "터치 진동", "Android 터치 진동 설정을 따릅니다.");
+    p.toggle("fixedVibration", "고정 길이 진동", "짧은 진동이 잘 느껴지지 않는 기기에 사용합니다.");
+    p.slider("vibrationMs", "진동 길이", 20, 200, 10, " ms");
+    p.toggle("sound", "터치 효과음", "버튼 실행 시 기기의 클릭 효과음을 냅니다.");
+    p.toggle("swipeEnabled", "좌우 제스처", "손가락으로 페이지를 이동합니다.");
+    p.toggle("reducedMotion", "동작 효과 줄이기", "페이지 전환과 버튼 누름 애니메이션을 줄입니다.");
+    p.toggle("showHeader", "상단 연결 정보", "앱 제목과 연결 상태를 표시합니다.");
+    p.toggle("showNavigation", "하단 페이지 버튼", "각 페이지로 이동하는 버튼을 표시합니다.");
+    p.toggle("settingsButtonHidden", "설정 버튼 숨기기", "오른쪽 위 모서리를 1초간 누르면 설정을 엽니다.");
+    p.show();
+  }
+
+  private void idleSettings() {
+    ClientSettingsPanel p = panel("화면 보호", "설정한 시간 동안 사용하지 않으면 앱 밝기를 낮춥니다. 앱을 벗어나면 기기 밝기로 돌아갑니다.");
+    p.choices(
+        "screenSaverMinutes",
+        "사용하지 않을 때",
+        choices(
+            "끄기", 0, "1분 후", 1, "2분 후", 2, "5분 후", 5, "10분 후", 10, "15분 후", 15, "30분 후", 30,
+            "1시간 후", 60));
+    p.choices("screenSaverMode", "화면 보호 방식", choices("덱 밝기 낮추기", "dim", "시계 화면", "clock"));
+    p.slider("dimPercent", "화면 보호 밝기", 5, 50, 5, "%");
+    p.toggle("firstTouchWakes", "첫 터치는 화면만 깨우기", "화면을 깨울 때 버튼이 잘못 실행되지 않게 합니다. 시계 화면은 항상 적용됩니다.");
+    p.action("지금 미리보기", "아무 곳이나 터치하면 돌아갑니다.", () -> setIdleDimmed(true));
+    p.show();
+  }
+
+  private void startupSettings() {
+    ClientSettingsPanel p = panel("프로필 · 시작 페이지", "프로필은 맥에서 만들고 이 태블릿에서 선택할 수 있습니다.");
+    JSONArray profiles = config.optJSONArray("profiles");
+    Map<String, Object> profileChoices = choices("맥 기본 프로필 따르기", "");
+    if (profiles != null)
+      for (int i = 0; i < profiles.length(); i++) {
+        JSONObject profile = profiles.optJSONObject(i);
+        if (profile != null) profileChoices.put(profile.optString("name"), profile.optString("id"));
+      }
+    String profileName = "맥 기본 프로필 따르기";
+    for (Map.Entry<String, Object> entry : profileChoices.entrySet())
+      if (entry.getValue().equals(settingString("profileId"))) profileName = entry.getKey();
+    p.action("사용할 프로필", profileName, this::chooseProfile);
+    p.toggle("rememberPage", "마지막 페이지 기억", "앱을 다시 열 때 마지막으로 사용한 페이지를 보여줍니다.");
+    JSONArray pages = config.optJSONArray("pages");
+    Map<String, Object> pageChoices = choices("프로필 첫 페이지", "");
+    if (pages != null)
+      for (int i = 0; i < pages.length(); i++) {
+        JSONObject page = pages.optJSONObject(i);
+        pageChoices.put(page.optString("name"), page.optString("id"));
+      }
+    p.choices("startPageId", "시작 페이지", pageChoices);
+    p.action("페이지 이동", "숨긴 하단 버튼 대신 여기서 이동할 수 있습니다.", this::choosePage);
+    if (!connected) p.note("현재 연결이 끊겨 있어 프로필 변경은 다시 연결되면 적용됩니다.");
+    p.show();
+  }
+
+  private void chooseProfile() {
+    JSONArray profiles = config.optJSONArray("profiles");
+    List<String> names = new ArrayList<>(), ids = new ArrayList<>();
+    names.add("맥 기본 프로필 따르기");
+    ids.add("");
+    if (profiles != null)
+      for (int i = 0; i < profiles.length(); i++) {
+        JSONObject profile = profiles.optJSONObject(i);
+        if (profile != null) {
+          names.add(profile.optString("name"));
+          ids.add(profile.optString("id"));
+        }
+      }
     new AlertDialog.Builder(this)
-        .setTitle("Open Deck")
-        .setItems(
-            options,
-            (d, index) -> {
-              if (index == 0) {
-                boolean awake = !prefs.getBoolean("awake", true);
-                prefs.edit().putBoolean("awake", awake).apply();
-                if (awake) getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
-                else getWindow().clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
-              }
-              if (index == 1) connectionSettings();
-              if (index == 2)
-                new AlertDialog.Builder(this)
-                    .setMessage("저장된 맥 연결을 초기화할까요?")
-                    .setNegativeButton("취소", null)
-                    .setPositiveButton(
-                        "초기화",
-                        (x, y) -> {
-                          token = "";
-                          prefs.edit().remove("token").apply();
-                          disconnectEvents();
-                          pairScreen();
-                        })
-                    .show();
+        .setTitle("사용할 프로필")
+        .setSingleChoiceItems(
+            names.toArray(new String[0]),
+            Math.max(0, ids.indexOf(settingString("profileId"))),
+            (dialog, index) -> {
+              saveClientSetting("profileId", ids.get(index));
+              dialog.dismiss();
             })
+        .setNegativeButton("취소", null)
+        .show();
+  }
+
+  private void choosePage() {
+    JSONArray pages = config.optJSONArray("pages");
+    if (pages == null) return;
+    String[] names = new String[pages.length()];
+    for (int i = 0; i < pages.length(); i++) names[i] = pages.optJSONObject(i).optString("name");
+    new AlertDialog.Builder(this)
+        .setTitle("페이지 이동")
+        .setItems(names, (d, index) -> navigate(pages.optJSONObject(index).optString("id")))
         .setNegativeButton("닫기", null)
         .show();
+  }
+
+  private void deviceSettings() {
+    ClientSettingsPanel p = panel("연결 · 기기 이름", "Wi-Fi는 최초 USB 등록 때 확인한 인증서로 암호화 연결합니다.");
+    p.action(
+        "연결 방식 · 주소",
+        "현재 "
+            + (transport.equals("wifi")
+                ? "Wi-Fi만 사용"
+                : transport.equals("usb") ? "USB만 사용" : "자동 선택"),
+        this::connectionSettings);
+    p.action("지금 다시 연결", "설정과 마지막 데이터는 그대로 유지합니다.", () -> reconnect(transport));
+    p.action(
+        "기기 이름",
+        deviceName,
+        () -> {
+          ClientSettingsPanel input = panel("기기 이름", "");
+          input.input(
+              "기기 이름",
+              deviceName,
+              "맥의 기기 목록에 표시할 이름입니다.",
+              name -> {
+                if (name.isEmpty() || name.length() > 80)
+                  throw new IllegalArgumentException("1~80자로 입력하세요.");
+                if (!connected) throw new IllegalArgumentException("맥에 연결된 후 이름을 변경하세요.");
+                settingRequests.execute(
+                    () -> {
+                      try {
+                        JSONObject response =
+                            request(
+                                "/api/device/settings",
+                                "PUT",
+                                new JSONObject().put("name", name),
+                                true);
+                        ui.post(
+                            () -> {
+                              deviceName = name;
+                              persistClientSettings();
+                              receiveDeviceSettings(response.optJSONObject("device"));
+                            });
+                      } catch (Exception e) {
+                        ui.post(
+                            () ->
+                                Toast.makeText(this, "기기 이름을 저장하지 못했습니다.", Toast.LENGTH_LONG)
+                                    .show());
+                      }
+                    });
+              });
+        });
+    p.action(
+        "페어링 해제",
+        "이 맥의 저장된 인증을 제거하고 다시 등록합니다.",
+        () ->
+            new AlertDialog.Builder(this)
+                .setTitle("페어링을 해제할까요?")
+                .setMessage("이 태블릿에서 맥 인증을 제거합니다. 맥의 덱과 버튼은 삭제되지 않습니다.")
+                .setNegativeButton("취소", null)
+                .setPositiveButton(
+                    "해제",
+                    (d, which) -> {
+                      token = "";
+                      wifiPin = "";
+                      wifiUrls = new ArrayList<>();
+                      prefs.edit().remove("token").remove("wifiPin").remove("wifiUrls").apply();
+                      resetDeviceIdentity();
+                      disconnectEvents();
+                      pairScreen();
+                    })
+                .show());
+    p.show();
+  }
+
+  private void notificationSettings() {
+    ClientSettingsPanel p = panel("알림", "이 태블릿에서 받을 알림을 선택합니다. 맥의 수집과 임계치 설정은 유지됩니다.");
+    p.toggle("osNotifications", "Jimin OS 알림", "일정 시작, 할 일 마감과 업무 요청");
+    p.toggle("monitorNotifications", "시스템 · DB 경고", "Grafana 임계치 초과와 정상 복구");
+    p.toggle("notificationBanner", "앱 안에서 경고 배너", "덱 위에 모니터 경고를 잠시 표시합니다.");
+    p.action(
+        "Android 알림 권한",
+        "기기 설정에서 알림과 소리를 관리합니다.",
+        () ->
+            startActivity(
+                new Intent(android.provider.Settings.ACTION_APP_NOTIFICATION_SETTINGS)
+                    .putExtra(android.provider.Settings.EXTRA_APP_PACKAGE, getPackageName())));
+    p.show();
+  }
+
+  private void diagnosticSettings() {
+    ClientSettingsPanel p =
+        panel(
+            "정보 · 진단 · 초기화",
+            "Open Deck "
+                + appVersion()
+                + " · MIT · 무료\nAndroid "
+                + Build.VERSION.RELEASE
+                + " · "
+                + Build.MODEL);
+    p.action(
+        "연결 진단 보기",
+        pendingSettings.isEmpty() ? "기기 설정 동기화 완료" : "일부 설정은 연결 후 다시 저장합니다.",
+        () ->
+            new AlertDialog.Builder(this)
+                .setTitle("연결 진단")
+                .setMessage(diagnostics())
+                .setPositiveButton("닫기", null)
+                .setNeutralButton(
+                    "공유",
+                    (d, which) ->
+                        startActivity(
+                            Intent.createChooser(
+                                new Intent(Intent.ACTION_SEND)
+                                    .setType("text/plain")
+                                    .putExtra(Intent.EXTRA_TEXT, diagnostics()),
+                                "진단 공유")))
+                .show());
+    p.action(
+        "최신 버전 · 설치 파일",
+        "GitHub Releases에서 업데이트를 확인합니다.",
+        () ->
+            startActivity(
+                new Intent(
+                    Intent.ACTION_VIEW,
+                    android.net.Uri.parse(
+                        "https://github.com/Yaklede/open-deck/releases/latest"))));
+    p.action(
+        "설정 초기화",
+        "화면·입력·알림 설정을 기본값으로 되돌립니다. 페어링과 프로필은 유지합니다.",
+        () ->
+            new AlertDialog.Builder(this)
+                .setTitle("태블릿 설정을 초기화할까요?")
+                .setMessage("연결 인증, 현재 프로필과 맥의 덱은 유지됩니다.")
+                .setNegativeButton("취소", null)
+                .setPositiveButton(
+                    "초기화",
+                    (d, which) -> {
+                      Map<String, Object> defaults = ClientSettingsPolicy.defaults();
+                      defaults.remove("profileId");
+                      defaults.remove("startPageId");
+                      clientSettings.putAll(defaults);
+                      pendingSettings.putAll(defaults);
+                      persistClientSettings();
+                      wakeDisplay();
+                      applyClientSettings();
+                      flushDeviceSettings();
+                    })
+                .show());
+    p.note("진단에는 비밀번호·인증 토큰·할 일과 일정 내용이 포함되지 않습니다.\n소스와 라이선스: github.com/Yaklede/open-deck");
+    p.show();
   }
 
   private class DeckView extends ViewGroup {
     final Paint paint = new Paint(Paint.ANTI_ALIAS_FLAG);
     final Path iconPath = new Path();
     final RectF arcBounds = new RectF();
-    final SimpleDateFormat timeFormat = new SimpleDateFormat("HH:mm", Locale.KOREA);
+    final SimpleDateFormat timeFormat = new SimpleDateFormat("HH:mm", Locale.getDefault());
+    final Date screenSaverDate = new Date();
     final SimpleDateFormat dateFormat = new SimpleDateFormat("M월 d일 EEEE", Locale.KOREA);
     final ArrayList<Tile> tiles = new ArrayList<>();
     final Map<String, Tile> cachedTiles = new HashMap<>();
+    final Map<String, JSONObject> activeWidgets = new HashMap<>();
     String cachedConfig = "";
     JSONObject drawingPage;
     final Map<String, PageBackdrop> backdrops = new HashMap<>();
+    final Map<String, List<RectF>> emptyCells = new HashMap<>();
     String headerStatus = "";
     ArrayList<RectF> rects = new ArrayList<>();
     ArrayList<JSONObject> widgets = new ArrayList<>();
@@ -2767,14 +3684,19 @@ public class MainActivity extends Activity {
       setWillNotDraw(false);
       setClipChildren(true);
       setBackgroundColor(color("#0c1320"));
-      setContentDescription("Open Deck 태블릿 컨트롤 패널");
+      setContentDescription("Open Deck 태블릿 컨트롤 패널 · 길게 눌러 설정");
+      setOnLongClickListener(
+          view -> {
+            settings();
+            return true;
+          });
     }
 
     void label(Canvas c, String value, float x, float y, float size, int col, Paint.Align align) {
       paint.setColor(col);
       paint.setStyle(Paint.Style.FILL);
       paint.setTypeface(font);
-      paint.setTextSize(dp(size));
+      paint.setTextSize(dp(size) * settingInt("textScale") / 100f);
       paint.setTextAlign(align);
       c.drawText(value, x, y, paint);
     }
@@ -2972,10 +3894,11 @@ public class MainActivity extends Activity {
               scroll = 0;
               rebuild();
               updateState();
-              performHapticFeedback(HapticFeedbackConstants.CLOCK_TICK);
+              touchFeedback(HapticFeedbackConstants.CLOCK_TICK);
             }
           };
-      if (!android.animation.ValueAnimator.areAnimatorsEnabled()
+      if (reducedMotion()
+          || !android.animation.ValueAnimator.areAnimatorsEnabled()
           || Math.abs(target - swipeOffset) < 1) {
         finish.run();
         return;
@@ -3015,7 +3938,9 @@ public class MainActivity extends Activity {
     }
 
     void animatePage(List<Tile> previous, int direction) {
-      if (getWidth() == 0 || !android.animation.ValueAnimator.areAnimatorsEnabled()) return;
+      if (getWidth() == 0
+          || reducedMotion()
+          || !android.animation.ValueAnimator.areAnimatorsEnabled()) return;
       transitionUntil = SystemClock.elapsedRealtime() + 240;
       float distance = direction * getWidth();
       android.view.animation.Interpolator easing =
@@ -3045,6 +3970,7 @@ public class MainActivity extends Activity {
     }
 
     void rebuild() {
+      timeFormat.applyPattern(settingString("timeFormat").equals("12h") ? "h:mm a" : "HH:mm");
       boolean interrupted = swiping || swipeSettle != null;
       finishPageTransition();
       if (interrupted) gestureBlocked = true;
@@ -3056,7 +3982,9 @@ public class MainActivity extends Activity {
       if (!nextConfig.equals(cachedConfig) || cachedTiles.size() + count > 256) {
         removeAllViews();
         cachedTiles.clear();
+        activeWidgets.clear();
         backdrops.clear();
+        emptyCells.clear();
         cachedConfig = nextConfig;
       }
       for (Tile tile : cachedTiles.values()) tile.setVisibility(View.GONE);
@@ -3086,6 +4014,12 @@ public class MainActivity extends Activity {
               cachedTiles.put(id, tile);
               addView(tile);
             }
+            tile.setElevation(
+                page.optBoolean("shadow", true)
+                        && !settingString("renderMode").equals("simple")
+                        && !tile.type.equals("spacer")
+                    ? dp(3)
+                    : 0);
             tile.setVisibility(View.VISIBLE);
             tile.setImportantForAccessibility(View.IMPORTANT_FOR_ACCESSIBILITY_YES);
             tiles.add(tile);
@@ -3146,7 +4080,9 @@ public class MainActivity extends Activity {
       if (portrait)
         rows = Math.max(extent, portraitConfig == null ? 1 : portraitConfig.optInt("rows", 1));
       else rows = Math.max(rows, extent);
-      float margin = dp(18), gap = dp(p.optInt("gap", 12)), available = height - dp(132);
+      float margin = dp(18),
+          gap = dp(p.optInt("gap", 12)),
+          available = height - contentTop() - contentBottom() - dp(18);
       float cellW = (width - margin * 2 - gap * (cols - 1)) / cols;
       float cellH = Math.max(dp(48), (available - gap * (rows - 1)) / rows);
       float maxScroll = Math.max(0, rows * (cellH + gap) - gap - available);
@@ -3154,7 +4090,7 @@ public class MainActivity extends Activity {
       for (int i = 0; i < tiles.size(); i++) {
         int[] box = boxes[i];
         float left = margin + box[0] * (cellW + gap),
-            top = dp(68) + box[1] * (cellH + gap) - scroll;
+            top = contentTop() + box[1] * (cellH + gap) - scroll;
         int tw = Math.round(box[2] * cellW + (box[2] - 1) * gap),
             th = Math.round(box[3] * cellH + (box[3] - 1) * gap);
         rects.get(i).set(left, top, left + tw, top + th);
@@ -3164,6 +4100,16 @@ public class MainActivity extends Activity {
                 MeasureSpec.makeMeasureSpec(tw, MeasureSpec.EXACTLY),
                 MeasureSpec.makeMeasureSpec(th, MeasureSpec.EXACTLY));
       }
+      List<RectF> empty = new ArrayList<>();
+      if (p.optBoolean("showEmptyCells", false))
+        for (int yy = 0; yy < Math.min(rows, 1024); yy++)
+          for (int xx = 0; xx < cols; xx++)
+            if (!occupied[yy][xx]) {
+              float left = margin + xx * (cellW + gap),
+                  top = contentTop() + yy * (cellH + gap) - scroll;
+              empty.add(new RectF(left, top, left + cellW, top + cellH));
+            }
+      emptyCells.put(p.optString("id"), empty);
       return maxScroll;
     }
 
@@ -3199,6 +4145,7 @@ public class MainActivity extends Activity {
       JSONArray pages = config.optJSONArray("pages");
       int n = pages == null ? 0 : pages.length();
       if (n > 6) n = 1;
+      if (!settingBool("showNavigation")) n = 0;
       float pageWidth = Math.min(dp(140), width / (float) Math.max(1, n)),
           start = (width - n * pageWidth) / 2;
       for (int i = 0; i < n; i++)
@@ -3219,7 +4166,9 @@ public class MainActivity extends Activity {
         RectF rect = pageBounds.get(i);
         Tile tile = pageTiles.get(i);
         tile.setVisibility(
-            rect.bottom > dp(68) && rect.top < height - dp(46) ? View.VISIBLE : View.INVISIBLE);
+            rect.bottom > contentTop() && rect.top < height - contentBottom()
+                ? View.VISIBLE
+                : View.INVISIBLE);
         tile.layout(
             Math.round(rect.left),
             Math.round(rect.top),
@@ -3231,9 +4180,31 @@ public class MainActivity extends Activity {
     @Override
     protected void dispatchDraw(Canvas c) {
       c.save();
-      c.clipRect(0, dp(68), getWidth(), getHeight() - dp(46));
+      c.clipRect(0, contentTop(), getWidth(), getHeight() - contentBottom());
       super.dispatchDraw(c);
       c.restore();
+      if (!settingBool("showHeader") && !settingBool("settingsButtonHidden"))
+        label(c, "⚙", getWidth() - dp(18), dp(40), 24, color("#879dbd"), Paint.Align.RIGHT);
+      if (idleDimmed && settingString("screenSaverMode").equals("clock")) {
+        c.drawColor(Color.rgb(7, 12, 19));
+        screenSaverDate.setTime(hostNow());
+        label(
+            c,
+            timeFormat.format(screenSaverDate),
+            getWidth() / 2f,
+            getHeight() / 2f,
+            66,
+            Color.rgb(187, 201, 219),
+            Paint.Align.CENTER);
+        label(
+            c,
+            "화면을 터치하면 돌아갑니다",
+            getWidth() / 2f,
+            getHeight() / 2f + dp(45),
+            14,
+            Color.rgb(113, 132, 154),
+            Paint.Align.CENTER);
+      }
     }
 
     @Override
@@ -3281,10 +4252,14 @@ public class MainActivity extends Activity {
         else if (tile.type.equals("todo")) next = String.valueOf(state.optJSONObject("todos"));
         else if (tile.widget.optString("provider").equals("jimin-os")) next = osSignature;
         else next = "static";
-        if (tile.widget.has("binding") || tile.widget.optString("label").contains("{{"))
+        if (tile.widget.has("stateVariable")) next += ":active=" + widgetActive(tile.widget);
+        if (tile.widget.has("binding")
+            || tile.widget.optString("label").contains("{{")
+            || tile.widget.optString("activeLabel").contains("{{"))
           next += String.valueOf(state.optJSONObject("variables"));
         if (!next.equals(tile.signature)) {
           tile.signature = next;
+          tile.setContentDescription(template(effectiveWidget(tile.widget).optString("label")));
           if (tile.type.equals("grafana")) {
             JSONObject data = grafanaData(tile.widget),
                 cpu =
@@ -3335,9 +4310,10 @@ public class MainActivity extends Activity {
         }
         float alpha =
             (connected ? 1f : .55f)
-                * (tile.widget.optJSONObject("style") == null
+                * (effectiveWidget(tile.widget).optJSONObject("style") == null
                     ? 1f
-                    : tile.widget.optJSONObject("style").optInt("opacity", 100) / 100f);
+                    : effectiveWidget(tile.widget).optJSONObject("style").optInt("opacity", 100)
+                        / 100f);
         if (tile.getAlpha() != alpha) tile.setAlpha(alpha);
       }
     }
@@ -3383,6 +4359,20 @@ public class MainActivity extends Activity {
         setContentDescription(w.optString("label"));
         setImportantForAccessibility(View.IMPORTANT_FOR_ACCESSIBILITY_YES);
         setFocusable(true);
+        setOutlineProvider(
+            new ViewOutlineProvider() {
+              @Override
+              public void getOutline(View view, android.graphics.Outline outline) {
+                outline.setRoundRect(
+                    0, 0, view.getWidth(), view.getHeight(), dp(ownerPage.optInt("radius", 13)));
+              }
+            });
+        setElevation(
+            page.optBoolean("shadow", true)
+                    && !settingString("renderMode").equals("simple")
+                    && !type.equals("spacer")
+                ? dp(3)
+                : 0);
         if (type.equals("grafana"))
           setOnLongClickListener(
               v -> {
@@ -3449,6 +4439,7 @@ public class MainActivity extends Activity {
       @Override
       protected void onSizeChanged(int w, int h, int oldW, int oldH) {
         bounds.set(0, 0, w, h);
+        invalidateOutline();
       }
 
       @Override
@@ -3467,32 +4458,35 @@ public class MainActivity extends Activity {
     protected void onDraw(Canvas c) {
       super.onDraw(c);
       drawPageBackground(c, activePage());
-      label(
-          c,
-          "◈  OPEN DECK" + (pageId.equals("jimin-os-page") ? "  /  Jimin OS" : ""),
-          dp(18),
-          dp(28),
-          12,
-          color(themeValue("text")),
-          Paint.Align.LEFT);
-      label(
-          c,
-          streamFresh()
-              ? (base.startsWith("https:") ? "Wi-Fi · 암호화 연결됨" : "USB · 연결됨")
-                  + (pageId.equals("jimin-os-page") ? "  · " + osSyncNotice() : "")
-              : "맥에 다시 연결하는 중…"
-                  + (pageId.equals("jimin-os-page") && osData() != null
-                      ? " · " + osSyncNotice()
-                      : ""),
-          dp(18),
-          dp(49),
-          10,
-          color(
-              !streamFresh()
-                  ? "#ff7d8b"
-                  : pageId.equals("jimin-os-page") && !osFresh() ? "#efbd73" : "#70c9a8"),
-          Paint.Align.LEFT);
-      label(c, "⚙", getWidth() - dp(18), dp(40), 24, color("#879dbd"), Paint.Align.RIGHT);
+      if (settingBool("showHeader")) {
+        label(
+            c,
+            "◈  OPEN DECK" + (pageId.equals("jimin-os-page") ? "  /  Jimin OS" : ""),
+            dp(18),
+            dp(28),
+            12,
+            color(themeValue("text")),
+            Paint.Align.LEFT);
+        label(
+            c,
+            streamFresh()
+                ? (base.startsWith("https:") ? "Wi-Fi · 암호화 연결됨" : "USB · 연결됨")
+                    + (pageId.equals("jimin-os-page") ? "  · " + osSyncNotice() : "")
+                : "맥에 다시 연결하는 중…"
+                    + (pageId.equals("jimin-os-page") && osData() != null
+                        ? " · " + osSyncNotice()
+                        : ""),
+            dp(18),
+            dp(49),
+            10,
+            color(
+                !streamFresh()
+                    ? "#ff7d8b"
+                    : pageId.equals("jimin-os-page") && !osFresh() ? "#efbd73" : "#70c9a8"),
+            Paint.Align.LEFT);
+      }
+      if (!settingBool("settingsButtonHidden"))
+        label(c, "⚙", getWidth() - dp(18), dp(40), 24, color("#879dbd"), Paint.Align.RIGHT);
       if (tiles.isEmpty())
         label(
             c,
@@ -3520,7 +4514,7 @@ public class MainActivity extends Activity {
 
     void drawPageBackground(Canvas c, JSONObject themedPage) {
       c.drawColor(color(themedPage.optString("background", themeValue("background", themedPage))));
-      if (themedPage.has("gradient")) {
+      if (themedPage.has("gradient") && !settingString("renderMode").equals("simple")) {
         paint.setShader(
             new LinearGradient(
                 0,
@@ -3551,6 +4545,21 @@ public class MainActivity extends Activity {
                 (getWidth() + bw) / 2,
                 (getHeight() + bh) / 2),
             paint);
+      }
+      List<RectF> empty = emptyCells.get(themedPage.optString("id"));
+      if (themedPage.optBoolean("showEmptyCells", false) && empty != null) {
+        paint.setStyle(Paint.Style.STROKE);
+        paint.setStrokeWidth(dp(1));
+        paint.setColor(color(themeValue("text", themedPage)));
+        paint.setAlpha(38);
+        for (RectF rect : empty)
+          c.drawRoundRect(
+              rect,
+              dp(themedPage.optInt("radius", 13)),
+              dp(themedPage.optInt("radius", 13)),
+              paint);
+        paint.setAlpha(255);
+        paint.setStyle(Paint.Style.FILL);
       }
     }
 
@@ -3973,7 +4982,7 @@ public class MainActivity extends Activity {
 
     void monitorNumber(Canvas c, String value, RectF rect, float y, float size, int ink) {
       paint.setTypeface(font);
-      paint.setTextSize(dp(size));
+      paint.setTextSize(dp(size) * settingInt("textScale") / 100f);
       float width = paint.measureText(value), available = rect.width() - dp(40);
       float fitted = width > available ? size * available / width : size;
       label(c, value, rect.left + dp(20), y, fitted, ink, Paint.Align.LEFT);
@@ -4029,7 +5038,7 @@ public class MainActivity extends Activity {
       paint.setStyle(Paint.Style.FILL);
       String number = metricPercent(value);
       paint.setTypeface(font);
-      paint.setTextSize(dp(numberSize));
+      paint.setTextSize(dp(numberSize) * settingInt("textScale") / 100f);
       float fitted =
           Math.min(numberSize, numberSize * radius * 1.7f / Math.max(1, paint.measureText(number)));
       label(c, number, cx, cy + dp(8), fitted, statusInk, Paint.Align.CENTER);
@@ -4436,7 +5445,41 @@ public class MainActivity extends Activity {
           muted);
     }
 
+    boolean widgetActive(JSONObject widget) {
+      return Boolean.TRUE.equals(variable(widget.optString("stateVariable")))
+          || widget.optString("type").equals("toggle")
+              && Boolean.TRUE.equals(variable(widget.optString("binding")));
+    }
+
+    JSONObject effectiveWidget(JSONObject widget) {
+      if (!widgetActive(widget)) return widget;
+      String id = widget.optString("id");
+      JSONObject active = activeWidgets.get(id);
+      if (active != null) return active;
+      try {
+        active = new JSONObject(widget.toString());
+        if (widget.has("activeLabel")) active.put("label", widget.get("activeLabel"));
+        if (widget.has("activeIcon")) active.put("icon", widget.get("activeIcon"));
+        JSONObject style = widget.optJSONObject("style");
+        style = style == null ? new JSONObject() : new JSONObject(style.toString());
+        JSONObject overrides = widget.optJSONObject("activeStyle");
+        if (overrides != null) {
+          Iterator<String> keys = overrides.keys();
+          while (keys.hasNext()) {
+            String key = keys.next();
+            style.put(key, overrides.get(key));
+          }
+        }
+        active.put("style", style);
+        activeWidgets.put(id, active);
+        return active;
+      } catch (JSONException ignored) {
+        return widget;
+      }
+    }
+
     void drawWidget(Canvas c, JSONObject w, RectF r) {
+      w = effectiveWidget(w);
       String type = w.optString("type"), id = w.optString("id");
       int accent = color(w.optString("color", "#86b6ff"));
       JSONObject style = w.optJSONObject("style");
@@ -4465,8 +5508,11 @@ public class MainActivity extends Activity {
             r.top
                 + r.height()
                     * (position.equals("top") ? .63f : position.equals("hidden") ? .5f : .37f);
-        Bitmap image = bitmap(w.optString("image"), 512);
         float size = basis * style.optInt("iconSize", 32) / 100f;
+        Bitmap image =
+            bitmap(
+                w.optString("image"),
+                ClientSettingsPolicy.iconResolution(size, settingInt("iconResolution")));
         if (image != null) {
           paint.setColor(Color.WHITE);
           paint.setFilterBitmap(true);
@@ -4781,7 +5827,7 @@ public class MainActivity extends Activity {
 
     String ellipsize(String text, float width, float size) {
       paint.setTypeface(font);
-      paint.setTextSize(dp(size));
+      paint.setTextSize(dp(size) * settingInt("textScale") / 100f);
       if (paint.measureText(text) <= width) return text;
       int end = text.length();
       while (end > 0 && paint.measureText(text.substring(0, end) + "…") > width) end--;
@@ -4797,12 +5843,15 @@ public class MainActivity extends Activity {
       if (position.equals("hidden")) return;
       float size = Math.min(style.optInt("textSize", 17), Math.max(9, r.height() / dp(1) * .22f));
       String[] lines = text.split("\n");
-      float lineHeight = dp(size * 1.3f),
+      float textScale = settingInt("textScale") / 100f;
+      float lineHeight = dp(size * 1.3f * textScale),
           y =
               position.equals("top")
-                  ? r.top + dp(size + 14)
+                  ? r.top + dp(size * textScale + 14)
                   : position.equals("center")
-                      ? r.centerY() - lineHeight * (lines.length - 1) / 2 + dp(size * .35f)
+                      ? r.centerY()
+                          - lineHeight * (lines.length - 1) / 2
+                          + dp(size * .35f * textScale)
                       : r.bottom - dp(22) - lineHeight * (lines.length - 1);
       Paint.Align align =
           style.optString("align", "center").equals("left")
@@ -4819,7 +5868,7 @@ public class MainActivity extends Activity {
               ? Typeface.MONOSPACE
               : style.optString("font").equals("serif") ? Typeface.SERIF : font;
       for (String line : lines) {
-        paint.setTextSize(dp(size));
+        paint.setTextSize(dp(size) * settingInt("textScale") / 100f);
         paint.setTypeface(chosen);
         String fitting = line;
         while (fitting.length() > 1 && paint.measureText(fitting) > r.width() - dp(30))
@@ -5114,7 +6163,7 @@ public class MainActivity extends Activity {
     }
 
     int hit(float x, float y) {
-      if (y < dp(68) || y > getHeight() - dp(46)) return -1;
+      if (y < contentTop() || y > getHeight() - contentBottom()) return -1;
       for (int i = 0; i < rects.size(); i++) if (rects.get(i).contains(x, y)) return i;
       return -1;
     }
@@ -5129,7 +6178,8 @@ public class MainActivity extends Activity {
       switch (e.getActionMasked()) {
         case MotionEvent.ACTION_DOWN:
           clearVelocity();
-          boolean resumeSwipe = swipeSettle != null && y > dp(68) && y < getHeight() - dp(46);
+          boolean resumeSwipe =
+              swipeSettle != null && y > contentTop() && y < getHeight() - contentBottom();
           if (resumeSwipe) {
             swipeSettle.removeAllListeners();
             swipeSettle.cancel();
@@ -5155,8 +6205,10 @@ public class MainActivity extends Activity {
           if (downIndex >= 0) {
             Tile tile = tiles.get(downIndex);
             tile.animate().cancel();
-            tile.setScaleX(.985f);
-            tile.setScaleY(.985f);
+            if (!reducedMotion()) {
+              tile.setScaleX(.985f);
+              tile.setScaleY(.985f);
+            }
           }
           if (downIndex >= 0
               && (widgets.get(downIndex).optString("type").equals("volume")
@@ -5175,8 +6227,10 @@ public class MainActivity extends Activity {
               touchAxis = Math.abs(x - downX) > Math.abs(y - downY) * 1.3f ? 1 : 2;
           }
           if (dragVolume >= 0 && downIndex >= 0) dragVolume = volumeAt(x, rects.get(downIndex));
-          else if (touchAxis == 1 && downY > dp(68) && downY < getHeight() - dp(46))
-            dragPage(dragStartOffset + x - downX);
+          else if (settingBool("swipeEnabled")
+              && touchAxis == 1
+              && downY > contentTop()
+              && downY < getHeight() - contentBottom()) dragPage(dragStartOffset + x - downX);
           else if (touchAxis == 2 && maxScroll > 0) {
             scroll = Math.max(0, Math.min(maxScroll, scroll + lastY - y));
             requestLayout();
@@ -5241,11 +6295,11 @@ public class MainActivity extends Activity {
             }
             if (moved) return true;
             if (SystemClock.elapsedRealtime() < transitionUntil) return true;
-            if (y < dp(60) && x > getWidth() - dp(75)) {
+            if (!settingBool("settingsButtonHidden") && y < dp(60) && x > getWidth() - dp(75)) {
               settings();
               return true;
             }
-            if (y > getHeight() - dp(46)) {
+            if (settingBool("showNavigation") && y > getHeight() - dp(46)) {
               JSONArray ps = config.optJSONArray("pages");
               for (int i = 0; i < pageRects.size(); i++)
                 if (pageRects.get(i).contains(x, y)) {
@@ -5303,7 +6357,13 @@ public class MainActivity extends Activity {
 
     void releasePress() {
       if (downIndex >= 0 && downIndex < tiles.size())
-        tiles.get(downIndex).animate().scaleX(1f).scaleY(1f).setDuration(90).start();
+        tiles
+            .get(downIndex)
+            .animate()
+            .scaleX(1f)
+            .scaleY(1f)
+            .setDuration(reducedMotion() ? 0 : 90)
+            .start();
     }
 
     @Override

@@ -1,4 +1,20 @@
 import http from "node:http";
+import { spawn } from "node:child_process";
+import {
+  APP_VERSION,
+  loadSettings,
+  mergeSettings,
+  validateDeviceSettings,
+  Diagnostics,
+  nativeStatus,
+  releaseInfo,
+  buildInfo,
+  licenseNotices,
+} from "./settings.mjs";
+import { pagesFor, profileFor, effectivePages } from "./public/profiles.mjs";
+import { Backups } from "./backups.mjs";
+import { EditorLock } from "./editor-lock.mjs";
+import { adbStatus, adbOperation, installCompanion } from "./system-tools.mjs";
 import { MacMetrics } from "./mac-metrics.mjs";
 import { GrafanaMonitor, grafanaSource, grafanaSecretId } from "./grafana.mjs";
 import { Extensions, osPage } from "./extensions.mjs";
@@ -6,7 +22,12 @@ import { Plugins } from "./plugins.mjs";
 import { saveAsset, readAsset } from "./assets.mjs";
 import { Connectors, setSecret } from "./connectors.mjs";
 import https from "node:https";
-import { loadIdentity, localAddresses } from "./network.mjs";
+import {
+  loadIdentity,
+  localAddresses,
+  certificateInfo,
+  installCertificate,
+} from "./network.mjs";
 import fs from "node:fs";
 import path from "node:path";
 import crypto from "node:crypto";
@@ -21,12 +42,12 @@ const equal = (a, b) =>
   typeof b === "string" &&
   a.length === b.length &&
   crypto.timingSafeEqual(Buffer.from(a), Buffer.from(b));
-export const deviceConfig = (c) => ({
+export const deviceConfig = (c, d = null) => ({
   ...c,
   automations: undefined,
   integrations: undefined,
   extensions: undefined,
-  pages: c.pages.map((p) => ({
+  pages: effectivePages(c, d).map((p) => ({
     ...p,
     widgets: p.widgets.map(({ actions, longActions, doubleActions, ...w }) => ({
       ...w,
@@ -60,7 +81,12 @@ export function createHost({
   extensionOptions = {},
   grafanaOptions = {},
 } = {}) {
+  const existedBeforeStart = fs.existsSync(path.join(dir, "deck.json"));
   let config = loadConfig(dir);
+  let settings = loadSettings(dir);
+  const diagnostics = new Diagnostics(dir, () => settings);
+  diagnostics.log("info", "host.started");
+  const editorLock = new EditorLock(dir, () => settings);
   let configRevision = 1;
   const adminKey = crypto.randomBytes(32).toString("hex");
   const devicesFile = path.join(dir, "devices.json");
@@ -72,6 +98,7 @@ export function createHost({
   let lanServer = null,
     identity = null,
     wifiError = "";
+  let discoveryProcess = null;
   const network = () => ({
     urls: lanServer?.listening
       ? localAddresses().map(
@@ -81,33 +108,53 @@ export function createHost({
     fingerprint: identity?.fingerprint || "",
     error: wifiError,
   });
-  const snapshot = () => ({
-    config: deviceConfig(config),
+  const safeDevice = (d) =>
+    d
+      ? {
+          id: d.id,
+          name: d.name,
+          settings: d.settings || {},
+          settingsRevision: d.settingsRevision || 0,
+          screenSaverAt: d.screenSaverAt || 0,
+        }
+      : null;
+  const snapshot = (d = null) => ({
+    config: deviceConfig(config, d),
+    device: safeDevice(d),
     state: engine.state(),
     network: network(),
   });
+  const focusSessions = new Map();
   const streams = new Set(),
     attempts = new Map();
   const broadcast = () => {
     const common = { state: engine.state(), network: network() };
-    let full = null,
-      delta = null;
     for (const s of streams) {
+      if (!s.openDeckDeviceId && editorLock.status().locked) {
+        s.end();
+        streams.delete(s);
+        continue;
+      }
       if (s.writableLength > 256000) {
         s.destroy();
         streams.delete(s);
         continue;
       }
-      let data;
-      if (s.openDeckRevision !== configRevision) {
-        full ??= JSON.stringify({ ...common, config: deviceConfig(config) });
-        data = full;
-        s.openDeckRevision = configRevision;
-      } else {
-        delta ??= JSON.stringify(common);
-        data = delta;
+      const d = s.openDeckDeviceId
+        ? devices.find((d) => d.id === s.openDeckDeviceId)
+        : null;
+      if (s.openDeckDeviceId && !d) {
+        s.end();
+        streams.delete(s);
+        continue;
       }
-      s.write(`event: snapshot\ndata: ${data}\n\n`);
+      const revision = configRevision + ":" + (d?.settingsRevision || 0);
+      const data = { ...common, device: safeDevice(d) };
+      if (s.openDeckRevision !== revision) {
+        data.config = deviceConfig(config, d);
+        s.openDeckRevision = revision;
+      }
+      s.write(`event: snapshot\ndata: ${JSON.stringify(data)}\n\n`);
     }
   };
   const engine = new Engine(config, broadcast, runner);
@@ -119,6 +166,7 @@ export function createHost({
       broadcast();
     },
   );
+  connectors.getSettings = () => settings;
   engine.connectors = connectors;
   const plugins = new Plugins(
     dir,
@@ -145,6 +193,7 @@ export function createHost({
     if (Date.now() - recovery.at < 2000) return;
     recovery.count++;
     recovery.at = Date.now();
+    diagnostics.log("info", "connections.resumed", { count: recovery.count });
     grafana.resume();
     for (const stream of streams) stream.end();
     streams.clear();
@@ -158,6 +207,123 @@ export function createHost({
   } catch {}
   engine.onPersist = () =>
     writeJson(stateFile, { variables: engine.variables, todos: engine.todos });
+  const applyConfig = (candidate) => {
+    candidate = validateConfig(candidate);
+    writeJson(path.join(dir, "deck.json"), candidate);
+    config = candidate;
+    configRevision++;
+    engine.configure(config);
+    let deviceChanged = false;
+    for (const d of devices) {
+      const current = d.settings || {};
+      const p = profileFor(config, d);
+      if (
+        (current.profileId &&
+          !config.profiles.some((p) => p.id === current.profileId)) ||
+        (current.startPageId && !p.pageIds.includes(current.startPageId))
+      ) {
+        d.settings = {
+          ...current,
+          profileId: config.profiles.some((p) => p.id === current.profileId)
+            ? current.profileId
+            : "",
+          startPageId: "",
+        };
+        d.settingsRevision = (d.settingsRevision || 0) + 1;
+        deviceChanged = true;
+      }
+    }
+    if (deviceChanged) writeJson(devicesFile, devices);
+    for (const id of engine.timers.keys())
+      if (!engine.widget(id)) engine.timers.delete(id);
+    broadcast();
+  };
+  const backups = new Backups({
+    dir,
+    getConfig: () => config,
+    getSettings: () => settings,
+    applyConfig,
+    getPreferences: () => settings,
+    applyPreferences: (p) => {
+      settings = mergeSettings(settings, p);
+      writeJson(path.join(dir, "preferences.json"), settings);
+    },
+    getState: () => ({ variables: engine.variables, todos: engine.todos }),
+    applyState: (s) => {
+      for (const [k, v] of Object.entries(s.variables || {}))
+        if (typeof config.variables[k] === typeof v) engine.variables[k] = v;
+      engine.todos = s.todos || {};
+      engine.onPersist();
+      broadcast();
+    },
+  });
+  if (metrics) {
+    const marker = path.join(dir, "last-version.json");
+    let previous = "";
+    try {
+      previous = JSON.parse(fs.readFileSync(marker, "utf8")).version;
+    } catch {}
+    let versionBackupReady = true;
+    if (
+      previous !== APP_VERSION &&
+      existedBeforeStart &&
+      settings.backups.beforeUpdate
+    ) {
+      try {
+        backups.create("before-update");
+      } catch {
+        versionBackupReady = false;
+        diagnostics.log("error", "backup.before_update_failed");
+      }
+    }
+    if (versionBackupReady) writeJson(marker, { version: APP_VERSION });
+  }
+  const updateDevice = (d, input) => {
+    if (!d)
+      throw Object.assign(Error("기기를 찾을 수 없습니다."), { status: 404 });
+    if (
+      input.name !== undefined &&
+      (typeof input.name !== "string" ||
+        !input.name.trim() ||
+        input.name.length > 80)
+    )
+      throw Error("기기 이름을 확인하세요.");
+    const next = validateDeviceSettings(
+      d.settings || {},
+      input.settings || {},
+      config,
+    );
+    if (input.name !== undefined) d.name = input.name.trim();
+    d.settings = next;
+    d.settingsRevision = (d.settingsRevision || 0) + 1;
+    writeJson(devicesFile, devices);
+    broadcast();
+    diagnostics.log("info", "device.settings.saved", {
+      revision: d.settingsRevision,
+    });
+    return safeDevice(d);
+  };
+  const devicePayload = (d) => ({
+    device: safeDevice(d),
+    profiles: config.profiles,
+    defaultProfileId: config.defaultProfileId,
+  });
+  const allowedWidget = (d, id) =>
+    !d ||
+    effectivePages(config, d).some((p) => p.widgets.some((w) => w.id === id));
+  const diagnosis = () => ({
+    version: APP_VERSION,
+    uptimeSeconds: Math.floor(process.uptime()),
+    recovery: { ...recovery },
+    network: network(),
+    nativeStatus: nativeStatus(dir),
+    logs: diagnostics.entries(),
+    connections: [...streams].map((s) => ({
+      transport: s.socket?.encrypted ? "wifi" : "usb",
+      deviceId: s.openDeckDeviceId || "editor",
+    })),
+    backups: { count: backups.list().length },
+  });
   const send = (res, status, data) => {
     res.writeHead(status, {
       "Content-Type": "application/json",
@@ -172,7 +338,9 @@ export function createHost({
       text = "";
     for await (const b of req) {
       size += b.length;
-      if (size > 3000000)
+      if (
+        size > (req.url === "/api/admin/backups" ? 96 * 1024 * 1024 : 3000000)
+      )
         throw Object.assign(Error("요청이 너무 큽니다."), { status: 413 });
       text += b;
     }
@@ -222,6 +390,8 @@ export function createHost({
             "/api/snapshot",
             "/api/events",
             "/api/action",
+            "/api/device/settings",
+            "/api/device/update",
           ].includes(u.pathname) &&
           !/^\/api\/assets\/[a-f0-9]{64}$/.test(u.pathname) &&
           !/^\/api\/extensions\/jimin-os\/mutations(?:\/[0-9a-f-]{36})?$/i.test(
@@ -232,7 +402,7 @@ export function createHost({
             error: "Wi-Fi에서는 태블릿 연결만 허용됩니다.",
           });
         if (req.method === "GET" && u.pathname === "/health")
-          return send(res, 200, { name: "Open Deck", version: "0.8.4" });
+          return send(res, 200, { name: "Open Deck", version: APP_VERSION });
         if (req.method === "POST" && u.pathname === "/api/pair") {
           const now = Date.now(),
             key = req.socket.remoteAddress,
@@ -256,10 +426,13 @@ export function createHost({
             name: String(b.name || "Android").slice(0, 80),
             hash: digest(token),
             createdAt: new Date().toISOString(),
+            settings: {},
+            settingsRevision: 1,
           });
           writeJson(devicesFile, devices);
           pin = String(crypto.randomInt(100000, 1000000));
           pinExpires = Date.now() + 600000;
+          diagnostics.log("info", "device.paired", { count: devices.length });
           return send(res, 200, { token, name: config.name });
         }
         if (u.pathname.startsWith("/api/admin") && !admin)
@@ -268,11 +441,297 @@ export function createHost({
           });
         if (u.pathname.startsWith("/api/") && !authenticated)
           return send(res, 401, { error: "먼저 페어링하세요." });
+        if (
+          admin &&
+          u.pathname === "/api/admin/lock-status" &&
+          req.method === "GET"
+        )
+          return send(res, 200, editorLock.status());
+        if (
+          admin &&
+          u.pathname === "/api/admin/lock" &&
+          req.method === "POST"
+        ) {
+          const input = await body(req);
+          switch (input.operation) {
+            case "configure": {
+              const next = mergeSettings(settings, {
+                security: {
+                  idleLockMinutes:
+                    input.idleMinutes ?? settings.security.idleLockMinutes,
+                },
+              });
+              editorLock.configure(input.password, input.currentPassword);
+              settings = next;
+              writeJson(path.join(dir, "preferences.json"), settings);
+              break;
+            }
+            case "activity":
+              if (editorLock.status().locked)
+                return send(res, 423, { error: "편집기가 잠겨 있습니다." });
+              editorLock.touch();
+              break;
+            case "unlock":
+              editorLock.unlock(input.password);
+              break;
+            case "lock":
+              editorLock.lock();
+              break;
+            case "disable":
+              editorLock.disable(input.password);
+              break;
+            default:
+              throw Error("잠금 작업을 확인하세요.");
+          }
+          if (editorLock.status().locked)
+            for (const stream of streams)
+              if (!stream.openDeckDeviceId) {
+                stream.end();
+                streams.delete(stream);
+              }
+          diagnostics.log(
+            input.operation === "activity" ? "debug" : "info",
+            "editor.lock." + input.operation,
+          );
+          return send(res, 200, editorLock.status());
+        }
+        if (
+          admin &&
+          u.pathname.startsWith("/api/") &&
+          !["/api/admin/resume", "/api/admin/focus"].includes(u.pathname)
+        ) {
+          if (editorLock.status().locked)
+            return send(res, 423, {
+              error: "편집기가 잠겨 있습니다. 비밀번호로 잠금을 해제하세요.",
+            });
+          if (
+            u.pathname.startsWith("/api/admin/") &&
+            !["/api/admin/info", "/api/admin/diagnostics"].includes(u.pathname)
+          )
+            editorLock.touch();
+        }
+        if (u.pathname === "/api/device/settings") {
+          const d = device(req);
+          if (!d)
+            return send(res, 403, { error: "페어링된 기기에서 사용하세요." });
+          if (req.method === "PUT") {
+            const input = await body(req);
+            if (
+              Object.keys(input).some(
+                (k) => !["name", "settings", "model", "appVersion"].includes(k),
+              )
+            )
+              throw Error("지원하지 않는 기기 필드입니다.");
+            if (input.model !== undefined && typeof input.model === "string")
+              d.model = input.model.slice(0, 80);
+            if (
+              input.appVersion !== undefined &&
+              /^\d+\.\d+\.\d+$/.test(input.appVersion)
+            )
+              d.appVersion = input.appVersion;
+            focusSessions.delete(d.id);
+            updateDevice(d, input);
+          } else if (req.method !== "GET")
+            return send(res, 405, { error: "지원하지 않는 메서드입니다." });
+          return send(res, 200, devicePayload(d));
+        }
+        if (
+          req.method === "GET" &&
+          ["/api/admin/update", "/api/device/update"].includes(u.pathname)
+        )
+          return send(res, 200, await releaseInfo());
+        if (
+          req.method === "POST" &&
+          u.pathname === "/api/admin/devices/screensaver"
+        ) {
+          const b = await body(req),
+            d = devices.find((d) => d.id === b.id);
+          if (!d) throw Error("기기를 찾을 수 없습니다.");
+          d.screenSaverAt = Date.now();
+          broadcast();
+          return send(res, 200, { ok: true });
+        }
+        if (req.method === "PUT" && u.pathname === "/api/admin/devices") {
+          const input = await body(req);
+          focusSessions.delete(input.id);
+          return send(res, 200, {
+            device: updateDevice(
+              devices.find((d) => d.id === input.id),
+              input,
+            ),
+          });
+        }
+        if (req.method === "POST" && u.pathname === "/api/admin/focus") {
+          const { bundleId } = await body(req);
+          const p = config.profiles.find((p) =>
+            p.focusApps?.includes(bundleId),
+          );
+          let changed = false;
+          for (const d of devices) {
+            if (p) {
+              if (!focusSessions.has(d.id))
+                focusSessions.set(d.id, {
+                  profileId: d.settings?.profileId || "",
+                  startPageId: d.settings?.startPageId || "",
+                  active: p.id,
+                });
+              else focusSessions.get(d.id).active = p.id;
+              if (d.settings?.profileId !== p.id) {
+                updateDevice(d, {
+                  settings: { profileId: p.id, startPageId: "" },
+                });
+                changed = true;
+              }
+            } else if (focusSessions.has(d.id)) {
+              const before = focusSessions.get(d.id);
+              focusSessions.delete(d.id);
+              if (d.settings?.profileId === before.active) {
+                const original = config.profiles.some(
+                  (p) => p.id === before.profileId,
+                )
+                  ? before.profileId
+                  : "";
+                const originalPage = profileFor(config, {
+                  settings: { profileId: original },
+                })?.pageIds.includes(before.startPageId)
+                  ? before.startPageId
+                  : "";
+                updateDevice(d, {
+                  settings: { profileId: original, startPageId: originalPage },
+                });
+                changed = true;
+              }
+            }
+          }
+          return send(res, 200, { changed });
+        }
+        if (req.method === "GET" && u.pathname === "/api/admin/settings")
+          return send(res, 200, {
+            settings,
+            version: APP_VERSION,
+            buildInfo: buildInfo(),
+            network: network(),
+            diagnostics: diagnosis(),
+            nativeStatus: nativeStatus(dir),
+          });
+        if (req.method === "PUT" && u.pathname === "/api/admin/settings") {
+          const input = await body(req),
+            next = mergeSettings(settings, input.settings || input);
+          const old = settings;
+          if (JSON.stringify(next.network) !== JSON.stringify(old.network))
+            await configureNetwork(next.network);
+          settings = next;
+          try {
+            writeJson(path.join(dir, "preferences.json"), settings);
+          } catch (e) {
+            settings = old;
+            await configureNetwork(old.network);
+            throw e;
+          }
+          diagnostics.log("info", "settings.saved");
+          return send(res, 200, {
+            settings,
+            network: network(),
+            nativeStatus: nativeStatus(dir),
+          });
+        }
+        if (req.method === "GET" && u.pathname === "/api/admin/licenses")
+          return send(res, 200, licenseNotices());
+        if (req.method === "GET" && u.pathname === "/api/admin/certificate")
+          return send(res, 200, certificateInfo(dir));
+        if (req.method === "POST" && u.pathname === "/api/admin/certificate") {
+          const b = await body(req);
+          installCertificate(dir, b.certificatePem, b.privateKeyPem);
+          identity = loadIdentity(dir);
+          lanServer?.setSecureContext({
+            key: identity.key,
+            cert: identity.cert,
+            minVersion: "TLSv1.2",
+          });
+          diagnostics.log("info", "certificate.updated");
+          for (const stream of streams)
+            if (stream.socket?.encrypted) stream.end();
+          return send(res, 200, certificateInfo(dir));
+        }
+        if (req.method === "GET" && u.pathname === "/api/admin/usb")
+          return send(res, 200, await adbStatus(settings));
+        if (req.method === "POST" && u.pathname === "/api/admin/usb")
+          return send(res, 200, await adbOperation(settings, await body(req)));
+        if (req.method === "POST" && u.pathname === "/api/admin/companion")
+          return send(
+            res,
+            200,
+            await installCompanion(settings, (await body(req)).serial),
+          );
+        if (req.method === "GET" && u.pathname === "/api/admin/diagnostics")
+          return send(res, 200, diagnosis());
+        if (req.method === "GET" && u.pathname === "/api/admin/backups")
+          return send(res, 200, { backups: backups.list() });
+        if (req.method === "POST" && u.pathname === "/api/admin/backups") {
+          const b = await body(req);
+          let result;
+          switch (b.operation) {
+            case "create":
+              result = {
+                backup: backups.create("manual", { profileIds: b.profileIds }),
+              };
+              break;
+            case "preview":
+              result = { preview: backups.preview(b.id) };
+              break;
+            case "restore": {
+              const previousNetwork = settings.network;
+              const archive = backups.export(b.id);
+              const restoringPreferences =
+                b.restorePreferences === true ||
+                (b.restorePreferences !== false && !b.profileIds?.length);
+              if (restoringPreferences && archive.preferences)
+                await configureNetwork(
+                  mergeSettings(settings, archive.preferences).network,
+                );
+              try {
+                result = {
+                  ...backups.restore(b.id, {
+                    profileIds: b.profileIds,
+                    restoreState: b.restoreState,
+                    restorePreferences: b.restorePreferences,
+                  }),
+                  config,
+                };
+              } catch (e) {
+                await configureNetwork(previousNetwork);
+                throw e;
+              }
+              break;
+            }
+            case "delete":
+              backups.remove(b.id);
+              result = { ok: true };
+              break;
+            case "export":
+              result = {
+                archive: backups.export(b.id, b.password, {
+                  profileIds: b.profileIds,
+                }),
+              };
+              break;
+            case "import":
+              result = { backup: backups.import(b.archive, b.password) };
+              break;
+            default:
+              throw Error("백업 작업을 확인하세요.");
+          }
+          diagnostics.log("info", "backup." + b.operation);
+          return send(res, 200, result);
+        }
         if (req.method === "GET" && u.pathname === "/api/admin/info")
           return send(res, 200, {
             pin,
             pinExpires,
-            devices: devices.map(({ hash, ...d }) => d),
+            devices: devices.map(({ hash, ...d }) => ({
+              ...d,
+              online: [...streams].some((s) => s.openDeckDeviceId === d.id),
+            })),
             config,
             network: network(),
             recovery: { ...recovery },
@@ -293,6 +752,7 @@ export function createHost({
         if (req.method === "POST" && u.pathname === "/api/admin/revoke") {
           const b = await body(req);
           devices = devices.filter((d) => d.id !== b.id);
+          diagnostics.log("info", "device.revoked", { count: devices.length });
           writeJson(devicesFile, devices);
           for (const s of streams) s.end();
           streams.clear();
@@ -300,13 +760,8 @@ export function createHost({
         }
         if (req.method === "PUT" && u.pathname === "/api/admin/config") {
           const candidate = validateConfig(await body(req));
-          writeJson(path.join(dir, "deck.json"), candidate);
-          config = candidate;
-          configRevision++;
-          engine.configure(config);
-          for (const id of engine.timers.keys())
-            if (!engine.widget(id)) engine.timers.delete(id);
-          broadcast();
+          applyConfig(candidate);
+          diagnostics.log("info", "deck.saved", { revision: configRevision });
           return send(res, 200, { ok: true, config });
         }
         if (req.method === "GET" && u.pathname === "/api/admin/extensions")
@@ -405,7 +860,7 @@ export function createHost({
           return;
         }
         if (req.method === "GET" && u.pathname === "/api/snapshot")
-          return send(res, 200, snapshot());
+          return send(res, 200, snapshot(device(req)));
         if (req.method === "GET" && u.pathname === "/api/events") {
           res.writeHead(200, {
             "Content-Type": "text/event-stream",
@@ -413,7 +868,15 @@ export function createHost({
             Connection: "keep-alive",
           });
           res.write(": connected\n\n");
+          const d = device(req);
+          if (d) {
+            d.lastSeenAt = new Date().toISOString();
+            res.openDeckDeviceId = d.id;
+          }
           streams.add(res);
+          diagnostics.log("debug", "stream.connected", {
+            transport: lan ? "wifi" : "usb",
+          });
           broadcast();
           req.on("close", () => streams.delete(res));
           return;
@@ -438,7 +901,11 @@ export function createHost({
         ) {
           const input = await body(req),
             w = engine.widget(input.widgetId);
-          if (!w || w.provider !== "jimin-os")
+          if (
+            !allowedWidget(device(req), input.widgetId) ||
+            !w ||
+            w.provider !== "jimin-os"
+          )
             throw Error("연결된 위젯을 확인해 주세요.");
           const view = w.actions?.find(
             (a) =>
@@ -462,6 +929,8 @@ export function createHost({
         }
         if (req.method === "POST" && u.pathname === "/api/action") {
           const b = await body(req);
+          if (!allowedWidget(device(req), b.id))
+            throw Error("현재 프로필의 버튼이 아닙니다.");
           if (b.kind === "extension") {
             const w = engine.widget(b.id);
             if (!w || w.provider !== "jimin-os")
@@ -516,6 +985,10 @@ export function createHost({
             "/layout.mjs",
             "/monitor-layout.mjs",
             "/monitor-rules.mjs",
+            "/settings-ui.mjs",
+            "/editor-lock.mjs",
+            "/profile-tools.mjs",
+            "/profiles.mjs",
           ].includes(u.pathname)
         ) {
           if (!admin)
@@ -541,28 +1014,97 @@ export function createHost({
         }
         send(res, 404, { error: "찾을 수 없습니다." });
       } catch (e) {
+        diagnostics.log("warn", "request.failed", { status: e.status || 400 });
         if (!res.headersSent) send(res, e.status || 400, { error: e.message });
         else res.end();
       }
     };
   const server = http.createServer(handler());
-  if (wifi) {
-    try {
-      identity = loadIdentity(dir);
-      lanServer = https.createServer(
-        { key: identity.key, cert: identity.cert, minVersion: "TLSv1.2" },
-        handler(true),
+  const advertise = (enabled) => {
+    discoveryProcess?.kill();
+    discoveryProcess = null;
+    if (enabled && process.platform === "darwin" && lanServer?.listening) {
+      discoveryProcess = spawn(
+        "/usr/bin/dns-sd",
+        [
+          "-R",
+          "Open Deck",
+          "_opendeck._tcp",
+          "local",
+          String(lanServer.address().port),
+          "protocol=1",
+          "tls=1",
+        ],
+        { stdio: "ignore" },
       );
-      lanServer.on("error", (e) => {
-        wifiError = e.message;
-        console.error("Wi-Fi listener:", e.message);
-      });
-      lanServer.listen(wifiPort, "0.0.0.0");
-    } catch (e) {
-      wifiError = e.message;
-      console.error("Wi-Fi unavailable:", e.message);
+      discoveryProcess.on("error", () =>
+        diagnostics.log("warn", "discovery.failed"),
+      );
     }
-  }
+  };
+  let firstNetworkConfiguration = true;
+  const configureNetwork = async (value) => {
+    if (!wifi) return;
+    if (!value.wifiEnabled) {
+      advertise(false);
+      const old = lanServer;
+      lanServer = null;
+      old?.closeAllConnections();
+      old?.close();
+      return;
+    }
+    const targetPort =
+      firstNetworkConfiguration && wifiPort !== 8841
+        ? wifiPort
+        : value.wifiPort;
+    firstNetworkConfiguration = false;
+    if (
+      lanServer?.listening &&
+      (targetPort === 0 || lanServer.address().port === targetPort)
+    ) {
+      advertise(value.discoveryEnabled);
+      return;
+    }
+    identity = loadIdentity(dir);
+    const candidate = https.createServer(
+      { key: identity.key, cert: identity.cert, minVersion: "TLSv1.2" },
+      handler(true),
+    );
+    const previous = lanServer;
+    if (!previous) lanServer = candidate;
+    await new Promise((resolve, reject) => {
+      candidate.once("error", reject);
+      candidate.listen(targetPort, "0.0.0.0", resolve);
+    });
+    const old = previous;
+    lanServer = candidate;
+    wifiError = "";
+    advertise(value.discoveryEnabled);
+    // Send the new endpoint while the old stream is still reachable.
+    configRevision++;
+    broadcast();
+    old?.close();
+    old?.closeAllConnections();
+    candidate.on("error", (e) => {
+      wifiError = e.code || "listen_failed";
+      diagnostics.log("error", "network.failed");
+    });
+  };
+  if (wifi)
+    configureNetwork(settings.network).catch((e) => {
+      wifiError = e.code || e.message;
+      diagnostics.log("error", "network.failed");
+    });
+  const backupTimer = metrics
+    ? setInterval(() => {
+        try {
+          backups.tick();
+        } catch {
+          diagnostics.log("error", "backup.failed");
+        }
+      }, 60000)
+    : null;
+
   let lastTick = Date.now();
   const interval = metrics
     ? setInterval(() => {
@@ -579,6 +1121,8 @@ export function createHost({
   const schedule = metrics ? setInterval(() => scheduler.tick(), 1000) : null;
   server.on("close", () => {
     clearInterval(interval);
+    clearInterval(backupTimer);
+    discoveryProcess?.kill();
     clearInterval(schedule);
     connectors.close();
     extensions.close();

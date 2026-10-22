@@ -7,6 +7,7 @@ mkdir -p "$task_app/Contents/MacOS" "$task_app/Contents/Resources"
 rm -rf "$task_app/Contents/Resources/host"
 cp "$task_node" "$task_app/Contents/Resources/node"
 cp -R host "$task_app/Contents/Resources/"
+"$task_node" --input-type=module -e 'import fs from "node:fs"; import {execFileSync} from "node:child_process"; const version=JSON.parse(fs.readFileSync("package.json")).version; const commit=execFileSync("git",["rev-parse","HEAD"],{encoding:"utf8"}).trim(); fs.writeFileSync(process.argv[1],JSON.stringify({version,build:15,commit}));' "$task_app/Contents/Resources/host/build-info.json"
 mkdir -p "$task_app/Contents/Resources/node_modules"
 rm -rf "$task_app/Contents/Resources/node_modules/ws"
 cp -R node_modules/ws "$task_app/Contents/Resources/node_modules/"
@@ -17,7 +18,7 @@ task_license="$(dirname "$(dirname "$task_node")")/LICENSE"
 if [[ -f "$task_license" ]]; then cp "$task_license" "$task_app/Contents/Resources/Node-LICENSE"; else echo 'Node distribution LICENSE is required alongside bin/node' >&2; exit 1; fi
 swiftc -O -target "$(uname -m)-apple-macosx13.0" -framework AppKit -framework WebKit macos/OpenDeck.swift -o "$task_app/Contents/MacOS/OpenDeck"
 cat > "$task_app/Contents/Info.plist" <<'PLIST'
-<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd"><plist version="1.0"><dict><key>CFBundleIdentifier</key><string>app.opendeck.host</string><key>CFBundleIconFile</key><string>OpenDeck.icns</string><key>CFBundleName</key><string>Open Deck</string><key>CFBundleExecutable</key><string>OpenDeck</string><key>CFBundleVersion</key><string>14</string><key>CFBundleShortVersionString</key><string>0.8.5</string><key>NSAppleEventsUsageDescription</key><string>Open Deck controls apps and Chrome tabs when you press your configured buttons.</string><key>NSHighResolutionCapable</key><true/><key>NSAppTransportSecurity</key><dict><key>NSAllowsLocalNetworking</key><true/></dict></dict></plist>
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd"><plist version="1.0"><dict><key>CFBundleIdentifier</key><string>app.opendeck.host</string><key>CFBundleIconFile</key><string>OpenDeck.icns</string><key>CFBundleName</key><string>Open Deck</string><key>CFBundleExecutable</key><string>OpenDeck</string><key>CFBundleVersion</key><string>15</string><key>CFBundleShortVersionString</key><string>0.9.0</string><key>NSAppleEventsUsageDescription</key><string>Open Deck controls apps and Chrome tabs when you press your configured buttons.</string><key>NSHighResolutionCapable</key><true/><key>NSAppTransportSecurity</key><dict><key>NSAllowsLocalNetworking</key><true/></dict></dict></plist>
 PLIST
 swiftc -O -target "$(uname -m)-apple-macosx13.0" -framework IOKit macos/MacMetrics.swift -o "$task_app/Contents/Resources/MacMetrics"
 codesign --force --sign - "$task_app/Contents/Resources/MacMetrics"

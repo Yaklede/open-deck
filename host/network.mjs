@@ -1,3 +1,4 @@
+import { createSecureContext } from "node:tls";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
@@ -68,4 +69,62 @@ export function loadIdentity(dir) {
       .replaceAll(":", "")
       .toLowerCase(),
   };
+}
+
+export function certificateInfo(dir) {
+  const identity = loadIdentity(dir),
+    cert = new X509Certificate(identity.cert);
+  return {
+    subject: cert.subject,
+    issuer: cert.issuer,
+    fingerprint: identity.fingerprint,
+    validFrom: cert.validFrom,
+    validTo: cert.validTo,
+    expired: Date.parse(cert.validTo) < Date.now(),
+    notYetValid: Date.parse(cert.validFrom) > Date.now(),
+    source: fs.existsSync(path.join(dir, "wifi-custom-certificate"))
+      ? "custom"
+      : "self-signed",
+  };
+}
+export function installCertificate(dir, certificatePem, privateKeyPem) {
+  if (
+    typeof certificatePem !== "string" ||
+    typeof privateKeyPem !== "string" ||
+    certificatePem.length > 65536 ||
+    privateKeyPem.length > 32768
+  )
+    throw Error("PEM 인증서와 개인 키를 확인하세요.");
+  const cert = new X509Certificate(certificatePem);
+  if (
+    Date.parse(cert.validFrom) > Date.now() ||
+    Date.parse(cert.validTo) <= Date.now()
+  )
+    throw Error("현재 유효한 인증서가 필요합니다.");
+  // A TLS context verifies the certificate/key pair before any persistent files change.
+  const context = createSecureContext({
+    cert: certificatePem,
+    key: privateKeyPem,
+    minVersion: "TLSv1.2",
+  });
+  const current = loadIdentity(dir);
+  const keyFile = path.join(dir, "wifi-key.pem"),
+    certFile = path.join(dir, "wifi-cert.pem");
+  try {
+    fs.writeFileSync(keyFile + ".next", privateKeyPem, { mode: 0o600 });
+    fs.writeFileSync(certFile + ".next", certificatePem, { mode: 0o600 });
+    fs.renameSync(keyFile + ".next", keyFile);
+    fs.renameSync(certFile + ".next", certFile);
+    fs.writeFileSync(path.join(dir, "wifi-custom-certificate"), "1", {
+      mode: 0o600,
+    });
+  } catch (e) {
+    fs.writeFileSync(keyFile, current.key, { mode: 0o600 });
+    fs.writeFileSync(certFile, current.cert, { mode: 0o600 });
+    throw e;
+  } finally {
+    fs.rmSync(keyFile + ".next", { force: true });
+    fs.rmSync(certFile + ".next", { force: true });
+  }
+  return context;
 }

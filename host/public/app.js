@@ -1,3 +1,17 @@
+import {
+  ensureEditorUnlocked,
+  showEditorLock,
+  startEditorLockMonitor,
+} from "./editor-lock.mjs";
+import { effectivePages } from "./profiles.mjs";
+import { createSettingsCenter } from "./settings-ui.mjs";
+import {
+  activeProfile,
+  profilePages,
+  clonePages,
+  portableProfile,
+  importProfile,
+} from "./profile-tools.mjs";
 import { migrate, place, overlaps, themes } from "./layout.mjs";
 import { monitorPage } from "./monitor-layout.mjs";
 import { monitorSettings, monitorRuleNames } from "./monitor-rules.mjs";
@@ -5,12 +19,18 @@ const $ = (s) => document.querySelector(s),
   uid = () => crypto.randomUUID();
 let config,
   pageId,
+  profileId,
   selected = null,
   dirty = false,
   info,
   state = { cpu: 0, memory: 0, volume: 50 },
   portrait = false,
   pluginItems = [];
+const selectedWidgets = new Set();
+let widgetClipboard = [],
+  styleClipboard;
+let renderedWidgets = new Map(),
+  renderedTheme = themes.midnight;
 const undo = [],
   redo = [];
 let lastEdit = 0;
@@ -76,6 +96,9 @@ const n = (tag, text, cls) => {
   if (cls) e.className = cls;
   return e;
 };
+const editorLocale = () =>
+  document.documentElement.lang === "en" ? "en-US" : "ko-KR";
+const editorHour12 = () => document.body.dataset.timeFormat === "12h";
 const page = () => config.pages.find((p) => p.id === pageId) || config.pages[0],
   widget = () => page().widgets.find((w) => w.id === selected);
 function notice(t, error = false) {
@@ -89,6 +112,7 @@ async function api(url, method = "GET", body) {
     body: body ? JSON.stringify(body) : undefined,
   });
   const d = await r.json();
+  if (r.status === 423) showEditorLock();
   if (!r.ok) throw Error(d.error || r.statusText);
   return d;
 }
@@ -176,8 +200,11 @@ function ensurePlace() {
   page().rows = place(page().widgets, page().columns, page().rows, true);
 }
 function render() {
+  renderProfiles();
+  for (const id of selectedWidgets)
+    if (!page().widgets.some((w) => w.id === id)) selectedWidgets.delete(id);
   $("#pages").replaceChildren(
-    ...config.pages.map((p) => {
+    ...profilePages(config, profileId).map((p) => {
       const b = n(
         "button",
         (p.parentId ? "　" : "") + "▦ " + p.name,
@@ -186,6 +213,7 @@ function render() {
       b.onclick = () => {
         pageId = p.id;
         selected = null;
+        selectedWidgets.clear();
         render();
       };
       return b;
@@ -205,7 +233,7 @@ function render() {
   renderEcosystem();
 }
 function renderBoard() {
-  const p = page(),
+  const p = effectivePages(config).find((p) => p.id === pageId) || page(),
     theme = themes[p.theme] || themes.midnight,
     b = $("#board");
   let items = structuredClone(p.widgets),
@@ -228,6 +256,8 @@ function renderBoard() {
     b.style.backgroundSize = "cover";
     b.style.backgroundPosition = "center";
   }
+  renderedTheme = theme;
+  renderedWidgets = new Map(items.map((w) => [w.id, w]));
   b.replaceChildren(
     ...items.map((w) => {
       const s = w.style || {},
@@ -235,7 +265,9 @@ function renderBoard() {
           "div",
           undefined,
           "card" +
-            (selected === w.id ? " selected" : "") +
+            (selected === w.id || selectedWidgets.has(w.id)
+              ? " selected"
+              : "") +
             (w.type === "spacer" ? " spacer" : ""),
         );
       c.tabIndex = 0;
@@ -243,7 +275,7 @@ function renderBoard() {
       c.setAttribute("aria-label", w.label + " 편집");
       c.dataset.widgetId = w.id;
       c.dataset.type = w.type;
-      c.draggable = !portrait;
+      c.draggable = !portrait && !w.inheritedPin;
       c.style.gridColumn = `${w.x + 1} / span ${w.w}`;
       c.style.gridRow = `${w.y + 1} / span ${w.h}`;
       c.style.background = s.background || theme.surface;
@@ -251,6 +283,7 @@ function renderBoard() {
       c.style.border = `${s.borderWidth ?? (w.type === "button" || w.type === "page" ? 1 : 0)}px solid ${s.borderColor || w.color || theme.accent}`;
       c.style.borderRadius = p.radius + "px";
       c.style.opacity = (s.opacity ?? 100) / 100;
+      c.style.boxShadow = p.shadow === false ? "none" : "0 4px 10px #0002";
       c.style.setProperty("--label-color", s.textColor || theme.text);
       c.style.setProperty("--label-size", (s.textSize || 17) + "px");
       c.style.setProperty("--icon-size", (s.iconSize || 32) + "%");
@@ -292,24 +325,54 @@ function renderBoard() {
       c.append(body, n("div", labelText(w.label), "label"));
       const resize = n("button", "↘", "resize-handle");
       resize.setAttribute("aria-label", "크기 조절");
-      if (!portrait) {
+      if (!portrait && !w.inheritedPin) {
         c.append(resize);
         resize.onpointerdown = (e) => resizeStart(e, c, w);
       }
       c.onclick = (e) => {
         if (e.target === resize) return;
-        selected = w.id;
-        $("#inspector").hidden = false;
+        if (w.inheritedPin) {
+          pageId = w.sourcePageId;
+          profileId = config.profiles.find((p) =>
+            p.pageIds.includes(pageId),
+          )?.id;
+          selected = w.id;
+          selectedWidgets.clear();
+          selectedWidgets.add(w.id);
+          render();
+          notice("고정 위젯의 원본 페이지에서 편집합니다.");
+          return;
+        }
+        if (e.shiftKey || e.metaKey || e.ctrlKey) {
+          if (selectedWidgets.has(w.id)) selectedWidgets.delete(w.id);
+          else selectedWidgets.add(w.id);
+        } else {
+          selectedWidgets.clear();
+          selectedWidgets.add(w.id);
+        }
+        selected = selectedWidgets.has(w.id)
+          ? w.id
+          : selectedWidgets.values().next().value || null;
+        $("#inspector").hidden = !selected;
         inspect();
         document
           .querySelectorAll(".card.selected")
           .forEach((e) => e.classList.remove("selected"));
-        c.classList.add("selected");
+        document
+          .querySelectorAll(".card")
+          .forEach((card) =>
+            card.classList.toggle(
+              "selected",
+              selectedWidgets.has(card.dataset.widgetId),
+            ),
+          );
+        updateSelection();
       };
       c.onkeydown = (e) => {
         if (
           ["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"].includes(e.key) &&
-          !portrait
+          !portrait &&
+          !w.inheritedPin
         ) {
           e.preventDefault();
           const real = page().widgets.find((x) => x.id === w.id),
@@ -340,7 +403,22 @@ function renderBoard() {
       return c;
     }),
   );
+  if (p.showEmptyCells)
+    for (let y = 0; y < rows; y++)
+      for (let x = 0; x < cols; x++)
+        if (
+          !items.some(
+            (w) => x >= w.x && x < w.x + w.w && y >= w.y && y < w.y + w.h,
+          )
+        ) {
+          const empty = n("div", undefined, "empty-grid-cell");
+          empty.style.gridColumn = String(x + 1);
+          empty.style.gridRow = String(y + 1);
+          empty.setAttribute("aria-hidden", "true");
+          b.append(empty);
+        }
   updateLive();
+  updateSelection();
 }
 function move(w, next) {
   const p = page();
@@ -415,16 +493,38 @@ $("#board").ondrop = (e) => {
 };
 function updateLive() {
   if (!config) return;
-  const ws = new Map(page().widgets.map((w) => [w.id, w]));
+  const ws = renderedWidgets;
   for (const c of $("#board").children) {
     const w = ws.get(c.dataset.widgetId);
     if (!w) continue;
     const value = state.variables?.[w.binding] ?? state[w.binding] ?? 0;
-    c.querySelector(".label").textContent = labelText(w.label);
+    const active = Boolean(
+        w.stateVariable && state.variables?.[w.stateVariable] === true,
+      ),
+      theme = renderedTheme;
+    const activeStyle = active
+      ? { ...(w.style || {}), ...(w.activeStyle || {}) }
+      : w.style || {};
+    c.querySelector(".label").textContent = labelText(
+      active && w.activeLabel ? w.activeLabel : w.label,
+    );
+    c.style.background = activeStyle.background || theme.surface;
+    c.style.setProperty("--label-color", activeStyle.textColor || theme.text);
+    c.style.borderColor = activeStyle.borderColor || w.color || theme.accent;
+    if (c.dataset.active !== String(active)) {
+      c.dataset.active = String(active);
+      const symbol = c.querySelector(".symbol");
+      if (symbol) {
+        const replacement = icon(
+          active && w.activeIcon ? w.activeIcon : w.icon,
+        );
+        symbol.replaceWith(replacement);
+      }
+    }
     if (w.type === "clock")
       c.querySelector(".clock").textContent = new Date().toLocaleTimeString(
-        "ko-KR",
-        { hour: "2-digit", minute: "2-digit", hour12: false },
+        editorLocale(),
+        { hour: "2-digit", minute: "2-digit", hour12: editorHour12() },
       );
     if (w.type === "system") {
       const target = c.querySelector(".system-reading"),
@@ -529,8 +629,8 @@ function updateLive() {
         source = data?.freshness?.[key];
       const at = source?.sampleAt || source?.lastSampleAt;
       const stamp = at
-        ? new Date(at).toLocaleTimeString("ko-KR", {
-            hour12: false,
+        ? new Date(at).toLocaleTimeString(editorLocale(), {
+            hour12: editorHour12(),
             timeZone: "Asia/Seoul",
           })
         : "확인 불가";
@@ -583,7 +683,7 @@ function updateLive() {
         : "○ 꺼짐";
     if (w.type === "calendar" && !w.provider)
       c.querySelector(".calendar-reading").textContent =
-        new Date().toLocaleDateString("ko-KR", {
+        new Date().toLocaleDateString(editorLocale(), {
           month: "long",
           day: "numeric",
           weekday: "long",
@@ -610,7 +710,7 @@ function updateLive() {
               .slice(0, w.type === "calendar" ? 6 : 3)
               .map(
                 (x) =>
-                  new Date(x.startsAt).toLocaleString("ko-KR", {
+                  new Date(x.startsAt).toLocaleString(editorLocale(), {
                     month: "numeric",
                     day: "numeric",
                     hour: "2-digit",
@@ -624,13 +724,16 @@ function updateLive() {
           const stale =
             provider.status !== "connected" ||
             Date.now() - data.updatedAt >= 45000;
-          const stamp = new Date(data.updatedAt).toLocaleString("ko-KR", {
-            month: "numeric",
-            day: "numeric",
-            hour: "2-digit",
-            minute: "2-digit",
-            second: "2-digit",
-          });
+          const stamp = new Date(data.updatedAt).toLocaleString(
+            editorLocale(),
+            {
+              month: "numeric",
+              day: "numeric",
+              hour: "2-digit",
+              minute: "2-digit",
+              second: "2-digit",
+            },
+          );
           target.textContent =
             (stale ? "이전 데이터 · 자동 재연결 중" : "최신 데이터") +
             " · " +
@@ -719,9 +822,43 @@ function pageSettings() {
       choices: {
         "": "없음",
         ...Object.fromEntries(
-          config.pages.filter((x) => x.id !== p.id).map((x) => [x.id, x.name]),
+          profilePages(config, profileId)
+            .filter((x) => x.id !== p.id)
+            .map((x) => [x.id, x.name]),
         ),
       },
+    },
+  );
+  field(
+    box,
+    "프로필 기본 디자인 상속",
+    !!p.inheritProfileDesign,
+    (v) => change(() => (p.inheritProfileDesign = v), true),
+    { type: "checkbox" },
+  );
+  field(
+    box,
+    "그림자 표시",
+    p.shadow !== false,
+    (v) => change(() => (p.shadow = v)),
+    { type: "checkbox" },
+  );
+  field(
+    box,
+    "빈 셀 표시",
+    !!p.showEmptyCells,
+    (v) => change(() => (p.showEmptyCells = v)),
+    { type: "checkbox" },
+  );
+  field(
+    box,
+    "소속 프로필",
+    activeProfile(config, profileId)?.id,
+    (v) => movePageToProfile(p.id, v),
+    {
+      choices: Object.fromEntries(
+        (config.profiles || []).map((x) => [x.id, x.name]),
+      ),
     },
   );
   button(box, "배경 이미지", () =>
@@ -759,6 +896,82 @@ function inspect() {
     (v) => change(() => (w.color = v)),
     { type: "color" },
   );
+  field(
+    box,
+    "다른 페이지에도 고정",
+    w.pinScope || "none",
+    (v) => change(() => (w.pinScope = v), true),
+    {
+      choices: {
+        none: "이 페이지에만",
+        profile: "이 프로필의 모든 페이지",
+        global: "모든 프로필의 페이지",
+      },
+    },
+  );
+  const stateFields = n("details", undefined, "state-style-editor");
+  stateFields.append(n("summary", "켜짐 상태 디자인"));
+  box.append(stateFields);
+  field(
+    stateFields,
+    "켜짐 상태 변수",
+    w.stateVariable || "",
+    (v) =>
+      change(() => {
+        if (v) w.stateVariable = v;
+        else {
+          delete w.stateVariable;
+          delete w.activeLabel;
+          delete w.activeIcon;
+          delete w.activeStyle;
+        }
+      }, true),
+    {
+      choices: {
+        "": "사용 안 함",
+        ...Object.fromEntries(
+          Object.entries(config.variables)
+            .filter(([, v]) => typeof v === "boolean")
+            .map(([k]) => [k, k]),
+        ),
+      },
+    },
+  );
+  if (w.stateVariable) {
+    field(stateFields, "켜졌을 때 이름", w.activeLabel || w.label, (v) =>
+      change(() => (w.activeLabel = v)),
+    );
+    field(
+      stateFields,
+      "켜졌을 때 아이콘",
+      w.activeIcon || w.icon,
+      (v) => change(() => (w.activeIcon = v)),
+      { choices: Object.fromEntries(Object.keys(paths).map((k) => [k, k])) },
+    );
+    w.activeStyle ??= {};
+    for (const [key, label, def] of [
+      ["background", "켜짐 배경색", "#285545"],
+      ["textColor", "켜짐 글자색", "#ecfff6"],
+      ["borderColor", "켜짐 테두리색", "#7bdbb5"],
+    ])
+      field(
+        stateFields,
+        label,
+        w.activeStyle[key] || def,
+        (v) => change(() => (w.activeStyle[key] = v)),
+        { type: "color" },
+      );
+    button(stateFields, "켜짐 스타일 초기화", () =>
+      change(() => (w.activeStyle = {}), true),
+    );
+  }
+  const palette = n("div", undefined, "settings-swatches");
+  for (const color of JSON.parse(document.body.dataset.palette || "[]")) {
+    const b = button(palette, color, () => change(() => (w.color = color)));
+    b.style.borderColor = color;
+    b.style.color = color;
+  }
+  box.append(palette);
   const size = n("div", undefined, "two");
   box.append(size);
   for (const [key, title, max] of [
@@ -1025,7 +1238,11 @@ function inspect() {
       "이동할 페이지",
       w.targetPage,
       (v) => change(() => (w.targetPage = v)),
-      { choices: Object.fromEntries(config.pages.map((p) => [p.id, p.name])) },
+      {
+        choices: Object.fromEntries(
+          profilePages(config, profileId).map((p) => [p.id, p.name]),
+        ),
+      },
     );
   if (["text", "toggle", "slider", "graph"].includes(w.type))
     field(
@@ -1328,7 +1545,8 @@ function addWidget(type) {
     if (type === "button") w.actions = [];
     if (type === "timer") w.minutes = 25;
     if (type === "page")
-      w.targetPage = config.pages.find((x) => x.id !== p.id)?.id || p.id;
+      w.targetPage =
+        profilePages(config, profileId).find((x) => x.id !== p.id)?.id || p.id;
     if (type === "graph") w.binding = "cpu";
     if (type === "system") w.metric = "overview";
     if (type === "grafana")
@@ -1366,6 +1584,7 @@ function addPage(name = "새 페이지", template = "empty") {
       widgets: [],
     };
     config.pages.push(p);
+    activeProfile(config, profileId)?.pageIds.push(p.id);
     pageId = p.id;
     selected = null;
   }, true);
@@ -1478,8 +1697,8 @@ async function exportFile(data) {
       }
     }
     const text = JSON.stringify(data, null, 2);
-    if (new TextEncoder().encode(text).length >= 16777216)
-      throw Error("이미지를 포함한 백업은 16MB 이하여야 합니다.");
+    if (new TextEncoder().encode(text).length >= 96 * 1024 * 1024)
+      throw Error("내보낼 파일은 96MB 이하여야 합니다.");
     if (window.webkit?.messageHandlers?.exportConfig) {
       window.webkit.messageHandlers.exportConfig.postMessage(text);
       return;
@@ -1488,7 +1707,12 @@ async function exportFile(data) {
     a.href = URL.createObjectURL(
       new Blob([text], { type: "application/json" }),
     );
-    a.download = data.kind ? "open-deck-theme.json" : "open-deck.json";
+    a.download =
+      data.kind === "open-deck-profile"
+        ? "open-deck-profile.json"
+        : data.kind === "open-deck-theme"
+          ? "open-deck-theme.json"
+          : "open-deck.json";
     a.click();
     setTimeout(() => URL.revokeObjectURL(a.href), 1000);
   } catch (e) {
@@ -1944,6 +2168,7 @@ $("#duplicatePage").onclick = () =>
     p.name += " 복사";
     for (const w of p.widgets) w.id = uid();
     config.pages.push(p);
+    activeProfile(config, profileId)?.pageIds.push(p.id);
     pageId = p.id;
     selected = null;
   }, true);
@@ -1957,8 +2182,8 @@ $("#pageUp").onclick = () =>
       ];
   }, true);
 $("#removePage").onclick = () => {
-  if (config.pages.length === 1)
-    return notice("페이지 하나는 남겨 두세요.", true);
+  if (profilePages(config, profileId).length === 1)
+    return notice("각 프로필에는 페이지 하나를 남겨 두세요.", true);
   if (!confirm("이 페이지를 삭제할까요? 실행 취소로 복구할 수 있습니다."))
     return;
   change(() => {
@@ -1968,6 +2193,11 @@ $("#removePage").onclick = () => {
       (a) => !removed.has(a.widgetId),
     );
     config.pages = config.pages.filter((p) => p.id !== id);
+    for (const profile of config.profiles) {
+      profile.pageIds = profile.pageIds.filter((x) => x !== id);
+      if (profile.defaultPageId === id)
+        profile.defaultPageId = profile.pageIds[0] || "";
+    }
     for (const p of config.pages) {
       if (p.parentId === id) delete p.parentId;
       for (const w of p.widgets) if (w.targetPage === id) w.targetPage = p.id;
@@ -2110,6 +2340,19 @@ $("#file").onchange = async () => {
         throw Error("이미지 파일 검증에 실패했습니다.");
     }
     delete raw.assets;
+    if (raw.kind === "open-deck-profile") {
+      checkpoint();
+      const imported = importProfile(config, raw);
+      profileId = imported.id;
+      pageId = imported.defaultPageId;
+      selected = null;
+      changed();
+      render();
+      notice(
+        "프로필을 가져왔습니다. 자동화와 앱 자동 전환은 꺼진 상태로 시작합니다.",
+      );
+      return;
+    }
     const c = migrate(raw);
     checkpoint();
     config = c;
@@ -2132,28 +2375,7 @@ $("#newPin").onclick = async () => {
 function pin(p) {
   $("#pin").textContent = p.slice(0, 3) + " " + p.slice(3);
 }
-$("#devicesToggle").onclick = async () => {
-  try {
-    const r = await api("/api/admin/info");
-    $("#devices").hidden = !$("#devices").hidden;
-    $("#wifiInfo").textContent = (r.network?.urls || []).join(" · ");
-    $("#deviceList").replaceChildren(
-      ...r.devices.map((d) => {
-        const row = n("div", undefined, "device-row");
-        row.append(n("span", d.name));
-        button(row, "연결 해제", async () => {
-          if (confirm("이 기기의 연결을 해제할까요?")) {
-            await api("/api/admin/revoke", "POST", { id: d.id });
-            row.remove();
-          }
-        });
-        return row;
-      }),
-    );
-  } catch (e) {
-    notice(e.message, true);
-  }
-};
+$("#devicesToggle").onclick = () => settingsCenter.openCategory("devices");
 for (const [id, target] of [
   ["editTab", "deckArea"],
   ["automationTab", "automationArea"],
@@ -2173,6 +2395,7 @@ document.addEventListener("keydown", (e) => {
   if (
     (e.metaKey || e.ctrlKey) &&
     e.key.toLowerCase() === "z" &&
+    !document.querySelector("dialog[open]") &&
     !["INPUT", "TEXTAREA"].includes(document.activeElement.tagName)
   ) {
     e.preventDefault();
@@ -2185,9 +2408,32 @@ window.onbeforeunload = (e) => {
     e.returnValue = "";
   }
 };
+const settingsCenter = createSettingsCenter({
+  api,
+  getConfig: () => config,
+  saveDraft: async () => {
+    if (dirty) await save();
+  },
+  restored: async (restoredConfig) => {
+    config = migrate(restoredConfig || (await api("/api/admin/info")).config);
+    profileId = config.defaultProfileId;
+    pageId = config.pages[0].id;
+    selected = null;
+    selectedWidgets.clear();
+    dirty = false;
+    render();
+  },
+  notice,
+  exportFile,
+});
+$("#settingsToggle").onclick = () => settingsCenter.open();
 try {
+  await ensureEditorUnlocked();
+  startEditorLockMonitor();
   info = await api("/api/admin/info");
   config = migrate(info.config);
+  profileId = config.defaultProfileId;
+  await settingsCenter.initialize();
   pageId = config.pages[0].id;
   pin(info.pin);
   await refreshPlugins();
@@ -2233,7 +2479,7 @@ function updateEcosystemStatus() {
       ? "연결됨 · 일정과 업무 요청을 동기화하고 있어요."
       : p?.data
         ? "이전 데이터 · " +
-          new Date(p.data.updatedAt).toLocaleTimeString("ko-KR") +
+          new Date(p.data.updatedAt).toLocaleTimeString(editorLocale()) +
           " 수집 · 자동으로 다시 연결하고 있어요."
         : p?.enabled
           ? "자동으로 다시 연결하고 있어요. 맥에서 Jimin OS 앱과 로그인을 확인해 주세요."
@@ -2306,3 +2552,397 @@ function renderEcosystem() {
 setInterval(() => {
   if (config && !document.hidden) updateLive();
 }, 5000);
+
+function renderProfiles() {
+  const current = activeProfile(config, profileId);
+  if (!current) return;
+  profileId = current.id;
+  const pages = profilePages(config, profileId);
+  if (!pages.some((p) => p.id === pageId))
+    pageId = current.defaultPageId || pages[0]?.id;
+  const select = $("#profileSelect");
+  select.replaceChildren(
+    ...config.profiles.map((profile) => {
+      const option = n(
+        "option",
+        profile.name +
+          (profile.id === config.defaultProfileId ? " · 기본" : ""),
+      );
+      option.value = profile.id;
+      return option;
+    }),
+  );
+  select.value = profileId;
+  select.onchange = () => {
+    profileId = select.value;
+    selected = null;
+    selectedWidgets.clear();
+    pageId = activeProfile(config, profileId).defaultPageId;
+    render();
+  };
+}
+function movePageToProfile(id, targetId) {
+  const source = config.profiles.find((p) => p.pageIds.includes(id)),
+    target = config.profiles.find((p) => p.id === targetId);
+  if (!source || !target || source === target) return;
+  const ids = new Set([id]);
+  let changedDescendants = true;
+  while (changedDescendants) {
+    changedDescendants = false;
+    for (const page of config.pages)
+      if (ids.has(page.parentId) && !ids.has(page.id)) {
+        ids.add(page.id);
+        changedDescendants = true;
+      }
+  }
+  if (source.pageIds.every((x) => ids.has(x)))
+    return notice("원래 프로필에 페이지 하나를 남겨 두세요.", true);
+  change(() => {
+    source.pageIds = source.pageIds.filter((x) => !ids.has(x));
+    target.pageIds.push(...ids);
+    if (ids.has(source.defaultPageId)) source.defaultPageId = source.pageIds[0];
+    const moved = config.pages.find((p) => p.id === id);
+    delete moved.parentId;
+    profileId = target.id;
+    pageId = id;
+  }, true);
+}
+function profileManager() {
+  const dialog = n("dialog", undefined, "profile-dialog");
+  const title = n("h2", "프로필 관리");
+  dialog.append(
+    title,
+    n(
+      "p",
+      "프로필마다 페이지 구성을 분리하고, 태블릿의 시작 프로필을 지정할 수 있어요.",
+    ),
+  );
+  const body = n("div");
+  dialog.append(body);
+  function draw() {
+    body.replaceChildren();
+    for (const profile of config.profiles) {
+      const row = n("section", undefined, "settings-section");
+      body.append(row);
+      field(row, "프로필 이름", profile.name, (v) =>
+        change(() => (profile.name = v), true),
+      );
+      field(
+        row,
+        "시작 페이지",
+        profile.defaultPageId,
+        (v) => change(() => (profile.defaultPageId = v)),
+        {
+          choices: Object.fromEntries(
+            profilePages(config, profile.id).map((p) => [p.id, p.name]),
+          ),
+        },
+      );
+      profile.defaults ??= {};
+      const defaults = n("details");
+      defaults.append(n("summary", "프로필 기본 디자인"));
+      row.append(defaults);
+      field(
+        defaults,
+        "기본 테마",
+        profile.defaults.theme || "midnight",
+        (v) => change(() => (profile.defaults.theme = v), true),
+        { choices: Object.fromEntries(Object.keys(themes).map((k) => [k, k])) },
+      );
+      field(
+        defaults,
+        "기본 간격",
+        profile.defaults.gap ?? 12,
+        (v) => change(() => (profile.defaults.gap = v), true),
+        { type: "number", min: 0, max: 32 },
+      );
+      field(
+        defaults,
+        "기본 모서리",
+        profile.defaults.radius ?? 13,
+        (v) => change(() => (profile.defaults.radius = v), true),
+        { type: "number", min: 0, max: 40 },
+      );
+      field(
+        defaults,
+        "기본 배경",
+        profile.defaults.background ||
+          themes[profile.defaults.theme || "midnight"].background,
+        (v) => change(() => (profile.defaults.background = v), true),
+        { type: "color" },
+      );
+      field(
+        defaults,
+        "기본 그림자",
+        profile.defaults.shadow !== false,
+        (v) => change(() => (profile.defaults.shadow = v), true),
+        { type: "checkbox" },
+      );
+      field(
+        defaults,
+        "빈 셀 표시",
+        !!profile.defaults.showEmptyCells,
+        (v) => change(() => (profile.defaults.showEmptyCells = v), true),
+        { type: "checkbox" },
+      );
+      button(defaults, "모든 페이지에 기본 디자인 상속", () =>
+        change(() => {
+          for (const p of profilePages(config, profile.id))
+            p.inheritProfileDesign = true;
+        }, true),
+      );
+      button(defaults, "기본 디자인 초기화", () => {
+        change(() => (profile.defaults = {}), true);
+        draw();
+      });
+      field(
+        row,
+        "앱 포커스 시 자동 전환 · Bundle ID (쉼표 구분)",
+        (profile.focusApps || []).join(", "),
+        (v) =>
+          change(
+            () =>
+              (profile.focusApps = v
+                .split(",")
+                .map((s) => s.trim())
+                .filter(Boolean)),
+          ),
+        { placeholder: "com.openai.chat, com.google.Chrome" },
+      );
+      button(
+        row,
+        profile.id === config.defaultProfileId
+          ? "기본 프로필"
+          : "기본으로 설정",
+        () => {
+          change(() => (config.defaultProfileId = profile.id), true);
+          draw();
+        },
+      );
+      button(row, "프로필 복제", () => {
+        if (config.pages.length + profile.pageIds.length > 40)
+          return notice("페이지는 최대 40개입니다.", true);
+        change(() => {
+          const cloned = importProfile(
+            config,
+            portableProfile(config, profile.id),
+          );
+          cloned.name = profile.name + " 복사";
+          profileId = cloned.id;
+          pageId = cloned.defaultPageId;
+        }, true);
+        draw();
+      });
+      button(row, "프로필 내보내기", () =>
+        exportFile(portableProfile(config, profile.id)),
+      );
+      if (config.profiles.length > 1)
+        button(
+          row,
+          "프로필 삭제 · 페이지 보존",
+          () => {
+            if (!confirm("프로필을 삭제하고 페이지를 다른 프로필로 옮길까요?"))
+              return;
+            change(() => {
+              const target = config.profiles.find((p) => p.id !== profile.id);
+              target.pageIds.push(...profile.pageIds);
+              config.profiles = config.profiles.filter(
+                (p) => p.id !== profile.id,
+              );
+              if (config.defaultProfileId === profile.id)
+                config.defaultProfileId = target.id;
+              profileId = target.id;
+              selected = null;
+            }, true);
+            draw();
+          },
+          "danger",
+        );
+    }
+  }
+  button(dialog, "＋ 새 프로필", () => {
+    if (config.pages.length >= 40)
+      return notice("페이지는 최대 40개입니다.", true);
+    const name = prompt("프로필 이름", "새 프로필");
+    if (!name) return;
+    change(() => {
+      const p = {
+        id: uid(),
+        name: "홈",
+        columns: 4,
+        rows: 3,
+        theme: "midnight",
+        gap: 12,
+        radius: 13,
+        widgets: [],
+      };
+      config.pages.push(p);
+      const profile = { id: uid(), name, pageIds: [p.id], defaultPageId: p.id };
+      config.profiles.push(profile);
+      profileId = profile.id;
+      pageId = p.id;
+      selected = null;
+    }, true);
+    draw();
+  });
+  button(
+    dialog,
+    "저장",
+    async () => {
+      try {
+        await save();
+        dialog.close();
+      } catch (e) {
+        notice(e.message, true);
+      }
+    },
+    "primary",
+  );
+  button(dialog, "닫기", () => dialog.close());
+  dialog.addEventListener("close", () => dialog.remove());
+  draw();
+  document.body.append(dialog);
+  dialog.showModal();
+}
+$("#manageProfiles").onclick = profileManager;
+function selectedIds() {
+  return new Set(
+    selectedWidgets.size ? selectedWidgets : selected ? [selected] : [],
+  );
+}
+function updateSelection() {
+  const count = selectedIds().size;
+  $("#selectionCount").textContent = count
+    ? `${count}개 선택됨`
+    : "Shift+클릭으로 여러 위젯 선택";
+  $("#pasteWidgets").disabled = !widgetClipboard.length;
+  $("#pasteStyle").disabled = !styleClipboard || !count;
+}
+function copyWidgets() {
+  const ids = selectedIds();
+  widgetClipboard = structuredClone(
+    page().widgets.filter((w) => ids.has(w.id)),
+  );
+  updateSelection();
+  notice(`${widgetClipboard.length}개 위젯을 복사했습니다.`);
+}
+function pasteWidgets() {
+  if (!widgetClipboard.length) return;
+  if (page().widgets.length + widgetClipboard.length > 128)
+    return notice("페이지당 최대 128개입니다.", true);
+  change(() => {
+    selectedWidgets.clear();
+    for (const original of widgetClipboard) {
+      const w = structuredClone(original);
+      w.id = uid();
+      w.x = 0;
+      w.y = 0;
+      page().widgets.push(w);
+      selectedWidgets.add(w.id);
+    }
+    ensurePlace();
+    selected = selectedWidgets.values().next().value;
+  }, true);
+}
+function deleteWidgets() {
+  const ids = selectedIds();
+  if (!ids.size) return;
+  change(() => {
+    page().widgets = page().widgets.filter((w) => !ids.has(w.id));
+    config.automations = (config.automations || []).filter(
+      (a) => !ids.has(a.widgetId),
+    );
+    selected = null;
+    selectedWidgets.clear();
+  }, true);
+}
+$("#copyWidgets").onclick = copyWidgets;
+$("#pasteWidgets").onclick = pasteWidgets;
+$("#deleteWidgets").onclick = deleteWidgets;
+$("#copyStyle").onclick = () => {
+  if (!widget()) return;
+  styleClipboard = {
+    style: structuredClone(widget().style || {}),
+    color: widget().color,
+  };
+  updateSelection();
+};
+$("#pasteStyle").onclick = () => {
+  if (!styleClipboard) return;
+  const ids = selectedIds();
+  change(() => {
+    for (const w of page().widgets)
+      if (ids.has(w.id)) {
+        w.style = structuredClone(styleClipboard.style);
+        w.color = styleClipboard.color;
+      }
+  }, true);
+};
+$("#moveWidgets").onclick = () => {
+  const ids = selectedIds();
+  if (!ids.size) return;
+  const choices = config.pages.filter((p) => p.id !== pageId);
+  if (!choices.length) return notice("이동할 페이지를 먼저 추가하세요.", true);
+  const dialog = n("dialog", undefined, "profile-dialog");
+  dialog.append(n("h2", "선택한 위젯 이동"));
+  let targetId = choices[0].id;
+  field(dialog, "이동할 페이지", targetId, (v) => (targetId = v), {
+    choices: Object.fromEntries(choices.map((p) => [p.id, p.name])),
+  });
+  button(
+    dialog,
+    "이동",
+    () => {
+      const target = config.pages.find((p) => p.id === targetId),
+        source = page();
+      const moved = source.widgets.filter((w) => ids.has(w.id));
+      if (target.widgets.length + moved.length > 128)
+        return notice("대상 페이지가 가득 찼습니다.", true);
+      change(() => {
+        source.widgets = source.widgets.filter((w) => !ids.has(w.id));
+        target.widgets.push(...moved);
+        target.rows = place(target.widgets, target.columns, target.rows, true);
+        pageId = target.id;
+        profileId = config.profiles.find((p) =>
+          p.pageIds.includes(target.id),
+        )?.id;
+        selected = null;
+        selectedWidgets.clear();
+      }, true);
+      dialog.close();
+    },
+    "primary",
+  );
+  button(dialog, "취소", () => dialog.close());
+  dialog.addEventListener("close", () => dialog.remove());
+  document.body.append(dialog);
+  dialog.showModal();
+};
+document.addEventListener("keydown", (e) => {
+  if (
+    ["INPUT", "TEXTAREA", "SELECT"].includes(document.activeElement?.tagName) ||
+    document.querySelector("dialog[open]")
+  )
+    return;
+  if (e.metaKey || e.ctrlKey) {
+    if (e.key.toLowerCase() === "c") {
+      e.preventDefault();
+      copyWidgets();
+    }
+    if (e.key.toLowerCase() === "v") {
+      e.preventDefault();
+      pasteWidgets();
+    }
+    if (e.key.toLowerCase() === "a") {
+      e.preventDefault();
+      selectedWidgets.clear();
+      page().widgets.forEach((w) => selectedWidgets.add(w.id));
+      selected = page().widgets[0]?.id;
+      renderBoard();
+    }
+  }
+  if (e.key === "Delete" || e.key === "Backspace") {
+    e.preventDefault();
+    deleteWidgets();
+  }
+});

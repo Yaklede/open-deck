@@ -1,3 +1,4 @@
+import { normalizeProfiles } from "./profiles.mjs";
 export const themes = {
   midnight: {
     background: "#0c1320",
@@ -86,5 +87,5 @@ export function migrate(input) {
       w.style ??= {};
     }
   }
-  return c;
+  return normalizeProfiles(c);
 }
