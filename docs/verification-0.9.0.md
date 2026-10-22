@@ -161,3 +161,12 @@ sandbox의 로컬 listen 제한 때문에 호스트 통합 검증은 로컬 테�
 - 설정센터 언어 선택을 전체 편집기와 모든 태블릿 문자열의 번역 완료로 간주하지 않는다.
 - Macro Deck native `.macroDeckProfile`/`.macroDeckBackup` 형식의 완전한 import, plugin 설정/credentials 이식은 지원한다고 주장하지 않는다. Open Deck JSON 및 이전 v1/v2 덱 JSON을 대상으로 검증했다.
 - Repeat/While/Switch 액션 편집기, 독립 스크립트 라이브러리, 일반 표현식 언어 등은 이번 설정 기능 확장과 별개로 남아 있다.
+
+## 배포 파일 검증
+
+- 공개 Latest: [v0.9.0](https://github.com/Yaklede/open-deck/releases/tag/v0.9.0), draft/prerelease 아님.
+- 태그 및 앱 build metadata 소스: `4b59a45a99864d3e8509f013a582336fa3c93d5b`.
+- 공개된 세 asset의 업로드 완료·크기·GitHub SHA-256 digest를 로컬 파일과 대조하여 모두 일치했다. [기계 판독 결과](evidence/0.9.0/release-verification.json)
+- 최종 Mac 앱을 다시 설치한 뒤 API build metadata가 위 commit과 일치하고 실기기가 Wi-Fi online인 것을 확인했다.
+- Android 업데이트 인증서 SHA-256: `15cfc6762d9b063abd2ce5b8cd665757f1e30b03707b921abb4619ff38aeba4a`. 기존 서명과 일치하며 기존 앱 위 설치 성공.
+- 최초 원격 CI는 새 설정 검사 스크립트의 실행 권한 누락으로 종료했다. 앱 소스·배포 파일을 변경하지 않고 검사 스크립트 실행 권한을 바로잡아 CI를 다시 실행했다.
