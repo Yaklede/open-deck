@@ -1,0 +1,9174 @@
+[
+  {
+    "source": "\n\n인증서: ",
+    "files": [
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
+    "source": "\nWi-Fi 인증서: ",
+    "files": [
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
+    "source": "\n메모리 압력 ",
+    "files": [
+      "host/public/app.js"
+    ]
+  },
+  {
+    "source": "\n발열 부담  ",
+    "files": [
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
+    "source": "\n사용 가능  ",
+    "files": [
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
+    "source": "\n설정 동기화: ",
+    "files": [
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
+    "source": "\n설정 버전: ",
+    "files": [
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
+    "source": "\n스왑  ",
+    "files": [
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
+    "source": "\n시스템 고정  ",
+    "files": [
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
+    "source": "\n실시간 시스템 상태",
+    "files": [
+      "host/public/app.js"
+    ]
+  },
+  {
+    "source": "\n압력  ",
+    "files": [
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
+    "source": "\n압축  ",
+    "files": [
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
+    "source": "\n앱  ",
+    "files": [
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
+    "source": "\n연결: ",
+    "files": [
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
+    "source": "\n원본 수집 ",
+    "files": [
+      "host/public/app.js"
+    ]
+  },
+  {
+    "source": "\n읽기  ",
+    "files": [
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
+    "source": "\n전원  ",
+    "files": [
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
+    "source": "\n전체 TPS ",
+    "files": [
+      "host/public/app.js"
+    ]
+  },
+  {
+    "source": "\n조회 ",
+    "files": [
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
+    "source": "\n지표 수집 ",
+    "files": [
+      "host/public/app.js"
+    ]
+  },
+  {
+    "source": "  ·  서비스 ",
+    "files": [
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
+    "source": " · 30초 갱신 · 최근 1시간 추이",
+    "files": [
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
+    "source": " · DB 연결 ",
+    "files": [
+      "host/public/app.js"
+    ]
+  },
+  {
+    "source": " · MIT · 무료\nAndroid ",
+    "files": [
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
+    "source": " · TPS는 Galera 로컬 커밋, QPS는 Questions 기준",
+    "files": [
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
+    "source": " · 기본",
+    "files": [
+      "host/public/app.js"
+    ]
+  },
+  {
+    "source": " · 메모리 ",
+    "files": [
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
+    "source": " · 상세",
+    "files": [
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
+    "source": " · 수집 성공 기준",
+    "files": [
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
+    "source": " · 수집 지연",
+    "files": [
+      "host/public/app.js"
+    ]
+  },
+  {
+    "source": " · 스왑 ",
+    "files": [
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
+    "source": " · 압력 ",
+    "files": [
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
+    "source": " · 연결 기록",
+    "files": [
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
+    "source": " · 오래된 데이터",
+    "files": [
+      "host/public/app.js"
+    ]
+  },
+  {
+    "source": " · 외 ",
+    "files": [
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
+    "source": " · 이전 데이터",
+    "files": [
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
+    "source": " · 전체 QPS ",
+    "files": [
+      "host/public/app.js"
+    ]
+  },
+  {
+    "source": " 그래프",
+    "files": [
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
+    "source": " 복사",
+    "files": [
+      "host/public/app.js"
+    ]
+  },
+  {
+    "source": " 사용",
+    "files": [
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
+    "source": " 사용 · 노드 최대",
+    "files": [
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
+    "source": " 상세 탭",
+    "files": [
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
+    "source": " 수집\n",
+    "files": [
+      "host/public/app.js"
+    ]
+  },
+  {
+    "source": " 수집 · ",
+    "files": [
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
+    "source": " 수집 · 자동으로 다시 연결하고 있어요.",
+    "files": [
+      "host/public/app.js"
+    ]
+  },
+  {
+    "source": " 여유",
+    "files": [
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
+    "source": " 이름",
+    "files": [
+      "host/public/app.js"
+    ]
+  },
+  {
+    "source": " 일정",
+    "files": [
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
+    "source": " 제거",
+    "files": [
+      "host/public/app.js"
+    ]
+  },
+  {
+    "source": " 편집",
+    "files": [
+      "host/public/app.js"
+    ]
+  },
+  {
+    "source": " 필터 값",
+    "files": [
+      "host/public/app.js"
+    ]
+  },
+  {
+    "source": ", 길게 눌러 프로젝트 변경",
+    "files": [
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
+    "source": ", 마지막 ",
+    "files": [
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
+    "source": "{0} · {1}페이지 · {2}개 위젯",
+    "files": [
+      "host/public/settings-ui.mjs"
+    ]
+  },
+  {
+    "source": "{0}개 선택됨",
+    "files": [
+      "host/public/app.js"
+    ]
+  },
+  {
+    "source": "{0}개 위젯을 복사했습니다.",
+    "files": [
+      "host/public/app.js"
+    ]
+  },
+  {
+    "source": "{0}개 표시 · {1} 갱신",
+    "files": [
+      "host/public/settings-ui.mjs"
+    ]
+  },
+  {
+    "source": "/s\nAPFS 공유 공간 기준 · I/O는 전체 저장 장치 합계\n\n",
+    "files": [
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
+    "source": "/s\n송신  ",
+    "files": [
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
+    "source": "/s\n쓰기  ",
+    "files": [
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
+    "source": "/s\n활성 유선·Wi-Fi 인터페이스 합계 (VPN 중복 제외)\n\n",
+    "files": [
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
+    "source": "/폴더/manifest.json이 들어 있는 경로",
+    "files": [
+      "host/public/app.js"
+    ]
+  },
+  {
+    "source": "＋ HTTP 연동",
+    "files": [
+      "host/public/index.html"
+    ]
+  },
+  {
+    "source": "＋ 단계",
+    "files": [
+      "host/public/index.html"
+    ]
+  },
+  {
+    "source": "＋ 변수",
+    "files": [
+      "host/public/index.html"
+    ]
+  },
+  {
+    "source": "＋ 새 페이지",
+    "files": [
+      "host/public/index.html"
+    ]
+  },
+  {
+    "source": "＋ 새 프로필",
+    "files": [
+      "host/public/app.js"
+    ]
+  },
+  {
+    "source": "＋ 시간 자동화 추가",
+    "files": [
+      "host/public/index.html"
+    ]
+  },
+  {
+    "source": "＋ 할 일 추가",
+    "files": [
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
+    "source": "○ 꺼짐",
+    "files": [
+      "host/public/app.js"
+    ]
+  },
+  {
+    "source": "● 켜짐",
+    "files": [
+      "host/public/app.js"
+    ]
+  },
+  {
+    "source": "⚙ 앱 설정",
+    "files": [
+      "host/public/index.html"
+    ]
+  },
+  {
+    "source": "1~40개의 페이지가 필요합니다.",
+    "files": [
+      "host/config.mjs"
+    ]
+  },
+  {
+    "source": "1~80자로 입력하세요.",
+    "files": [
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
+    "source": "100% = 1코어 · 탭하여 메모리 순 보기",
+    "files": [
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
+    "source": "10분 후",
+    "files": [
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
+    "source": "12시간",
+    "files": [
+      "host/public/settings-ui.mjs",
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
+    "source": "15분 후",
+    "files": [
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
+    "source": "1분 후",
+    "files": [
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
+    "source": "1시간 후",
+    "files": [
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
+    "source": "24시간",
+    "files": [
+      "host/public/settings-ui.mjs",
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
+    "source": "2분 후",
+    "files": [
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
+    "source": "30분 후",
+    "files": [
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
+    "source": "5분 후",
+    "files": [
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
+    "source": "64 MiB 이하 파일을 선택하세요.",
+    "files": [
+      "host/public/migration-ui.mjs"
+    ],
+    "english": "Select a file up to 64 MiB."
+  },
+  {
+    "source": "6자리 코드를 입력하세요.",
+    "files": [
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
+    "source": "6자리 페어링 코드",
+    "files": [
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
+    "source": "8840은 맥 편집기 전용 포트입니다.",
+    "files": [
+      "host/settings.mjs"
+    ]
+  },
+  {
+    "source": "ADB 경로를 먼저 설정하세요.",
+    "files": [
+      "host/system-tools.mjs"
+    ]
+  },
+  {
+    "source": "ADB 기기 연결 완료",
+    "files": [
+      "host/public/settings-ui.mjs"
+    ],
+    "english": "ADB device connected"
+  },
+  {
+    "source": "ADB 네트워크 기기 연결",
+    "files": [
+      "host/public/settings-ui.mjs"
+    ]
+  },
+  {
+    "source": "ADB 도구 다운로드·설치",
+    "files": [
+      "host/public/settings-ui.mjs"
+    ]
+  },
+  {
+    "source": "ADB 도구를 설치하고 연결 경로를 저장했습니다.",
+    "files": [
+      "host/public/settings-ui.mjs"
+    ],
+    "english": "ADB tools installed and connection path saved."
+  },
+  {
+    "source": "ADB 상태 확인",
+    "files": [
+      "host/public/settings-ui.mjs"
+    ]
+  },
+  {
+    "source": "ADB 서버 다시 시작",
+    "files": [
+      "host/public/settings-ui.mjs"
+    ]
+  },
+  {
+    "source": "ADB 서버 시작",
+    "files": [
+      "host/public/settings-ui.mjs"
+    ]
+  },
+  {
+    "source": "ADB 실행 파일",
+    "files": [
+      "host/public/settings-ui.mjs"
+    ]
+  },
+  {
+    "source": "ADB 실행 파일을 찾을 수 없습니다.",
+    "files": [
+      "host/system-tools.mjs"
+    ]
+  },
+  {
+    "source": "ADB 응답을 확인하지 못했습니다.",
+    "files": [
+      "host/system-tools.mjs"
+    ]
+  },
+  {
+    "source": "ADB 주소 (호스트:포트)",
+    "files": [
+      "host/public/settings-ui.mjs"
+    ],
+    "english": "ADB address (host:port)"
+  },
+  {
+    "source": "Android 도구 다운로드에 실패했습니다.",
+    "files": [
+      "host/system-tools.mjs"
+    ]
+  },
+  {
+    "source": "Android 도구 목록을 확인할 수 없습니다.",
+    "files": [
+      "host/system-tools.mjs"
+    ]
+  },
+  {
+    "source": "Android 도구 체크섬 검증에 실패했습니다.",
+    "files": [
+      "host/system-tools.mjs"
+    ]
+  },
+  {
+    "source": "Android 도구를 이미 설치 중입니다.",
+    "files": [
+      "host/system-tools.mjs"
+    ]
+  },
+  {
+    "source": "Android 상태 표시줄과 탐색 막대를 숨깁니다.",
+    "files": [
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
+    "source": "Android 설치 실패: 기기 권한·저장 공간·기존 앱 서명을 확인하세요.",
+    "files": [
+      "host/system-tools.mjs"
+    ]
+  },
+  {
+    "source": "Android 알림 권한",
+    "files": [
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
+    "source": "Android 터치 진동 설정을 따릅니다.",
+    "files": [
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
+    "source": "APK 버전 정보를 확인하세요.",
+    "files": [
+      "host/system-tools.mjs"
+    ]
+  },
+  {
+    "source": "APK 체크섬 검증 실패",
+    "files": [
+      "host/system-tools.mjs"
+    ]
+  },
+  {
+    "source": "APK 체크섬 정보가 없습니다.",
+    "files": [
+      "host/system-tools.mjs"
+    ]
+  },
+  {
+    "source": "Bearer 토큰 · macOS 키체인에 저장",
+    "files": [
+      "host/public/app.js"
+    ]
+  },
+  {
+    "source": "Bearer 토큰 사용",
+    "files": [
+      "host/public/app.js"
+    ]
+  },
+  {
+    "source": "Chrome 프로필 / 기존 탭",
+    "files": [
+      "host/public/app.js"
+    ]
+  },
+  {
+    "source": "Chrome 프로필 폴더",
+    "files": [
+      "host/public/app.js"
+    ]
+  },
+  {
+    "source": "Chrome 프로필 폴더가 잘못되었습니다.",
+    "files": [
+      "host/chrome.mjs"
+    ]
+  },
+  {
+    "source": "Chrome을 제어 중입니다. 다시 눌러 주세요.",
+    "files": [
+      "host/engine.mjs"
+    ]
+  },
+  {
+    "source": "CPU · 메모리",
+    "files": [
+      "host/public/app.js"
+    ]
+  },
+  {
+    "source": "CPU 100%는 1코어 사용량이에요. 약 6초 간격으로 비교하며 메모리는 앱의 물리적 사용량을 보여줘요.\n\n",
+    "files": [
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
+    "source": "CPU 보고 job 수",
+    "files": [
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
+    "source": "CPU 상세 보기 ›",
+    "files": [
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
+    "source": "CPU 순으로",
+    "files": [
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
+    "source": "CPU 추이",
+    "files": [
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
+    "source": "CPU 추이 · %",
+    "files": [
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
+    "source": "CPU 패널 ID",
+    "files": [
+      "host/public/app.js"
+    ]
+  },
+  {
+    "source": "CPU를 많이 쓰는 앱",
+    "files": [
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
+    "source": "DB CPU 추이",
+    "files": [
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
+    "source": "DB 노드 지표 수집 없음",
+    "files": [
+      "host/public/app.js",
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
+    "source": "DB 메모리",
+    "files": [
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
+    "source": "DB 메모리 추이",
+    "files": [
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
+    "source": "DB 상태",
+    "files": [
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
+    "source": "DB 상태 · CPU · TPS",
+    "files": [
+      "host/public/app.js"
+    ]
+  },
+  {
+    "source": "DB 연결 수",
+    "files": [
+      "host/public/monitor-rules.mjs",
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
+    "source": "DB 준비 상태 확인 필요",
+    "files": [
+      "host/monitor-alerts.mjs"
+    ]
+  },
+  {
+    "source": "Dock 아이콘 표시",
+    "files": [
+      "host/public/settings-ui.mjs"
+    ]
+  },
+  {
+    "source": "GitHub Releases에서 업데이트를 확인합니다.",
+    "files": [
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
+    "source": "Grafana HTTPS 대시보드 주소",
+    "files": [
+      "host/public/app.js"
+    ]
+  },
+  {
+    "source": "Grafana 대시보드",
+    "files": [
+      "host/public/app.js"
+    ]
+  },
+  {
+    "source": "Grafana 연결을 확인해 주세요",
+    "files": [
+      "host/grafana.mjs"
+    ]
+  },
+  {
+    "source": "Grafana 위젯을 선택하세요.",
+    "files": [
+      "host/server.mjs"
+    ]
+  },
+  {
+    "source": "Grafana 임계치 초과와 정상 복구",
+    "files": [
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
+    "source": "Grafana 조회 설정을 확인하세요.",
+    "files": [
+      "host/config.mjs"
+    ]
+  },
+  {
+    "source": "Grafana 조회 토큰",
+    "files": [
+      "host/public/app.js"
+    ]
+  },
+  {
+    "source": "Grafana 조회 토큰을 키체인에 저장했습니다.",
+    "files": [
+      "host/public/app.js"
+    ]
+  },
+  {
+    "source": "Grafana 주소를 확인하세요.",
+    "files": [
+      "host/config.mjs"
+    ]
+  },
+  {
+    "source": "Grafana 지표 조회를 확인해 주세요",
+    "files": [
+      "host/grafana.mjs"
+    ]
+  },
+  {
+    "source": "Grafana 최근 1시간 추이 그래프",
+    "files": [
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
+    "source": "Grafana 카드와 프로젝트 그룹을 확인하세요.",
+    "files": [
+      "host/config.mjs"
+    ]
+  },
+  {
+    "source": "Grafana 토큰을 키체인에 저장하지 못했습니다.",
+    "files": [
+      "host/server.mjs"
+    ]
+  },
+  {
+    "source": "Grafana 프로젝트",
+    "files": [
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
+    "source": "Grafana 프로젝트 이름과 값을 확인하세요.",
+    "files": [
+      "host/config.mjs"
+    ]
+  },
+  {
+    "source": "Grafana는 인증 정보 없는 HTTPS 주소를 사용하세요.",
+    "files": [
+      "host/config.mjs"
+    ]
+  },
+  {
+    "source": "HTTP · Webhook 연동",
+    "files": [
+      "host/public/index.html"
+    ]
+  },
+  {
+    "source": "HTTP Wi-Fi는 사설 네트워크에서 암호화하지 않는 연결을 직접 허용한 경우에만 사용할 수 있습니다.",
+    "files": [
+      "android/app/src/main/java/app/opendeck/client/PinnedConnection.java"
+    ]
+  },
+  {
+    "source": "HTTP 메서드를 확인하세요.",
+    "files": [
+      "host/config.mjs"
+    ]
+  },
+  {
+    "source": "HTTP 연동 설정이 충돌합니다: {0}",
+    "files": [
+      "host/backups.mjs"
+    ]
+  },
+  {
+    "source": "HTTP 연동 실행",
+    "files": [
+      "host/public/app.js"
+    ]
+  },
+  {
+    "source": "HTTP 요청",
+    "files": [
+      "host/public/settings-ui.mjs"
+    ]
+  },
+  {
+    "source": "http/https URL이 필요합니다.",
+    "files": [
+      "host/chrome.mjs"
+    ]
+  },
+  {
+    "source": "http/https 주소가 필요합니다.",
+    "files": [
+      "host/engine.mjs"
+    ]
+  },
+  {
+    "source": "HTTP/HTTPS 주소가 필요합니다.",
+    "files": [
+      "host/config.mjs"
+    ]
+  },
+  {
+    "source": "HTTPS 암호화 사용",
+    "files": [
+      "host/public/settings-ui.mjs"
+    ]
+  },
+  {
+    "source": "HTTPS 연결 방식",
+    "files": [
+      "host/public/settings-ui.mjs"
+    ]
+  },
+  {
+    "source": "HTTP와 HTTPS 포트는 서로 달라야 합니다.",
+    "files": [
+      "host/settings.mjs"
+    ]
+  },
+  {
+    "source": "HTTP와 HTTPS 함께 사용",
+    "files": [
+      "host/public/settings-ui.mjs"
+    ]
+  },
+  {
+    "source": "Jimin OS 동작을 확인하세요.",
+    "files": [
+      "host/config.mjs"
+    ]
+  },
+  {
+    "source": "Jimin OS 알림",
+    "files": [
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
+    "source": "Jimin OS 알림 설정을 확인하세요.",
+    "files": [
+      "host/config.mjs"
+    ]
+  },
+  {
+    "source": "Jimin OS 연결 대기",
+    "files": [
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
+    "source": "Jimin OS 연결을 기다리고 있어요.",
+    "files": [
+      "host/public/app.js"
+    ]
+  },
+  {
+    "source": "Jimin OS 연결을 확인했어요",
+    "files": [
+      "host/extensions.mjs"
+    ]
+  },
+  {
+    "source": "Jimin OS 열기",
+    "files": [
+      "host/public/app.js"
+    ]
+  },
+  {
+    "source": "Jimin OS 일정",
+    "files": [
+      "host/extensions.mjs"
+    ]
+  },
+  {
+    "source": "Jimin OS 일정과 업무",
+    "files": [
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
+    "source": "Jimin OS 캘린더에 저장해요. 시간은 한국 표준시예요.",
+    "files": [
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
+    "source": "Jimin OS에 다시 연결하고 있어요. 맥에서 앱과 로그인을 확인해 주세요.",
+    "files": [
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
+    "source": "Jimin OS에 저장하고 있어요…",
+    "files": [
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
+    "source": "Jimin OS에서 처리 중이에요. 이 창을 닫아도 다음 요청 때 결과를 확인할 수 있어요.",
+    "files": [
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
+    "source": "JSON 값을 입력하세요.",
+    "files": [
+      "host/public/app.js"
+    ]
+  },
+  {
+    "source": "JSON 객체를 입력하세요.",
+    "files": [
+      "host/public/app.js"
+    ]
+  },
+  {
+    "source": "JSON 경로 (예: result.count)",
+    "files": [
+      "host/public/app.js"
+    ]
+  },
+  {
+    "source": "JSON 응답을 변수에 저장합니다. 인증 토큰은 이 맥의 키체인에 저장되며 백업에 포함되지 않습니다.",
+    "files": [
+      "host/public/index.html"
+    ]
+  },
+  {
+    "source": "JSON이 필요합니다.",
+    "files": [
+      "host/server.mjs"
+    ]
+  },
+  {
+    "source": "Mac 로그인 시 자동 실행",
+    "files": [
+      "host/public/settings-ui.mjs"
+    ]
+  },
+  {
+    "source": "Mac 시작 · Dock",
+    "files": [
+      "host/public/settings-ui.mjs"
+    ]
+  },
+  {
+    "source": "Mac 음량",
+    "files": [
+      "host/public/app.js",
+      "host/config.mjs"
+    ]
+  },
+  {
+    "source": "Mac 음소거",
+    "files": [
+      "host/public/app.js"
+    ]
+  },
+  {
+    "source": "macOS arm64 manifest가 필요합니다.",
+    "files": [
+      "host/plugins.mjs"
+    ]
+  },
+  {
+    "source": "macOS 호스트 + Android 태블릿 · MIT 오픈소스",
+    "files": [
+      "host/public/settings-ui.mjs"
+    ]
+  },
+  {
+    "source": "Macro Deck 3 프로필·폴더·버튼·백업 및 Macro Deck 2 프로필을 가져옵니다. 미리보기에서 제외 항목을 확인하세요. 기존 프로필은 유지됩니다.",
+    "files": [
+      "host/public/migration-ui.mjs"
+    ]
+  },
+  {
+    "source": "Macro Deck 3 호환 실험 기능입니다. 신뢰하는 macOS arm64 플러그인을 압축 해제한 폴더로 등록하세요. 액션·일반 변수 읽기·이벤트를 지원하며 전용 화면·설정 마법사·스토어 설치는 아직 지원하지 않습니다. 플러그인은 내 계정 권한으로 실행됩니다.",
+    "files": [
+      "host/public/index.html"
+    ]
+  },
+  {
+    "source": "manifest ID가 변경됐습니다. 다시 등록하세요.",
+    "files": [
+      "host/plugins.mjs"
+    ]
+  },
+  {
+    "source": "manifest가 너무 큽니다.",
+    "files": [
+      "host/plugins.mjs"
+    ]
+  },
+  {
+    "source": "Open Deck · 설정",
+    "files": [
+      "host/public/settings-ui.mjs",
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ],
+    "english": "Open Deck · Settings"
+  },
+  {
+    "source": "Open Deck · 알림 테스트",
+    "files": [
+      "host/monitor-alerts.mjs"
+    ]
+  },
+  {
+    "source": "Open Deck 관리자 로그인",
+    "files": [
+      "host/public/editor-lock.mjs"
+    ],
+    "english": "Open Deck administrator login"
+  },
+  {
+    "source": "Open Deck 설정",
+    "files": [
+      "host/public/settings-ui.mjs"
+    ],
+    "english": "Open Deck settings"
+  },
+  {
+    "source": "Open Deck 열기",
+    "files": [
+      "macos/OpenDeck.swift"
+    ]
+  },
+  {
+    "source": "Open Deck 정보",
+    "files": [
+      "macos/OpenDeck.swift"
+    ]
+  },
+  {
+    "source": "Open Deck 종료",
+    "files": [
+      "macos/OpenDeck.swift"
+    ]
+  },
+  {
+    "source": "Open Deck 태블릿 컨트롤 패널 · 길게 눌러 설정",
+    "files": [
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
+    "source": "Open Deck 편집기 잠금",
+    "files": [
+      "host/public/editor-lock.mjs"
+    ],
+    "english": "Open Deck editor locked"
+  },
+  {
+    "source": "Open Deck.app에서 편집기를 여세요.",
+    "files": [
+      "host/server.mjs"
+    ]
+  },
+  {
+    "source": "Open Deck이 열려 있는 동안 자동 꺼짐을 막습니다.",
+    "files": [
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
+    "source": "Open Deck이 이미 설치된 ADB 기기만 업데이트합니다. 새 버전과 체크섬을 확인하며 기존 앱과 서명이 일치해야 설치됩니다. 기본값은 끔입니다.",
+    "files": [
+      "host/public/settings-ui.mjs"
+    ]
+  },
+  {
+    "source": "OS 알림",
+    "files": [
+      "host/public/app.js",
+      "host/public/settings-ui.mjs"
+    ]
+  },
+  {
+    "source": "OS 업무 요청",
+    "files": [
+      "host/public/app.js"
+    ]
+  },
+  {
+    "source": "OS 연결 대기 · 자동 재연결 중",
+    "files": [
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
+    "source": "OS 이전 데이터 · 재연결 중",
+    "files": [
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
+    "source": "OS 일정 목록",
+    "files": [
+      "host/public/app.js"
+    ]
+  },
+  {
+    "source": "OS 일정, 시스템·DB 경고와 배너",
+    "files": [
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
+    "source": "OS 최신",
+    "files": [
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
+    "source": "OS 탭을 연결했어요.",
+    "files": [
+      "host/public/app.js"
+    ]
+  },
+  {
+    "source": "PEM 인증서와 개인 키를 확인하세요.",
+    "files": [
+      "host/network.mjs"
+    ]
+  },
+  {
+    "source": "PNG, JPEG, WebP 이미지를 선택하세요.",
+    "files": [
+      "host/assets.mjs"
+    ]
+  },
+  {
+    "source": "QPS · 쿼리/초",
+    "files": [
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
+    "source": "QPS (쿼리/초)",
+    "files": [
+      "host/public/monitor-rules.mjs"
+    ]
+  },
+  {
+    "source": "Shift+클릭으로 여러 위젯 선택",
+    "files": [
+      "host/public/app.js",
+      "host/public/index.html"
+    ]
+  },
+  {
+    "source": "TPS · 커밋/초",
+    "files": [
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
+    "source": "TPS (커밋/초)",
+    "files": [
+      "host/public/monitor-rules.mjs"
+    ]
+  },
+  {
+    "source": "TPS 합계 쿼리를 확인해 주세요",
+    "files": [
+      "host/grafana.mjs"
+    ]
+  },
+  {
+    "source": "TPS 합계 패널 ID",
+    "files": [
+      "host/public/app.js"
+    ]
+  },
+  {
+    "source": "TPS·QPS·연결 수는 임계치를 입력한 뒤 켜세요. 처리량 감소를 감지하려면 ‘이하일 때’를 선택하세요.",
+    "files": [
+      "host/public/app.js"
+    ]
+  },
+  {
+    "source": "USB · 연결됨",
+    "files": [
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
+    "source": "USB + Wi-Fi · 로컬 연결",
+    "files": [
+      "host/public/index.html"
+    ]
+  },
+  {
+    "source": "USB 다시 연결",
+    "files": [
+      "host/public/settings-ui.mjs",
+      "macos/OpenDeck.swift"
+    ]
+  },
+  {
+    "source": "USB 연결 사용",
+    "files": [
+      "host/public/settings-ui.mjs"
+    ]
+  },
+  {
+    "source": "USB 터널을 다시 연결했습니다.",
+    "files": [
+      "host/public/settings-ui.mjs"
+    ],
+    "english": "USB tunnels reconnected."
+  },
+  {
+    "source": "USB로 맥의 Wi-Fi 인증서를 먼저 등록하세요.",
+    "files": [
+      "android/app/src/main/java/app/opendeck/client/PinnedConnection.java"
+    ]
+  },
+  {
+    "source": "USB로 앱 설치 · 업데이트",
+    "files": [
+      "host/public/settings-ui.mjs"
+    ]
+  },
+  {
+    "source": "USB로 한 번 등록한 뒤 같은 맥의 Wi-Fi 주소를 자동으로 찾을 수 있습니다.",
+    "files": [
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
+    "source": "USB로 한 번 연결해 Wi-Fi 인증서를 등록하세요.",
+    "files": [
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
+    "source": "USB로만 연결",
+    "files": [
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
+    "source": "USB만 사용",
+    "files": [
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
+    "source": "Wi-Fi · 암호화 안 됨",
+    "files": [
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
+    "source": "Wi-Fi · 암호화 연결됨",
+    "files": [
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
+    "source": "Wi-Fi / USB, 재연결과 기기 이름",
+    "files": [
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
+    "source": "Wi-Fi 연결",
+    "files": [
+      "host/public/settings-ui.mjs"
+    ]
+  },
+  {
+    "source": "Wi-Fi 연결 허용",
+    "files": [
+      "host/public/settings-ui.mjs"
+    ]
+  },
+  {
+    "source": "Wi-Fi 인증서",
+    "files": [
+      "host/public/settings-ui.mjs"
+    ]
+  },
+  {
+    "source": "Wi-Fi 주소",
+    "files": [
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
+    "source": "Wi-Fi 주소는 하나 이상 유지해야 합니다.",
+    "files": [
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
+    "source": "Wi-Fi 호스트 검색",
+    "files": [
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
+    "source": "Wi-Fi는 최초 USB 등록 때 확인한 인증서로 암호화 연결합니다.",
+    "files": [
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
+    "source": "Wi-Fi로만 연결",
+    "files": [
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
+    "source": "Wi-Fi만 사용",
+    "files": [
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
+    "source": "Wi-Fi에서는 태블릿 연결만 허용됩니다.",
+    "files": [
+      "host/server.mjs"
+    ]
+  },
+  {
+    "source": "Workspace로",
+    "files": [
+      "host/public/app.js"
+    ]
+  },
+  {
+    "source": "가동 ",
+    "files": [
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
+    "source": "가로",
+    "files": [
+      "host/public/settings-ui.mjs"
+    ]
+  },
+  {
+    "source": "가로 고정",
+    "files": [
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
+    "source": "가로 미리보기",
+    "files": [
+      "host/public/app.js",
+      "host/public/index.html"
+    ]
+  },
+  {
+    "source": "가운데",
+    "files": [
+      "host/public/app.js"
+    ]
+  },
+  {
+    "source": "가져오기",
+    "files": [
+      "host/public/migration-ui.mjs",
+      "host/public/index.html"
+    ]
+  },
+  {
+    "source": "가져오기 완료",
+    "files": [
+      "host/public/migration-ui.mjs"
+    ],
+    "english": "Import complete"
+  },
+  {
+    "source": "가져오기 파일",
+    "files": [
+      "host/public/migration-ui.mjs"
+    ],
+    "english": "Import file"
+  },
+  {
+    "source": "가져온 백업",
+    "files": [
+      "host/public/settings-ui.mjs"
+    ],
+    "english": "Imported backup"
+  },
+  {
+    "source": "가져온 프로필",
+    "files": [
+      "host/public/profile-tools.mjs"
+    ]
+  },
+  {
+    "source": "가져왔습니다. 미리 보기 후 복원하세요.",
+    "files": [
+      "host/public/settings-ui.mjs"
+    ],
+    "english": "Imported. Preview the backup before restoring."
+  },
+  {
+    "source": "각 페이지로 이동하는 버튼을 표시합니다.",
+    "files": [
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
+    "source": "각 프로필에는 페이지 하나를 남겨 두세요.",
+    "files": [
+      "host/public/app.js"
+    ]
+  },
+  {
+    "source": "간격",
+    "files": [
+      "host/public/app.js"
+    ]
+  },
+  {
+    "source": "간단 · 그라데이션과 효과 줄임",
+    "files": [
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
+    "source": "간소화",
+    "files": [
+      "host/public/settings-ui.mjs"
+    ]
+  },
+  {
+    "source": "값",
+    "files": [
+      "host/public/app.js"
+    ]
+  },
+  {
+    "source": "값 교체",
+    "files": [
+      "host/public/security-ui.mjs"
+    ]
+  },
+  {
+    "source": "값 위젯 추가",
+    "files": [
+      "host/public/app.js"
+    ]
+  },
+  {
+    "source": "값 조건 (JSON · 비우면 모든 변경)",
+    "files": [
+      "host/public/app.js"
+    ]
+  },
+  {
+    "source": "강조색",
+    "files": [
+      "host/public/app.js",
+      "host/public/settings-ui.mjs"
+    ]
+  },
+  {
+    "source": "같은 Wi-Fi에서 등록한 맥을 찾고 있습니다…",
+    "files": [
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
+    "source": "같은 요청 재시도",
+    "files": [
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
+    "source": "개",
+    "files": [
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
+    "source": "개는 상세 보기",
+    "files": [
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
+    "source": "개인 설정은 이 맥에만 저장됩니다.",
+    "files": [
+      "host/public/index.html"
+    ]
+  },
+  {
+    "source": "개인 키 PEM 파일",
+    "files": [
+      "host/public/settings-ui.mjs"
+    ],
+    "english": "Private-key PEM file"
+  },
+  {
+    "source": "갱신 주기는 5~86400초입니다.",
+    "files": [
+      "host/config.mjs"
+    ]
+  },
+  {
+    "source": "건",
+    "files": [
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
+    "source": "검색을 시작하지 못했습니다. 주소를 직접 추가할 수 있습니다.",
+    "files": [
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
+    "source": "결과를 아직 확인하지 못했어요. 상태를 확인하거나 같은 요청을 다시 시도해 주세요.",
+    "files": [
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
+    "source": "계속하려면 편집기 암호를 입력하세요. 연결된 태블릿은 계속 사용할 수 있어요.",
+    "files": [
+      "host/public/editor-lock.mjs"
+    ],
+    "english": "Enter your editor password to continue. Connected tablets remain available."
+  },
+  {
+    "source": "계정 · 보안",
+    "files": [
+      "host/public/settings-ui.mjs"
+    ]
+  },
+  {
+    "source": "계정 복구",
+    "files": [
+      "host/public/editor-lock.mjs"
+    ],
+    "english": "Recover account"
+  },
+  {
+    "source": "계정 복구 키",
+    "files": [
+      "host/public/editor-lock.mjs",
+      "host/public/security-ui.mjs"
+    ],
+    "english": "Account recovery key"
+  },
+  {
+    "source": "계정 복구 키 교체",
+    "files": [
+      "host/public/security-ui.mjs"
+    ]
+  },
+  {
+    "source": "계정 복구 키 분실 처리",
+    "files": [
+      "host/public/security-ui.mjs"
+    ]
+  },
+  {
+    "source": "계정 복구 키 생성",
+    "files": [
+      "host/public/security-ui.mjs"
+    ]
+  },
+  {
+    "source": "계정 복구 키가 없습니다. 암호를 잊기 전에 생성하고 보관하세요.",
+    "files": [
+      "host/public/security-ui.mjs"
+    ]
+  },
+  {
+    "source": "계정 복구 키가 활성화되어 있습니다. 분실했다면 새 키로 교체하세요.",
+    "files": [
+      "host/public/security-ui.mjs"
+    ]
+  },
+  {
+    "source": "계정 복구에 한 번 사용한 키는 폐기됩니다. 암호화 백업 복구 키는 별도로 관리합니다.",
+    "files": [
+      "host/public/security-ui.mjs"
+    ]
+  },
+  {
+    "source": "계정 암호",
+    "files": [
+      "host/public/editor-lock.mjs"
+    ],
+    "english": "Account password"
+  },
+  {
+    "source": "계정 암호 (8자 이상)",
+    "files": [
+      "host/public/security-ui.mjs"
+    ],
+    "english": "Account password (8+ characters)"
+  },
+  {
+    "source": "계정 암호 다시 입력",
+    "files": [
+      "host/public/security-ui.mjs"
+    ],
+    "english": "Confirm account password"
+  },
+  {
+    "source": "계정 암호 변경",
+    "files": [
+      "host/public/security-ui.mjs"
+    ]
+  },
+  {
+    "source": "계정 없이 · 구독 없이 · 내 기기에서만",
+    "files": [
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
+    "source": "계정 작업을 확인하세요.",
+    "files": [
+      "host/server.mjs"
+    ]
+  },
+  {
+    "source": "계정 정보 저장",
+    "files": [
+      "host/public/security-ui.mjs"
+    ]
+  },
+  {
+    "source": "계정을 만들면 사용자명과 암호로 편집기에 로그인합니다.",
+    "files": [
+      "host/public/security-ui.mjs"
+    ]
+  },
+  {
+    "source": "고급 동작 JSON",
+    "files": [
+      "host/public/index.html"
+    ]
+  },
+  {
+    "source": "고급 동작 JSON 표시",
+    "files": [
+      "host/public/settings-ui.mjs"
+    ]
+  },
+  {
+    "source": "고급 진단 JSON",
+    "files": [
+      "host/public/settings-ui.mjs"
+    ],
+    "english": "Advanced diagnostics JSON"
+  },
+  {
+    "source": "고정 길이 진동",
+    "files": [
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
+    "source": "고정 범위를 확인하세요.",
+    "files": [
+      "host/config.mjs"
+    ]
+  },
+  {
+    "source": "고정 위젯을 배치할 공간이 없습니다. 페이지를 나누거나 고정을 줄이세요.",
+    "files": [
+      "host/public/profiles.mjs"
+    ]
+  },
+  {
+    "source": "고정 위젯의 원본 페이지에서 편집합니다.",
+    "files": [
+      "host/public/app.js"
+    ]
+  },
+  {
+    "source": "고정폭",
+    "files": [
+      "host/public/app.js",
+      "host/public/settings-ui.mjs"
+    ]
+  },
+  {
+    "source": "공개 CA 인증서 내보내기",
+    "files": [
+      "host/public/settings-ui.mjs"
+    ]
+  },
+  {
+    "source": "공개 연결 포트",
+    "files": [
+      "host/public/settings-ui.mjs"
+    ]
+  },
+  {
+    "source": "공식 Android 다운로드 주소가 아닙니다.",
+    "files": [
+      "host/system-tools.mjs"
+    ]
+  },
+  {
+    "source": "공식 도구 URL·크기·체크섬을 확인할 수 없습니다.",
+    "files": [
+      "host/system-tools.mjs"
+    ]
+  },
+  {
+    "source": "공식 도구 압축 파일에 ADB가 없습니다.",
+    "files": [
+      "host/system-tools.mjs"
+    ]
+  },
+  {
+    "source": "공식 플랫폼 도구를 다운로드하고 검증하는 중…",
+    "files": [
+      "host/public/settings-ui.mjs"
+    ],
+    "english": "Downloading and verifying official platform tools…"
+  },
+  {
+    "source": "공유",
+    "files": [
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
+    "source": "공유 ADB 서버를 다시 시작하면 다른 개발 도구와 기기 연결도 잠시 끊깁니다. 계속할까요?",
+    "files": [
+      "host/public/settings-ui.mjs"
+    ],
+    "english": "Restarting the shared ADB server briefly disconnects other developer tools and devices. Continue?"
+  },
+  {
+    "source": "관리자 계정",
+    "files": [
+      "host/public/security-ui.mjs"
+    ]
+  },
+  {
+    "source": "관리자 계정 만들기",
+    "files": [
+      "host/public/security-ui.mjs"
+    ]
+  },
+  {
+    "source": "관리자 계정 설정에서 암호를 변경하세요.",
+    "files": [
+      "host/server.mjs"
+    ]
+  },
+  {
+    "source": "관리자 계정 파일을 확인하세요.",
+    "files": [
+      "host/account.mjs"
+    ]
+  },
+  {
+    "source": "관리자 계정이 이미 있습니다.",
+    "files": [
+      "host/account.mjs"
+    ]
+  },
+  {
+    "source": "관리자 로그인",
+    "files": [
+      "host/public/editor-lock.mjs"
+    ],
+    "english": "Administrator login"
+  },
+  {
+    "source": "관리자 로그인이 필요합니다.",
+    "files": [
+      "host/account.mjs",
+      "host/server.mjs"
+    ]
+  },
+  {
+    "source": "그라데이션",
+    "files": [
+      "host/public/app.js"
+    ]
+  },
+  {
+    "source": "그림자 표시",
+    "files": [
+      "host/public/app.js"
+    ]
+  },
+  {
+    "source": "글꼴",
+    "files": [
+      "host/public/app.js",
+      "host/public/settings-ui.mjs"
+    ]
+  },
+  {
+    "source": "글자 · 색상 · 모양",
+    "files": [
+      "host/public/app.js"
+    ]
+  },
+  {
+    "source": "글자 스타일을 확인하세요.",
+    "files": [
+      "host/config.mjs"
+    ]
+  },
+  {
+    "source": "글자 위치",
+    "files": [
+      "host/public/app.js"
+    ]
+  },
+  {
+    "source": "글자 정렬",
+    "files": [
+      "host/public/app.js"
+    ]
+  },
+  {
+    "source": "글자 크기",
+    "files": [
+      "host/public/app.js"
+    ]
+  },
+  {
+    "source": "글자 크기 (%)",
+    "files": [
+      "host/public/settings-ui.mjs"
+    ]
+  },
+  {
+    "source": "글자색",
+    "files": [
+      "host/public/app.js"
+    ]
+  },
+  {
+    "source": "기기 설정 값을 확인하세요: {0}",
+    "files": [
+      "host/settings.mjs"
+    ]
+  },
+  {
+    "source": "기기 설정 객체가 필요합니다.",
+    "files": [
+      "host/settings.mjs"
+    ]
+  },
+  {
+    "source": "기기 설정 동기화 완료",
+    "files": [
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
+    "source": "기기 설정 따르기",
+    "files": [
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
+    "source": "기기 설정에서 알림과 소리를 관리합니다.",
+    "files": [
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
+    "source": "기기 이름",
+    "files": [
+      "host/public/settings-ui.mjs",
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
+    "source": "기기 이름을 저장하지 못했습니다.",
+    "files": [
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
+    "source": "기기 이름을 확인하세요.",
+    "files": [
+      "host/server.mjs"
+    ]
+  },
+  {
+    "source": "기기를 찾을 수 없습니다.",
+    "files": [
+      "host/server.mjs"
+    ]
+  },
+  {
+    "source": "기기에 적용",
+    "files": [
+      "host/public/settings-ui.mjs"
+    ]
+  },
+  {
+    "source": "기기에서",
+    "files": [
+      "host/system-tools.mjs"
+    ]
+  },
+  {
+    "source": "기기에서 APK 설치를 완료하지 못했습니다.",
+    "files": [
+      "host/system-tools.mjs"
+    ]
+  },
+  {
+    "source": "기다리기 (ms)",
+    "files": [
+      "host/public/app.js"
+    ]
+  },
+  {
+    "source": "기록 그래프",
+    "files": [
+      "host/public/app.js"
+    ]
+  },
+  {
+    "source": "기록 설정",
+    "files": [
+      "host/public/settings-ui.mjs"
+    ]
+  },
+  {
+    "source": "기본",
+    "files": [
+      "host/public/app.js",
+      "host/public/settings-ui.mjs"
+    ]
+  },
+  {
+    "source": "기본 간격",
+    "files": [
+      "host/public/app.js"
+    ]
+  },
+  {
+    "source": "기본 그림자",
+    "files": [
+      "host/public/app.js"
+    ]
+  },
+  {
+    "source": "기본 기기 일련번호",
+    "files": [
+      "host/public/settings-ui.mjs"
+    ]
+  },
+  {
+    "source": "기본 디자인 초기화",
+    "files": [
+      "host/public/app.js"
+    ]
+  },
+  {
+    "source": "기본 모서리",
+    "files": [
+      "host/public/app.js"
+    ]
+  },
+  {
+    "source": "기본 배경",
+    "files": [
+      "host/public/app.js"
+    ]
+  },
+  {
+    "source": "기본 테마",
+    "files": [
+      "host/public/app.js"
+    ]
+  },
+  {
+    "source": "기본 포트를 HTTPS로 대체",
+    "files": [
+      "host/public/settings-ui.mjs"
+    ]
+  },
+  {
+    "source": "기본 프로젝트",
+    "files": [
+      "host/public/app.js"
+    ]
+  },
+  {
+    "source": "기본 프로젝트를 선택하세요.",
+    "files": [
+      "host/config.mjs"
+    ]
+  },
+  {
+    "source": "기본 프로필",
+    "files": [
+      "host/public/app.js",
+      "host/public/profiles.mjs",
+      "host/public/settings-ui.mjs",
+      "host/backups.mjs"
+    ]
+  },
+  {
+    "source": "기본값은 HTTPS입니다. 암호화를 끄거나 HTTP 병행을 선택하면 공개 HTTP 연결의 데이터가 암호화되지 않습니다. 태블릿도 비암호화 연결을 명시적으로 허용해야 사용합니다.",
+    "files": [
+      "host/public/settings-ui.mjs"
+    ]
+  },
+  {
+    "source": "기본값은 꺼짐입니다. 이 옵션을 켜면 사설 LAN의 HTTP 주소에 연결할 수 있으며 페어링 토큰과 데이터가 암호화되지 않습니다. 신뢰하는 네트워크에서만 사용하세요.",
+    "files": [
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
+    "source": "기본으로 설정",
+    "files": [
+      "host/public/app.js"
+    ]
+  },
+  {
+    "source": "기억",
+    "files": [
+      "host/public/app.js"
+    ]
+  },
+  {
+    "source": "기존 도구 파일이 변경되어 자동 교체하지 않았습니다.",
+    "files": [
+      "host/system-tools.mjs"
+    ]
+  },
+  {
+    "source": "기존 로컬 백업 모두 암호화",
+    "files": [
+      "host/public/security-ui.mjs"
+    ]
+  },
+  {
+    "source": "기준",
+    "files": [
+      "host/public/app.js"
+    ]
+  },
+  {
+    "source": "길게 누르면",
+    "files": [
+      "host/public/index.html"
+    ]
+  },
+  {
+    "source": "끄기",
+    "files": [
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
+    "source": "나의 하루",
+    "files": [
+      "host/public/app.js"
+    ]
+  },
+  {
+    "source": "나중에 설정",
+    "files": [
+      "host/public/security-ui.mjs"
+    ]
+  },
+  {
+    "source": "날짜를 눌러 일정과 할 일을 확인해요",
+    "files": [
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
+    "source": "남은 할 일이 없어요",
+    "files": [
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
+    "source": "내 Mac",
+    "files": [
+      "host/public/app.js",
+      "host/public/monitor-layout.mjs",
+      "host/monitor-alerts.mjs",
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
+    "source": "내 책상과 연결하기",
+    "files": [
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
+    "source": "내보내기",
+    "files": [
+      "host/public/migration-ui.mjs",
+      "host/public/index.html"
+    ]
+  },
+  {
+    "source": "내보낼 백업 암호 (8자 이상)",
+    "files": [
+      "host/public/settings-ui.mjs"
+    ],
+    "english": "Password for exported backup (8+ characters)"
+  },
+  {
+    "source": "내보낼 파일은 96MB 이하여야 합니다.",
+    "files": [
+      "host/public/app.js"
+    ]
+  },
+  {
+    "source": "내장 저장 공간  ",
+    "files": [
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
+    "source": "너비",
+    "files": [
+      "host/public/app.js"
+    ]
+  },
+  {
+    "source": "네트워크",
+    "files": [
+      "host/public/app.js",
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
+    "source": "네트워크 · USB",
+    "files": [
+      "host/public/settings-ui.mjs"
+    ]
+  },
+  {
+    "source": "네트워크 수신  ",
+    "files": [
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
+    "source": "네트워크 추이",
+    "files": [
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
+    "source": "노드",
+    "files": [
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
+    "source": "노드 최대 · 할당 한도 대비",
+    "files": [
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
+    "source": "노드별 CPU 추이 · %",
+    "files": [
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
+    "source": "노드별 DB CPU · MEM",
+    "files": [
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
+    "source": "높음",
+    "files": [
+      "host/public/app.js",
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
+    "source": "높이",
+    "files": [
+      "host/public/app.js"
+    ]
+  },
+  {
+    "source": "누르면 실행",
+    "files": [
+      "host/public/index.html"
+    ]
+  },
+  {
+    "source": "다가오는 일정",
+    "files": [
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
+    "source": "다가오는 일정이 없어요.",
+    "files": [
+      "host/public/app.js"
+    ]
+  },
+  {
+    "source": "다른 곳에서 변경된 할 일이에요. 닫고 최신 목록에서 다시 확인해 주세요.",
+    "files": [
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
+    "source": "다른 동작이 진행 중입니다. 잠시 후 다시 눌러 주세요.",
+    "files": [
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
+    "source": "다른 요청이 진행 중이에요. 잠시 후 상태를 확인해 주세요.",
+    "files": [
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
+    "source": "다른 페이지에도 고정",
+    "files": [
+      "host/public/app.js"
+    ]
+  },
+  {
+    "source": "다른 프로필의 자동화 ID와 충돌합니다.",
+    "files": [
+      "host/backups.mjs"
+    ]
+  },
+  {
+    "source": "다른 프로필의 페이지 또는 위젯 ID와 충돌합니다. 전체 복원을 사용하거나 원본을 먼저 확인하세요.",
+    "files": [
+      "host/backups.mjs"
+    ]
+  },
+  {
+    "source": "다시 실행",
+    "files": [
+      "host/public/index.html"
+    ]
+  },
+  {
+    "source": "다시 연결됨",
+    "files": [
+      "host/public/app.js"
+    ]
+  },
+  {
+    "source": "다시 진행",
+    "files": [
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
+    "source": "다시 확인",
+    "files": [
+      "host/public/settings-ui.mjs"
+    ]
+  },
+  {
+    "source": "다운로드 크기 제한을 넘었습니다.",
+    "files": [
+      "host/system-tools.mjs"
+    ]
+  },
+  {
+    "source": "단일 값이 되는 JSON 경로를 지정하세요.",
+    "files": [
+      "host/connectors.mjs"
+    ]
+  },
+  {
+    "source": "닫기",
+    "files": [
+      "host/public/app.js",
+      "host/public/settings-ui.mjs",
+      "android/app/src/main/java/app/opendeck/client/ClientSettingsPanel.java",
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
+    "source": "달력",
+    "files": [
+      "host/public/app.js"
+    ]
+  },
+  {
+    "source": "대상 페이지가 가득 찼습니다.",
+    "files": [
+      "host/public/app.js"
+    ]
+  },
+  {
+    "source": "데이터 연결",
+    "files": [
+      "host/public/app.js"
+    ]
+  },
+  {
+    "source": "데이터 폴더 열기",
+    "files": [
+      "host/public/settings-ui.mjs"
+    ]
+  },
+  {
+    "source": "데이터베이스",
+    "files": [
+      "host/public/monitor-layout.mjs",
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
+    "source": "덱 글자 크기",
+    "files": [
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
+    "source": "덱 밝기 낮추기",
+    "files": [
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
+    "source": "덱 설정이 필요합니다.",
+    "files": [
+      "host/backups.mjs"
+    ]
+  },
+  {
+    "source": "덱 위에 모니터 경고를 잠시 표시합니다.",
+    "files": [
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
+    "source": "덱 편집",
+    "files": [
+      "host/public/index.html"
+    ]
+  },
+  {
+    "source": "덱의 페이지 색상과 배치는 맥 편집기에서 설정합니다.",
+    "files": [
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
+    "source": "도구 설치 폴더를 확인하세요.",
+    "files": [
+      "host/system-tools.mjs"
+    ]
+  },
+  {
+    "source": "동시 실행은 최대 4개입니다.",
+    "files": [
+      "host/plugins.mjs"
+    ]
+  },
+  {
+    "source": "동작",
+    "files": [
+      "host/public/app.js"
+    ]
+  },
+  {
+    "source": "동작 ID",
+    "files": [
+      "host/public/app.js"
+    ]
+  },
+  {
+    "source": "동작 값이 너무 깁니다.",
+    "files": [
+      "host/config.mjs"
+    ]
+  },
+  {
+    "source": "동작 단계가 너무 많습니다.",
+    "files": [
+      "host/config.mjs"
+    ]
+  },
+  {
+    "source": "동작 버튼",
+    "files": [
+      "host/public/app.js"
+    ]
+  },
+  {
+    "source": "동작 버튼 추가",
+    "files": [
+      "host/public/app.js"
+    ]
+  },
+  {
+    "source": "동작 효과 줄이기",
+    "files": [
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
+    "source": "두 번 누르면",
+    "files": [
+      "host/public/index.html"
+    ]
+  },
+  {
+    "source": "두 번째 색",
+    "files": [
+      "host/public/app.js"
+    ]
+  },
+  {
+    "source": "드래그로 이동 · 오른쪽 아래 모서리로 크기 조절 · 방향키 이동 / Alt+방향키 크기 조절",
+    "files": [
+      "host/public/app.js",
+      "host/public/index.html"
+    ]
+  },
+  {
+    "source": "등록 해제",
+    "files": [
+      "host/public/app.js"
+    ]
+  },
+  {
+    "source": "등록된 맥의 인증서와 다릅니다. USB로 다시 연결하세요.",
+    "files": [
+      "android/app/src/main/java/app/opendeck/client/PinnedConnection.java"
+    ]
+  },
+  {
+    "source": "등록된 변수가 아닙니다.",
+    "files": [
+      "host/engine.mjs"
+    ]
+  },
+  {
+    "source": "등록된 변수를 선택하세요.",
+    "files": [
+      "host/config.mjs"
+    ]
+  },
+  {
+    "source": "등록된 연동을 선택하세요.",
+    "files": [
+      "host/config.mjs"
+    ]
+  },
+  {
+    "source": "등록된 일정이 없어요.",
+    "files": [
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
+    "source": "등록됨",
+    "files": [
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
+    "source": "등록한 맥을 찾지 못했습니다. 같은 Wi-Fi인지 확인하거나 주소를 직접 추가하세요.",
+    "files": [
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
+    "source": "등록한 주소를 순서대로 시도합니다. 기존 인증서가 일치하는 맥에만 연결합니다.",
+    "files": [
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
+    "source": "디스크 I/O 추이",
+    "files": [
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
+    "source": "렌더링",
+    "files": [
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
+    "source": "렌더링 모드",
+    "files": [
+      "host/public/settings-ui.mjs"
+    ]
+  },
+  {
+    "source": "로그 검색",
+    "files": [
+      "host/public/settings-ui.mjs"
+    ],
+    "english": "Search logs"
+  },
+  {
+    "source": "로그 수준 필터",
+    "files": [
+      "host/public/settings-ui.mjs"
+    ],
+    "english": "Log level filter"
+  },
+  {
+    "source": "로그 폴더 열기",
+    "files": [
+      "host/public/settings-ui.mjs"
+    ]
+  },
+  {
+    "source": "로그인",
+    "files": [
+      "host/public/editor-lock.mjs"
+    ],
+    "english": "Sign in"
+  },
+  {
+    "source": "로그인 세션",
+    "files": [
+      "host/public/security-ui.mjs"
+    ]
+  },
+  {
+    "source": "로그인 세션은 이 맥의 편집기와 설정 변경을 보호합니다. 연결된 태블릿은 계속 사용할 수 있습니다.",
+    "files": [
+      "host/public/security-ui.mjs"
+    ]
+  },
+  {
+    "source": "로그인 유지 (시간)",
+    "files": [
+      "host/public/security-ui.mjs"
+    ]
+  },
+  {
+    "source": "로그인 유지 시간은 1~720시간이어야 합니다.",
+    "files": [
+      "host/account.mjs"
+    ]
+  },
+  {
+    "source": "로그인으로 돌아가기",
+    "files": [
+      "host/public/editor-lock.mjs"
+    ],
+    "english": "Back to sign in"
+  },
+  {
+    "source": "로그인할 때",
+    "files": [
+      "host/public/settings-ui.mjs"
+    ]
+  },
+  {
+    "source": "로컬",
+    "files": [
+      "host/public/app.js"
+    ]
+  },
+  {
+    "source": "로컬 CA로 인증서 재발급",
+    "files": [
+      "host/public/settings-ui.mjs"
+    ]
+  },
+  {
+    "source": "로컬 네트워크에 호스트 알리기",
+    "files": [
+      "host/public/settings-ui.mjs"
+    ]
+  },
+  {
+    "source": "로컬 백업 암호화",
+    "files": [
+      "host/public/security-ui.mjs"
+    ]
+  },
+  {
+    "source": "로컬 백업 암호화 켜기",
+    "files": [
+      "host/public/security-ui.mjs"
+    ]
+  },
+  {
+    "source": "로컬 연결만 허용됩니다.",
+    "files": [
+      "host/server.mjs"
+    ]
+  },
+  {
+    "source": "로컬 인증기관 재생성",
+    "files": [
+      "host/public/settings-ui.mjs"
+    ]
+  },
+  {
+    "source": "로컬 인증기관이 만료되었습니다. 인증기관을 재생성하세요.",
+    "files": [
+      "host/network.mjs"
+    ]
+  },
+  {
+    "source": "로컬 인증기관이 아직 없습니다.",
+    "files": [
+      "host/network.mjs"
+    ]
+  },
+  {
+    "source": "로컬 편집기 보호",
+    "files": [
+      "host/public/settings-ui.mjs"
+    ]
+  },
+  {
+    "source": "루틴의 30초 제한 시간을 넘겼습니다.",
+    "files": [
+      "host/engine.mjs"
+    ]
+  },
+  {
+    "source": "릴리즈 설치 파일이 없습니다.",
+    "files": [
+      "host/system-tools.mjs"
+    ]
+  },
+  {
+    "source": "릴리즈 정보를 확인할 수 없습니다.",
+    "files": [
+      "host/settings.mjs"
+    ]
+  },
+  {
+    "source": "릴리즈와 설치 파일 열기",
+    "files": [
+      "host/public/settings-ui.mjs"
+    ],
+    "english": "Open release & installers"
+  },
+  {
+    "source": "마감 · ",
+    "files": [
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
+    "source": "마감 없음",
+    "files": [
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
+    "source": "마감 지남 · ",
+    "files": [
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
+    "source": "마지막 ",
+    "files": [
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
+    "source": "마지막 수집 ",
+    "files": [
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
+    "source": "마지막 페이지 기억",
+    "files": [
+      "host/public/settings-ui.mjs",
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
+    "source": "만료",
+    "files": [
+      "host/public/security-ui.mjs"
+    ],
+    "english": "Expires"
+  },
+  {
+    "source": "매개변수 (JSON)",
+    "files": [
+      "host/public/app.js"
+    ]
+  },
+  {
+    "source": "매우 높음",
+    "files": [
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
+    "source": "매월",
+    "files": [
+      "host/public/settings-ui.mjs"
+    ]
+  },
+  {
+    "source": "매월 날짜",
+    "files": [
+      "host/public/settings-ui.mjs"
+    ]
+  },
+  {
+    "source": "매일",
+    "files": [
+      "host/public/settings-ui.mjs"
+    ]
+  },
+  {
+    "source": "매일 반복하는 일",
+    "files": [
+      "host/public/index.html"
+    ]
+  },
+  {
+    "source": "매주",
+    "files": [
+      "host/public/settings-ui.mjs"
+    ]
+  },
+  {
+    "source": "맥 Wi-Fi 주소",
+    "files": [
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
+    "source": "맥 Wi-Fi 주소 관리",
+    "files": [
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
+    "source": "맥 기본 프로필 따르기",
+    "files": [
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
+    "source": "맥 상태",
+    "files": [
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
+    "source": "맥 상태 실시간 추이 그래프",
+    "files": [
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
+    "source": "맥 상태 연결 대기",
+    "files": [
+      "host/public/app.js",
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
+    "source": "맥 상태 요약",
+    "files": [
+      "host/public/app.js"
+    ]
+  },
+  {
+    "source": "맥 상태 정상",
+    "files": [
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
+    "source": "맥 시스템 상태",
+    "files": [
+      "host/public/app.js"
+    ]
+  },
+  {
+    "source": "맥 연결과 최신 상태를 기다리고 있어요.",
+    "files": [
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
+    "source": "맥 연결과 최신 앱을 확인해 주세요",
+    "files": [
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
+    "source": "맥 연결을 기다리는 중입니다.",
+    "files": [
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
+    "source": "맥 주소를 저장했습니다.",
+    "files": [
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
+    "source": "맥 편집기에 표시된 HTTPS 주소를 입력합니다.",
+    "files": [
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
+    "source": "맥 편집기에서만 변경할 수 있습니다.",
+    "files": [
+      "host/server.mjs"
+    ]
+  },
+  {
+    "source": "맥 호스트 + 네이티브 Android 컨트롤 패널",
+    "files": [
+      "macos/OpenDeck.swift"
+    ]
+  },
+  {
+    "source": "맥 호스트 연결을 기다리는 중입니다.",
+    "files": [
+      "host/public/app.js"
+    ]
+  },
+  {
+    "source": "맥에 다시 연결하는 중…",
+    "files": [
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
+    "source": "맥에 연결된 후 이름을 변경하세요.",
+    "files": [
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
+    "source": "맥에서 Grafana 대시보드 주소를 확인해 주세요",
+    "files": [
+      "host/grafana.mjs"
+    ]
+  },
+  {
+    "source": "맥에서 Grafana 연결을 확인해 주세요.",
+    "files": [
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
+    "source": "맥에서 Grafana 조회 토큰을 확인해 주세요",
+    "files": [
+      "host/grafana.mjs"
+    ]
+  },
+  {
+    "source": "맥에서 Jimin OS 앱을 열고 로그인 상태를 확인해 주세요.",
+    "files": [
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
+    "source": "맥에서 Open Deck을 실행하고 연결을 확인하세요.",
+    "files": [
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
+    "source": "맥에서 다시 연결되면 자동으로 갱신됩니다",
+    "files": [
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
+    "source": "맥에서 연동 인증 토큰을 등록하세요.",
+    "files": [
+      "host/connectors.mjs"
+    ]
+  },
+  {
+    "source": "맥에서 열기",
+    "files": [
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
+    "source": "맥의 Jimin OS에서 로그인을 확인해 주세요.",
+    "files": [
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
+    "source": "맥의 기기 목록에 표시할 이름입니다.",
+    "files": [
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
+    "source": "맥의 최신 상태를 기다리고 있어요.",
+    "files": [
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
+    "source": "먼저 로컬 백업 암호화를 켜세요.",
+    "files": [
+      "host/backups.mjs"
+    ]
+  },
+  {
+    "source": "먼저 비밀 저장소를 설정하세요.",
+    "files": [
+      "host/secret-vault.mjs"
+    ]
+  },
+  {
+    "source": "먼저 저장소 복구 키를 보관하세요.",
+    "files": [
+      "host/secret-vault.mjs"
+    ]
+  },
+  {
+    "source": "먼저 저장소 복구 키를 생성하고 보관 확인을 완료하세요.",
+    "files": [
+      "host/secret-vault.mjs"
+    ]
+  },
+  {
+    "source": "먼저 페어링하세요.",
+    "files": [
+      "host/server.mjs"
+    ]
+  },
+  {
+    "source": "먼저 편집기 비밀번호를 설정하세요.",
+    "files": [
+      "host/editor-lock.mjs"
+    ]
+  },
+  {
+    "source": "메모",
+    "files": [
+      "host/config.mjs"
+    ]
+  },
+  {
+    "source": "메모 (선택)",
+    "files": [
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
+    "source": "메모리",
+    "files": [
+      "host/public/app.js",
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
+    "source": "메모리  ",
+    "files": [
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
+    "source": "메모리 사용률",
+    "files": [
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
+    "source": "메모리 순으로",
+    "files": [
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
+    "source": "메모리 압력 ",
+    "files": [
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
+    "source": "메모리 압력·사용량",
+    "files": [
+      "host/public/app.js"
+    ]
+  },
+  {
+    "source": "메모리를 많이 쓰는 앱",
+    "files": [
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
+    "source": "메서드",
+    "files": [
+      "host/public/app.js"
+    ]
+  },
+  {
+    "source": "메일",
+    "files": [
+      "host/config.mjs"
+    ]
+  },
+  {
+    "source": "모니터",
+    "files": [
+      "host/public/app.js",
+      "host/public/monitor-layout.mjs",
+      "host/monitor-alerts.mjs",
+      "host/public/index.html"
+    ]
+  },
+  {
+    "source": "모니터 경고 알림",
+    "files": [
+      "host/public/settings-ui.mjs"
+    ]
+  },
+  {
+    "source": "모니터 알림 닫기",
+    "files": [
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
+    "source": "모니터 알림 설정을 확인하세요.",
+    "files": [
+      "host/public/monitor-rules.mjs"
+    ]
+  },
+  {
+    "source": "모니터 위젯을 선택하세요.",
+    "files": [
+      "host/server.mjs"
+    ]
+  },
+  {
+    "source": "모니터 임계치 설정을 확인하세요.",
+    "files": [
+      "host/public/monitor-rules.mjs"
+    ]
+  },
+  {
+    "source": "모니터 지표별 임계치를 확인하세요.",
+    "files": [
+      "host/public/monitor-rules.mjs"
+    ]
+  },
+  {
+    "source": "모두 선택",
+    "files": [
+      "macos/OpenDeck.swift"
+    ]
+  },
+  {
+    "source": "모든 변경 저장됨",
+    "files": [
+      "host/public/app.js"
+    ]
+  },
+  {
+    "source": "모든 세션 로그아웃",
+    "files": [
+      "host/public/security-ui.mjs"
+    ]
+  },
+  {
+    "source": "모든 수준",
+    "files": [
+      "host/public/settings-ui.mjs"
+    ],
+    "english": "All levels"
+  },
+  {
+    "source": "모든 페이지에 기본 디자인 상속",
+    "files": [
+      "host/public/app.js"
+    ]
+  },
+  {
+    "source": "모든 프로필의 페이지",
+    "files": [
+      "host/public/app.js"
+    ]
+  },
+  {
+    "source": "모서리",
+    "files": [
+      "host/public/app.js"
+    ]
+  },
+  {
+    "source": "무료 · 오픈소스",
+    "files": [
+      "macos/OpenDeck.swift"
+    ]
+  },
+  {
+    "source": "무선 ADB 연결에 실패했습니다. 기기의 무선 디버깅을 확인하세요.",
+    "files": [
+      "host/system-tools.mjs"
+    ]
+  },
+  {
+    "source": "문자열 값이 필요합니다.",
+    "files": [
+      "android/app/src/main/java/app/opendeck/client/ClientSettingsPolicy.java"
+    ]
+  },
+  {
+    "source": "물리 메모리 대비",
+    "files": [
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
+    "source": "미등록",
+    "files": [
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
+    "source": "미등록 · USB로 먼저 연결하세요",
+    "files": [
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
+    "source": "미리 보기",
+    "files": [
+      "host/public/settings-ui.mjs"
+    ]
+  },
+  {
+    "source": "미리보기",
+    "files": [
+      "host/public/migration-ui.mjs"
+    ]
+  },
+  {
+    "source": "미리보기를 확인한 뒤 가져오세요.",
+    "files": [
+      "host/public/migration-ui.mjs"
+    ],
+    "english": "Review the preview, then import."
+  },
+  {
+    "source": "미연결",
+    "files": [
+      "host/public/app.js"
+    ]
+  },
+  {
+    "source": "미지원: ",
+    "files": [
+      "host/public/app.js"
+    ]
+  },
+  {
+    "source": "발열 높음",
+    "files": [
+      "host/public/app.js"
+    ]
+  },
+  {
+    "source": "발열 매우 높음",
+    "files": [
+      "host/public/app.js"
+    ]
+  },
+  {
+    "source": "발열 부담 ",
+    "files": [
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
+    "source": "발열 약간 높음",
+    "files": [
+      "host/public/app.js"
+    ]
+  },
+  {
+    "source": "발열 정상",
+    "files": [
+      "host/public/app.js"
+    ]
+  },
+  {
+    "source": "밝게",
+    "files": [
+      "host/public/settings-ui.mjs",
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
+    "source": "밝기 (−1: 시스템)",
+    "files": [
+      "host/public/settings-ui.mjs"
+    ]
+  },
+  {
+    "source": "배경 이미지",
+    "files": [
+      "host/public/app.js"
+    ]
+  },
+  {
+    "source": "배경 이미지 제거",
+    "files": [
+      "host/public/app.js"
+    ]
+  },
+  {
+    "source": "배경 이미지가 잘못되었습니다.",
+    "files": [
+      "host/config.mjs"
+    ]
+  },
+  {
+    "source": "배경색",
+    "files": [
+      "host/public/app.js"
+    ]
+  },
+  {
+    "source": "배경색을 확인하세요.",
+    "files": [
+      "host/config.mjs"
+    ]
+  },
+  {
+    "source": "배열이 필요합니다.",
+    "files": [
+      "host/public/app.js"
+    ]
+  },
+  {
+    "source": "배터리  ",
+    "files": [
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
+    "source": "배터리 사용 중",
+    "files": [
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
+    "source": "배터리 없음",
+    "files": [
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
+    "source": "배터리 잔량",
+    "files": [
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
+    "source": "배터리 추이",
+    "files": [
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
+    "source": "백업",
+    "files": [
+      "host/public/settings-ui.mjs"
+    ],
+    "english": "Backup"
+  },
+  {
+    "source": "백업 · 복원",
+    "files": [
+      "host/public/settings-ui.mjs"
+    ]
+  },
+  {
+    "source": "백업 간격 (시간)",
+    "files": [
+      "host/public/settings-ui.mjs"
+    ]
+  },
+  {
+    "source": "백업 검증에 실패했습니다. 이 파일은 복원할 수 없습니다.",
+    "files": [
+      "host/backups.mjs"
+    ]
+  },
+  {
+    "source": "백업 변수의 형식이 다릅니다.",
+    "files": [
+      "host/backups.mjs"
+    ]
+  },
+  {
+    "source": "백업 복구 키",
+    "files": [
+      "host/public/settings-ui.mjs"
+    ],
+    "english": "Backup recovery key"
+  },
+  {
+    "source": "백업 복구 키 교체",
+    "files": [
+      "host/public/security-ui.mjs"
+    ]
+  },
+  {
+    "source": "백업 복구 키 분실 처리",
+    "files": [
+      "host/public/security-ui.mjs"
+    ]
+  },
+  {
+    "source": "백업 복구 키 생성",
+    "files": [
+      "host/public/security-ui.mjs"
+    ]
+  },
+  {
+    "source": "백업 복구 키가 없습니다. 로컬 백업 암호화를 켜기 전에 생성하세요.",
+    "files": [
+      "host/public/security-ui.mjs"
+    ]
+  },
+  {
+    "source": "백업 복구 키가 활성화되어 있습니다.",
+    "files": [
+      "host/public/security-ui.mjs"
+    ]
+  },
+  {
+    "source": "백업 복구 키를 확인하세요.",
+    "files": [
+      "host/secret-vault.mjs"
+    ]
+  },
+  {
+    "source": "백업 시각",
+    "files": [
+      "host/public/settings-ui.mjs"
+    ]
+  },
+  {
+    "source": "백업 시각을 확인하세요.",
+    "files": [
+      "host/backups.mjs"
+    ]
+  },
+  {
+    "source": "백업 식별자를 확인하세요.",
+    "files": [
+      "host/backups.mjs"
+    ]
+  },
+  {
+    "source": "백업 암호",
+    "files": [
+      "host/public/settings-ui.mjs"
+    ],
+    "english": "Backup password"
+  },
+  {
+    "source": "백업 암호가 다르거나 암호화 파일이 손상되었습니다.",
+    "files": [
+      "host/backups.mjs"
+    ]
+  },
+  {
+    "source": "백업 암호는 8자 이상이어야 합니다.",
+    "files": [
+      "host/backups.mjs"
+    ]
+  },
+  {
+    "source": "백업 이미지 검증에 실패했습니다.",
+    "files": [
+      "host/backups.mjs"
+    ]
+  },
+  {
+    "source": "백업 이미지 목록을 확인하세요.",
+    "files": [
+      "host/backups.mjs"
+    ]
+  },
+  {
+    "source": "백업 이미지가 잘못되었습니다.",
+    "files": [
+      "host/backups.mjs"
+    ]
+  },
+  {
+    "source": "백업 이미지의 형식을 확인하세요.",
+    "files": [
+      "host/backups.mjs"
+    ]
+  },
+  {
+    "source": "백업 일정",
+    "files": [
+      "host/public/settings-ui.mjs"
+    ]
+  },
+  {
+    "source": "백업 작업을 확인하세요.",
+    "files": [
+      "host/server.mjs"
+    ]
+  },
+  {
+    "source": "백업 정보를 확인하세요.",
+    "files": [
+      "host/backups.mjs"
+    ]
+  },
+  {
+    "source": "백업 체크섬이 일치하지 않습니다.",
+    "files": [
+      "host/backups.mjs"
+    ]
+  },
+  {
+    "source": "백업 파일 가져오기",
+    "files": [
+      "host/public/settings-ui.mjs"
+    ]
+  },
+  {
+    "source": "백업 파일은 16MB 이하여야 합니다.",
+    "files": [
+      "host/public/app.js"
+    ]
+  },
+  {
+    "source": "백업 파일의 크기 또는 소유자를 확인하세요.",
+    "files": [
+      "host/backups.mjs"
+    ]
+  },
+  {
+    "source": "백업 파일이 너무 많습니다.",
+    "files": [
+      "host/backups.mjs"
+    ]
+  },
+  {
+    "source": "백업 파일이 너무 큽니다.",
+    "files": [
+      "host/public/settings-ui.mjs"
+    ],
+    "english": "Backup file is too large."
+  },
+  {
+    "source": "백업 폴더 열기",
+    "files": [
+      "host/public/settings-ui.mjs"
+    ]
+  },
+  {
+    "source": "백업 할 일의 형식을 확인하세요.",
+    "files": [
+      "host/backups.mjs"
+    ]
+  },
+  {
+    "source": "백업에서 프로필을 찾을 수 없습니다.",
+    "files": [
+      "host/backups.mjs"
+    ]
+  },
+  {
+    "source": "백업은 64MB 이하여야 합니다.",
+    "files": [
+      "host/backups.mjs"
+    ]
+  },
+  {
+    "source": "백업은 이 맥에 보관됩니다. 복원 전에도 현재 설정을 백업합니다. 인증 토큰과 Mac 키체인 비밀은 포함하지 않습니다.",
+    "files": [
+      "host/public/settings-ui.mjs"
+    ]
+  },
+  {
+    "source": "버전 ",
+    "files": [
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
+    "source": "버튼",
+    "files": [
+      "host/public/app.js",
+      "host/public/migration-ui.mjs"
+    ],
+    "english": "Widgets"
+  },
+  {
+    "source": "버튼 배경",
+    "files": [
+      "host/public/app.js"
+    ]
+  },
+  {
+    "source": "버튼 실행 시 기기의 클릭 효과음을 냅니다.",
+    "files": [
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
+    "source": "버튼을 선택하세요.",
+    "files": [
+      "host/public/migration-ui.mjs"
+    ],
+    "english": "Select a widget."
+  },
+  {
+    "source": "버튼을 숨겨도 오른쪽 위 모서리 길게 누르기로 설정에 접근할 수 있습니다.",
+    "files": [
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
+    "source": "버튼을 찾을 수 없습니다.",
+    "files": [
+      "host/engine.mjs"
+    ]
+  },
+  {
+    "source": "범위",
+    "files": [
+      "host/public/migration-ui.mjs"
+    ]
+  },
+  {
+    "source": "변경 저장",
+    "files": [
+      "host/public/app.js",
+      "host/public/index.html"
+    ]
+  },
+  {
+    "source": "변경 저장 ·",
+    "files": [
+      "host/public/app.js"
+    ]
+  },
+  {
+    "source": "변경 저장 후 알림을 테스트해 주세요.",
+    "files": [
+      "host/public/app.js"
+    ]
+  },
+  {
+    "source": "변경 저장 후 토큰을 등록해 주세요.",
+    "files": [
+      "host/public/app.js"
+    ]
+  },
+  {
+    "source": "변경 취소",
+    "files": [
+      "host/public/settings-ui.mjs"
+    ]
+  },
+  {
+    "source": "변수",
+    "files": [
+      "host/public/app.js",
+      "host/public/index.html"
+    ]
+  },
+  {
+    "source": "변수 · 연동",
+    "files": [
+      "host/public/index.html"
+    ]
+  },
+  {
+    "source": "변수 값과 로컬 할 일 상태도 복원할까요? 취소하면 현재 상태를 유지합니다.",
+    "files": [
+      "host/public/settings-ui.mjs"
+    ],
+    "english": "Also restore variable values and local tasks? Cancel keeps current state."
+  },
+  {
+    "source": "변수 값의 형식이 다릅니다.",
+    "files": [
+      "host/config.mjs"
+    ]
+  },
+  {
+    "source": "변수 변경",
+    "files": [
+      "host/public/app.js"
+    ]
+  },
+  {
+    "source": "변수 선택",
+    "files": [
+      "host/public/app.js"
+    ]
+  },
+  {
+    "source": "변수 설정",
+    "files": [
+      "host/public/app.js"
+    ]
+  },
+  {
+    "source": "변수 이름 (영문·숫자·밑줄)",
+    "files": [
+      "host/public/app.js"
+    ]
+  },
+  {
+    "source": "변수 이름 또는 값이 잘못되었습니다.",
+    "files": [
+      "host/config.mjs"
+    ]
+  },
+  {
+    "source": "변수 증감",
+    "files": [
+      "host/public/app.js"
+    ]
+  },
+  {
+    "source": "변수 토글",
+    "files": [
+      "host/public/app.js"
+    ]
+  },
+  {
+    "source": "변수 형식을 확인하세요.",
+    "files": [
+      "host/engine.mjs"
+    ]
+  },
+  {
+    "source": "변수 형식이 다릅니다.",
+    "files": [
+      "host/engine.mjs"
+    ]
+  },
+  {
+    "source": "변수 형식이 충돌합니다: ",
+    "files": [
+      "host/public/profile-tools.mjs"
+    ]
+  },
+  {
+    "source": "변수 형식이 충돌합니다: {0}",
+    "files": [
+      "host/backups.mjs"
+    ]
+  },
+  {
+    "source": "변수·할 일 실행 상태 포함",
+    "files": [
+      "host/public/settings-ui.mjs"
+    ],
+    "english": "Variable and task state included"
+  },
+  {
+    "source": "변수는 최대 128개입니다.",
+    "files": [
+      "host/config.mjs"
+    ]
+  },
+  {
+    "source": "보고 서비스",
+    "files": [
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
+    "source": "보관 확인 · 키 활성화",
+    "files": [
+      "host/public/security-ui.mjs"
+    ]
+  },
+  {
+    "source": "보관한 복구 키를 다시 입력하세요",
+    "files": [
+      "host/public/security-ui.mjs"
+    ],
+    "english": "Re-enter the recovery key you stored"
+  },
+  {
+    "source": "보관할 백업 수",
+    "files": [
+      "host/public/settings-ui.mjs"
+    ]
+  },
+  {
+    "source": "복구 키",
+    "files": [
+      "host/public/migration-ui.mjs",
+      "host/public/security-ui.mjs"
+    ],
+    "english": "Recovery key"
+  },
+  {
+    "source": "복구 키가 분실 처리되었습니다. 새 키를 만들어야 복구 기능을 사용할 수 있습니다.",
+    "files": [
+      "host/public/security-ui.mjs"
+    ]
+  },
+  {
+    "source": "복구 키로 계정 복구",
+    "files": [
+      "host/public/editor-lock.mjs"
+    ],
+    "english": "Recover account with recovery key"
+  },
+  {
+    "source": "복구 키로 보호해 내보내기",
+    "files": [
+      "host/public/settings-ui.mjs"
+    ]
+  },
+  {
+    "source": "복구 키를 다시 생성하고 보관 확인을 완료하세요.",
+    "files": [
+      "host/account.mjs",
+      "host/secret-vault.mjs"
+    ]
+  },
+  {
+    "source": "복구 키를 별도로 보관했습니다",
+    "files": [
+      "host/public/security-ui.mjs"
+    ],
+    "english": "I stored this recovery key separately"
+  },
+  {
+    "source": "복구 키를 안전하게 보관하세요",
+    "files": [
+      "host/public/security-ui.mjs"
+    ],
+    "english": "Store your recovery key safely"
+  },
+  {
+    "source": "복구에 사용한 키가 폐기되었습니다. 새 키를 생성하세요.",
+    "files": [
+      "host/public/security-ui.mjs"
+    ]
+  },
+  {
+    "source": "복구에 사용한 키와 기존 로그인 세션은 폐기됩니다.",
+    "files": [
+      "host/public/editor-lock.mjs"
+    ],
+    "english": "Recovery consumes this key and revokes existing login sessions."
+  },
+  {
+    "source": "복사",
+    "files": [
+      "host/public/index.html",
+      "macos/OpenDeck.swift"
+    ]
+  },
+  {
+    "source": "복원",
+    "files": [
+      "host/public/settings-ui.mjs"
+    ]
+  },
+  {
+    "source": "복원 전 백업",
+    "files": [
+      "host/public/settings-ui.mjs"
+    ],
+    "english": "Before restore"
+  },
+  {
+    "source": "복원에 실패하여 기존 데이터로 되돌렸습니다.",
+    "files": [
+      "host/backups.mjs"
+    ]
+  },
+  {
+    "source": "복원에 실패했습니다. 안전 백업 {0}에서 기존 데이터를 복구하세요.",
+    "files": [
+      "host/backups.mjs"
+    ]
+  },
+  {
+    "source": "복원할 프로필 ID를 쉼표로 입력하세요. 비우면 전체를 복원합니다.\n",
+    "files": [
+      "host/public/settings-ui.mjs"
+    ],
+    "english": "Enter profile IDs separated by commas. Leave blank to restore all.\n"
+  },
+  {
+    "source": "복원할 프로필을 선택하세요.",
+    "files": [
+      "host/backups.mjs"
+    ]
+  },
+  {
+    "source": "복원했습니다.",
+    "files": [
+      "host/public/settings-ui.mjs"
+    ],
+    "english": "Backup restored."
+  },
+  {
+    "source": "복제",
+    "files": [
+      "host/public/index.html"
+    ]
+  },
+  {
+    "source": "분",
+    "files": [
+      "host/public/settings-ui.mjs"
+    ],
+    "english": " min"
+  },
+  {
+    "source": "분 · 2초 갱신",
+    "files": [
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
+    "source": "분 전",
+    "files": [
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
+    "source": "불러오는 중",
+    "files": [
+      "host/public/migration-ui.mjs"
+    ],
+    "english": "Loading"
+  },
+  {
+    "source": "불투명도 (%)",
+    "files": [
+      "host/public/app.js"
+    ]
+  },
+  {
+    "source": "붙여넣기",
+    "files": [
+      "host/public/index.html",
+      "macos/OpenDeck.swift"
+    ]
+  },
+  {
+    "source": "브라우저",
+    "files": [
+      "host/config.mjs"
+    ]
+  },
+  {
+    "source": "비밀 값",
+    "files": [
+      "host/public/security-ui.mjs"
+    ],
+    "english": "Secret value"
+  },
+  {
+    "source": "비밀 삭제",
+    "files": [
+      "host/public/security-ui.mjs"
+    ]
+  },
+  {
+    "source": "비밀 식별자 (영문·숫자·밑줄·하이픈)",
+    "files": [
+      "host/public/security-ui.mjs"
+    ],
+    "english": "Secret ID (letters, numbers, underscores, hyphens)"
+  },
+  {
+    "source": "비밀 식별자는 영문·숫자·밑줄·하이픈 1~80자여야 합니다.",
+    "files": [
+      "host/secret-vault.mjs"
+    ]
+  },
+  {
+    "source": "비밀 식별자를 HTTP 연결의 secretId와 동일하게 지정하세요. 저장된 값은 화면이나 내보내기에서 공개되지 않습니다.",
+    "files": [
+      "host/public/security-ui.mjs"
+    ]
+  },
+  {
+    "source": "비밀 이름",
+    "files": [
+      "host/public/security-ui.mjs"
+    ],
+    "english": "Secret label"
+  },
+  {
+    "source": "비밀 이름과 값(1~4096자)을 확인하세요.",
+    "files": [
+      "host/secret-vault.mjs"
+    ]
+  },
+  {
+    "source": "비밀 저장소 데이터가 손상되었습니다.",
+    "files": [
+      "host/secret-vault.mjs"
+    ]
+  },
+  {
+    "source": "비밀 저장소 만들기",
+    "files": [
+      "host/public/security-ui.mjs"
+    ]
+  },
+  {
+    "source": "비밀 저장소 키 파일을 확인하세요.",
+    "files": [
+      "host/secret-vault.mjs"
+    ]
+  },
+  {
+    "source": "비밀 저장소가 이미 있습니다.",
+    "files": [
+      "host/secret-vault.mjs"
+    ]
+  },
+  {
+    "source": "비밀 저장소가 잠겨 있습니다. 암호 또는 복구 키로 해제하세요.",
+    "files": [
+      "host/secret-vault.mjs"
+    ]
+  },
+  {
+    "source": "비밀번호는 8~256자여야 합니다.",
+    "files": [
+      "host/editor-lock.mjs"
+    ]
+  },
+  {
+    "source": "비밀번호를 확인하세요.",
+    "files": [
+      "host/editor-lock.mjs"
+    ]
+  },
+  {
+    "source": "비밀은 최대 200개까지 보관할 수 있습니다.",
+    "files": [
+      "host/secret-vault.mjs"
+    ]
+  },
+  {
+    "source": "비워 두면 Open Deck 기본값을 사용합니다.",
+    "files": [
+      "host/public/settings-ui.mjs"
+    ]
+  },
+  {
+    "source": "비워 두면 설치된 ADB를 자동으로 찾습니다.",
+    "files": [
+      "host/public/settings-ui.mjs"
+    ]
+  },
+  {
+    "source": "비워 두면 연결된 실제 기기를 모두 연결합니다.",
+    "files": [
+      "host/public/settings-ui.mjs"
+    ]
+  },
+  {
+    "source": "빈 공간",
+    "files": [
+      "host/public/app.js"
+    ]
+  },
+  {
+    "source": "빈 공간에 배치하세요. 위젯은 서로 겹칠 수 없습니다.",
+    "files": [
+      "host/public/app.js"
+    ]
+  },
+  {
+    "source": "빈 셀 표시",
+    "files": [
+      "host/public/app.js"
+    ]
+  },
+  {
+    "source": "빌드 {0} · 소스 {1}",
+    "files": [
+      "host/public/settings-ui.mjs"
+    ]
+  },
+  {
+    "source": "사설 IP와 포트를 입력하세요. HTTPS를 우선 사용하며 HTTP 연결은 암호화되지 않습니다.",
+    "files": [
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
+    "source": "사설 IP의 HTTPS 주소와 포트를 입력하세요. 최초 인증서 등록에는 USB가 필요합니다.",
+    "files": [
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
+    "source": "사용",
+    "files": [
+      "host/public/app.js"
+    ]
+  },
+  {
+    "source": "사용 가능",
+    "files": [
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
+    "source": "사용 안 함",
+    "files": [
+      "host/public/app.js"
+    ]
+  },
+  {
+    "source": "사용량 높은 앱",
+    "files": [
+      "host/public/app.js"
+    ]
+  },
+  {
+    "source": "사용량을 비교하고 있어요. 잠시 후 다시 확인해 주세요.",
+    "files": [
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
+    "source": "사용자 에이전트",
+    "files": [
+      "host/public/settings-ui.mjs"
+    ]
+  },
+  {
+    "source": "사용자명",
+    "files": [
+      "host/public/editor-lock.mjs",
+      "host/public/security-ui.mjs"
+    ],
+    "english": "Username"
+  },
+  {
+    "source": "사용자명과 복구 키를 확인하세요.",
+    "files": [
+      "host/account.mjs"
+    ]
+  },
+  {
+    "source": "사용자명은 1~80자로 입력하세요.",
+    "files": [
+      "host/account.mjs"
+    ]
+  },
+  {
+    "source": "사용하지 않을 때",
+    "files": [
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
+    "source": "사용할 프로필",
+    "files": [
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
+    "source": "사용할 프로필과 앱을 열 때 표시할 페이지",
+    "files": [
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
+    "source": "삭제",
+    "files": [
+      "host/public/app.js",
+      "host/public/settings-ui.mjs",
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
+    "source": "산세리프",
+    "files": [
+      "host/public/settings-ui.mjs"
+    ]
+  },
+  {
+    "source": "상단 상태 표시",
+    "files": [
+      "host/public/settings-ui.mjs"
+    ]
+  },
+  {
+    "source": "상단 연결 정보",
+    "files": [
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
+    "source": "상세",
+    "files": [
+      "host/public/settings-ui.mjs"
+    ],
+    "english": "Details"
+  },
+  {
+    "source": "상세 보기 ›",
+    "files": [
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
+    "source": "상위 페이지",
+    "files": [
+      "host/public/app.js"
+    ]
+  },
+  {
+    "source": "상위 페이지가 없습니다.",
+    "files": [
+      "host/config.mjs"
+    ]
+  },
+  {
+    "source": "상위 페이지가 있는 프로필도 함께 선택하세요.",
+    "files": [
+      "host/backups.mjs"
+    ]
+  },
+  {
+    "source": "상태 글자 스타일을 확인하세요.",
+    "files": [
+      "host/config.mjs"
+    ]
+  },
+  {
+    "source": "상태 복원 옵션을 확인하세요.",
+    "files": [
+      "host/backups.mjs"
+    ]
+  },
+  {
+    "source": "상태 새로고침",
+    "files": [
+      "host/public/app.js"
+    ]
+  },
+  {
+    "source": "상태 스타일 색상을 확인하세요.",
+    "files": [
+      "host/config.mjs"
+    ]
+  },
+  {
+    "source": "상태 스타일 크기를 확인하세요.",
+    "files": [
+      "host/config.mjs"
+    ]
+  },
+  {
+    "source": "상태 스타일 필드를 확인하세요.",
+    "files": [
+      "host/config.mjs"
+    ]
+  },
+  {
+    "source": "상태 스타일을 확인하세요.",
+    "files": [
+      "host/config.mjs"
+    ]
+  },
+  {
+    "source": "상태 표시 값을 확인하세요.",
+    "files": [
+      "host/config.mjs"
+    ]
+  },
+  {
+    "source": "상태 확인",
+    "files": [
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
+    "source": "상태에는 Boolean 변수를 선택하세요.",
+    "files": [
+      "host/config.mjs"
+    ]
+  },
+  {
+    "source": "새 HTTP 연동",
+    "files": [
+      "host/public/app.js"
+    ]
+  },
+  {
+    "source": "새 계정 암호 (8자 이상)",
+    "files": [
+      "host/public/editor-lock.mjs",
+      "host/public/security-ui.mjs"
+    ],
+    "english": "New account password (8+ characters)"
+  },
+  {
+    "source": "새 로컬 백업 암호화 끄기",
+    "files": [
+      "host/public/security-ui.mjs"
+    ]
+  },
+  {
+    "source": "새 로컬 백업은 암호화되지 않습니다. 기존 암호화 백업은 그대로 유지됩니다.",
+    "files": [
+      "host/public/security-ui.mjs"
+    ]
+  },
+  {
+    "source": "새 백업은 AES-256-GCM으로 암호화됩니다. 기존 평문 백업은 아래 버튼으로 변환하세요.",
+    "files": [
+      "host/public/security-ui.mjs"
+    ]
+  },
+  {
+    "source": "새 복구 키의 보관 확인을 기다리고 있습니다.",
+    "files": [
+      "host/public/security-ui.mjs"
+    ]
+  },
+  {
+    "source": "새 비밀 값",
+    "files": [
+      "host/public/security-ui.mjs"
+    ],
+    "english": "New secret value"
+  },
+  {
+    "source": "새 알림이 없어요",
+    "files": [
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
+    "source": "새 알림이 없어요.",
+    "files": [
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
+    "source": "새 암호 다시 입력",
+    "files": [
+      "host/public/editor-lock.mjs",
+      "host/public/security-ui.mjs",
+      "host/public/settings-ui.mjs"
+    ],
+    "english": "Confirm new password"
+  },
+  {
+    "source": "새 암호가 일치하지 않습니다.",
+    "files": [
+      "host/public/settings-ui.mjs"
+    ],
+    "english": "New passwords do not match."
+  },
+  {
+    "source": "새 업무 요청 {0} · 업데이트 {1}\n",
+    "files": [
+      "host/public/app.js"
+    ]
+  },
+  {
+    "source": "새 요청 · 업데이트 ",
+    "files": [
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
+    "source": "새 저장소 암호 (8자 이상)",
+    "files": [
+      "host/public/security-ui.mjs"
+    ],
+    "english": "New vault password (8+ characters)"
+  },
+  {
+    "source": "새 페이지",
+    "files": [
+      "host/public/app.js"
+    ]
+  },
+  {
+    "source": "새 편집기 암호 (8자 이상)",
+    "files": [
+      "host/public/settings-ui.mjs"
+    ],
+    "english": "New editor password (8+ characters)"
+  },
+  {
+    "source": "새 프로젝트",
+    "files": [
+      "host/public/app.js"
+    ]
+  },
+  {
+    "source": "새 프로필",
+    "files": [
+      "host/public/app.js"
+    ]
+  },
+  {
+    "source": "새 할 일",
+    "files": [
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
+    "source": "새로고침",
+    "files": [
+      "host/public/app.js",
+      "host/extensions.mjs"
+    ]
+  },
+  {
+    "source": "색상 모드",
+    "files": [
+      "host/public/settings-ui.mjs"
+    ]
+  },
+  {
+    "source": "색상은 #RRGGBB 형식입니다.",
+    "files": [
+      "host/config.mjs"
+    ]
+  },
+  {
+    "source": "서명된 APK를 확인하고 설치하는 중…",
+    "files": [
+      "host/public/settings-ui.mjs"
+    ],
+    "english": "Checking and installing the signed APK…"
+  },
+  {
+    "source": "서버 상태",
+    "files": [
+      "host/public/monitor-layout.mjs",
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
+    "source": "서비스 보고값 중 최대",
+    "files": [
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
+    "source": "서비스별 시스템 CPU",
+    "files": [
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
+    "source": "선택 삭제",
+    "files": [
+      "host/public/index.html"
+    ]
+  },
+  {
+    "source": "선택 안 함",
+    "files": [
+      "host/public/app.js"
+    ]
+  },
+  {
+    "source": "선택한 위젯 이동",
+    "files": [
+      "host/public/app.js"
+    ]
+  },
+  {
+    "source": "선택한 프로필에 페이지가 없습니다.",
+    "files": [
+      "host/backups.mjs"
+    ]
+  },
+  {
+    "source": "설정 값을 확인하세요: {0}.{1}",
+    "files": [
+      "host/settings.mjs"
+    ]
+  },
+  {
+    "source": "설정 값을 확인하세요.",
+    "files": [
+      "android/app/src/main/java/app/opendeck/client/ClientSettingsPolicy.java"
+    ]
+  },
+  {
+    "source": "설정 값이 허용 범위를 벗어났습니다.",
+    "files": [
+      "android/app/src/main/java/app/opendeck/client/ClientSettingsPolicy.java"
+    ]
+  },
+  {
+    "source": "설정 객체가 필요합니다.",
+    "files": [
+      "host/settings.mjs"
+    ]
+  },
+  {
+    "source": "설정 검색",
+    "files": [
+      "host/public/settings-ui.mjs"
+    ]
+  },
+  {
+    "source": "설정 버튼 숨기기",
+    "files": [
+      "host/public/settings-ui.mjs",
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
+    "source": "설정 버튼을 숨겨도 상단을 길게 눌러 다시 열 수 있어요.",
+    "files": [
+      "host/public/settings-ui.mjs"
+    ]
+  },
+  {
+    "source": "설정 버튼을 숨겨도 화면 오른쪽 위 모서리를 1초간 누르면 다시 열립니다.",
+    "files": [
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
+    "source": "설정 언어",
+    "files": [
+      "host/public/settings-ui.mjs"
+    ]
+  },
+  {
+    "source": "설정 저장",
+    "files": [
+      "host/public/settings-ui.mjs"
+    ]
+  },
+  {
+    "source": "설정 초기화",
+    "files": [
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
+    "source": "설정 화면 테마",
+    "files": [
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
+    "source": "설정 화면과 날짜 표시 언어에 적용됩니다. 사용자 버튼 이름은 유지됩니다.",
+    "files": [
+      "host/public/settings-ui.mjs"
+    ]
+  },
+  {
+    "source": "설정과 마지막 데이터는 그대로 유지합니다.",
+    "files": [
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
+    "source": "설정을 저장했습니다.",
+    "files": [
+      "host/public/settings-ui.mjs"
+    ],
+    "english": "Settings saved."
+  },
+  {
+    "source": "설정한 시간 동안 사용하지 않으면 앱 밝기를 낮춥니다. 앱을 벗어나면 기기 밝기로 돌아갑니다.",
+    "files": [
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
+    "source": "설치 파일 다운로드 실패",
+    "files": [
+      "host/system-tools.mjs"
+    ]
+  },
+  {
+    "source": "설치 파일 크기를 확인하세요.",
+    "files": [
+      "host/system-tools.mjs"
+    ]
+  },
+  {
+    "source": "설치된 도구 경로를 확인하세요.",
+    "files": [
+      "host/system-tools.mjs"
+    ]
+  },
+  {
+    "source": "세로",
+    "files": [
+      "host/public/settings-ui.mjs"
+    ]
+  },
+  {
+    "source": "세로 고정",
+    "files": [
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
+    "source": "세로 미리보기",
+    "files": [
+      "host/public/app.js"
+    ]
+  },
+  {
+    "source": "세로 배치는 자동으로 정렬됩니다. 가로 미리보기에서 위젯을 편집하세요.",
+    "files": [
+      "host/public/app.js"
+    ]
+  },
+  {
+    "source": "세로 배치를 확인하세요.",
+    "files": [
+      "host/config.mjs"
+    ]
+  },
+  {
+    "source": "세로 화면 열",
+    "files": [
+      "host/public/app.js"
+    ]
+  },
+  {
+    "source": "세리프",
+    "files": [
+      "host/public/app.js"
+    ]
+  },
+  {
+    "source": "세션 종료",
+    "files": [
+      "host/public/security-ui.mjs"
+    ]
+  },
+  {
+    "source": "셸 명령",
+    "files": [
+      "host/public/app.js"
+    ]
+  },
+  {
+    "source": "소속 프로필",
+    "files": [
+      "host/public/app.js"
+    ]
+  },
+  {
+    "source": "손가락으로 페이지를 이동합니다.",
+    "files": [
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
+    "source": "손상된 백업",
+    "files": [
+      "host/backups.mjs"
+    ]
+  },
+  {
+    "source": "송신",
+    "files": [
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
+    "source": "수동 백업",
+    "files": [
+      "host/public/settings-ui.mjs"
+    ],
+    "english": "Manual backup"
+  },
+  {
+    "source": "수신",
+    "files": [
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
+    "source": "수준",
+    "files": [
+      "host/public/settings-ui.mjs"
+    ],
+    "english": "Level"
+  },
+  {
+    "source": "수집 ",
+    "files": [
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
+    "source": "수집 대상 없음",
+    "files": [
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
+    "source": "수집 데이터 없음",
+    "files": [
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
+    "source": "수집 시각 없음",
+    "files": [
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
+    "source": "수집 없음",
+    "files": [
+      "host/public/app.js",
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
+    "source": "수집 정상",
+    "files": [
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
+    "source": "수집 지연",
+    "files": [
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
+    "source": "숨긴 하단 버튼 대신 여기서 이동할 수 있습니다.",
+    "files": [
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
+    "source": "숨김",
+    "files": [
+      "host/public/app.js"
+    ]
+  },
+  {
+    "source": "숫자, true/false 또는 따옴표로 감싼 문자열을 입력하세요.",
+    "files": [
+      "host/public/app.js"
+    ]
+  },
+  {
+    "source": "스위치 값이 필요합니다.",
+    "files": [
+      "android/app/src/main/java/app/opendeck/client/ClientSettingsPolicy.java"
+    ]
+  },
+  {
+    "source": "스타일 복사",
+    "files": [
+      "host/public/index.html"
+    ]
+  },
+  {
+    "source": "스타일 색상을 확인하세요.",
+    "files": [
+      "host/config.mjs"
+    ]
+  },
+  {
+    "source": "스타일 적용",
+    "files": [
+      "host/public/index.html"
+    ]
+  },
+  {
+    "source": "스타일 초기화",
+    "files": [
+      "host/public/app.js"
+    ]
+  },
+  {
+    "source": "스타일 크기를 확인하세요.",
+    "files": [
+      "host/config.mjs"
+    ]
+  },
+  {
+    "source": "슬라이더",
+    "files": [
+      "host/public/app.js"
+    ]
+  },
+  {
+    "source": "슬라이더 범위를 벗어났습니다.",
+    "files": [
+      "host/engine.mjs"
+    ]
+  },
+  {
+    "source": "슬라이더 범위를 확인하세요.",
+    "files": [
+      "host/config.mjs"
+    ]
+  },
+  {
+    "source": "시각",
+    "files": [
+      "host/public/settings-ui.mjs"
+    ],
+    "english": "Time"
+  },
+  {
+    "source": "시각 없음",
+    "files": [
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
+    "source": "시간",
+    "files": [
+      "host/public/app.js"
+    ]
+  },
+  {
+    "source": "시간 ",
+    "files": [
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
+    "source": "시간 간격",
+    "files": [
+      "host/public/settings-ui.mjs"
+    ]
+  },
+  {
+    "source": "시간 전",
+    "files": [
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
+    "source": "시간 형식",
+    "files": [
+      "host/public/settings-ui.mjs"
+    ]
+  },
+  {
+    "source": "시계",
+    "files": [
+      "host/public/app.js",
+      "host/public/settings-ui.mjs"
+    ]
+  },
+  {
+    "source": "시계 표시",
+    "files": [
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
+    "source": "시계 화면",
+    "files": [
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
+    "source": "시도가 너무 많습니다. 1분 후 다시 시도하세요.",
+    "files": [
+      "host/security-storage.mjs"
+    ]
+  },
+  {
+    "source": "시스템",
+    "files": [
+      "host/public/settings-ui.mjs"
+    ]
+  },
+  {
+    "source": "시스템 · DB 경고",
+    "files": [
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
+    "source": "시스템 CPU",
+    "files": [
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
+    "source": "시스템 CPU ",
+    "files": [
+      "host/public/app.js"
+    ]
+  },
+  {
+    "source": "시스템 CPU · 서비스 보고값 중 최대",
+    "files": [
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
+    "source": "시스템 CPU · 수집 상태",
+    "files": [
+      "host/public/app.js"
+    ]
+  },
+  {
+    "source": "시스템 CPU 추이",
+    "files": [
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
+    "source": "시스템 상태",
+    "files": [
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
+    "source": "시스템 지표",
+    "files": [
+      "host/public/app.js"
+    ]
+  },
+  {
+    "source": "시스템 지표를 선택하세요.",
+    "files": [
+      "host/config.mjs"
+    ]
+  },
+  {
+    "source": "시스템·DB 임계치 알림",
+    "files": [
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
+    "source": "시스템에 맞춤",
+    "files": [
+      "host/public/settings-ui.mjs"
+    ]
+  },
+  {
+    "source": "시작",
+    "files": [
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
+    "source": "시작 페이지",
+    "files": [
+      "host/public/app.js",
+      "host/public/settings-ui.mjs",
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
+    "source": "시작 페이지가 선택한 프로필에 없습니다.",
+    "files": [
+      "host/settings.mjs"
+    ]
+  },
+  {
+    "source": "시작 프로필",
+    "files": [
+      "host/public/settings-ui.mjs"
+    ]
+  },
+  {
+    "source": "신뢰 정보가 변경됩니다. 연결된 태블릿은 USB로 신뢰 정보를 다시 받아야 합니다. 계속할까요?",
+    "files": [
+      "host/public/settings-ui.mjs"
+    ],
+    "english": "Trust information will change. Connected tablets need USB to refresh trust. Continue?"
+  },
+  {
+    "source": "실시간 로그",
+    "files": [
+      "host/public/settings-ui.mjs"
+    ]
+  },
+  {
+    "source": "실시간 상태 대기",
+    "files": [
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
+    "source": "실행",
+    "files": [
+      "host/public/app.js"
+    ]
+  },
+  {
+    "source": "실행 상태 미포함",
+    "files": [
+      "host/public/settings-ui.mjs"
+    ],
+    "english": "No saved runtime state"
+  },
+  {
+    "source": "실행 시간",
+    "files": [
+      "host/public/settings-ui.mjs"
+    ],
+    "english": "Uptime"
+  },
+  {
+    "source": "실행 조건",
+    "files": [
+      "host/public/app.js"
+    ]
+  },
+  {
+    "source": "실행 취소",
+    "files": [
+      "host/public/index.html"
+    ]
+  },
+  {
+    "source": "실행 파일은 플러그인 폴더 안에 있어야 합니다.",
+    "files": [
+      "host/plugins.mjs"
+    ]
+  },
+  {
+    "source": "실행했습니다.",
+    "files": [
+      "host/public/app.js"
+    ]
+  },
+  {
+    "source": "쓰기",
+    "files": [
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
+    "source": "쓰기 ",
+    "files": [
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
+    "source": "아래",
+    "files": [
+      "host/public/app.js"
+    ]
+  },
+  {
+    "source": "아무 곳이나 터치하면 돌아갑니다.",
+    "files": [
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
+    "source": "아이콘",
+    "files": [
+      "host/public/app.js"
+    ]
+  },
+  {
+    "source": "아이콘 크기 (%)",
+    "files": [
+      "host/public/app.js"
+    ]
+  },
+  {
+    "source": "아이콘 해상도",
+    "files": [
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
+    "source": "아직 백업이 없습니다.",
+    "files": [
+      "host/public/settings-ui.mjs"
+    ]
+  },
+  {
+    "source": "아직 페어링한 태블릿이 없어요.",
+    "files": [
+      "host/public/settings-ui.mjs"
+    ]
+  },
+  {
+    "source": "안전한 백업 파일이 필요합니다.",
+    "files": [
+      "host/backups.mjs"
+    ]
+  },
+  {
+    "source": "안전한 백업 폴더가 필요합니다.",
+    "files": [
+      "host/backups.mjs"
+    ]
+  },
+  {
+    "source": "안전한 보안 저장소가 필요합니다.",
+    "files": [
+      "host/security-storage.mjs"
+    ]
+  },
+  {
+    "source": "안전한 보안 파일이 필요합니다.",
+    "files": [
+      "host/security-storage.mjs"
+    ]
+  },
+  {
+    "source": "안전한 이미지 폴더가 필요합니다.",
+    "files": [
+      "host/backups.mjs"
+    ]
+  },
+  {
+    "source": "안전한 일반 파일만 저장할 수 있습니다.",
+    "files": [
+      "host/backups.mjs"
+    ]
+  },
+  {
+    "source": "알림",
+    "files": [
+      "host/public/settings-ui.mjs",
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
+    "source": "알림 {0}개",
+    "files": [
+      "host/public/app.js"
+    ]
+  },
+  {
+    "source": "알림 지속 시간과 재알림 간격을 확인하세요.",
+    "files": [
+      "host/public/monitor-rules.mjs"
+    ]
+  },
+  {
+    "source": "암호",
+    "files": [
+      "host/public/migration-ui.mjs"
+    ]
+  },
+  {
+    "source": "암호 (선택)",
+    "files": [
+      "host/public/migration-ui.mjs"
+    ]
+  },
+  {
+    "source": "암호 변경",
+    "files": [
+      "host/public/settings-ui.mjs"
+    ]
+  },
+  {
+    "source": "암호 설정",
+    "files": [
+      "host/public/settings-ui.mjs"
+    ]
+  },
+  {
+    "source": "암호 재설정 후 로그인",
+    "files": [
+      "host/public/editor-lock.mjs"
+    ],
+    "english": "Reset password and sign in"
+  },
+  {
+    "source": "암호가 일치하지 않습니다.",
+    "files": [
+      "host/public/editor-lock.mjs",
+      "host/public/security-ui.mjs"
+    ],
+    "english": "Passwords do not match."
+  },
+  {
+    "source": "암호는 8~256자여야 합니다.",
+    "files": [
+      "host/security-storage.mjs"
+    ]
+  },
+  {
+    "source": "암호는 8자 이상이어야 합니다.",
+    "files": [
+      "host/public/settings-ui.mjs"
+    ],
+    "english": "Password must contain at least 8 characters."
+  },
+  {
+    "source": "암호와 복구 키를 모두 잃으면 암호화 데이터는 복구할 수 없습니다.",
+    "files": [
+      "host/public/security-ui.mjs"
+    ]
+  },
+  {
+    "source": "암호화 내보내기",
+    "files": [
+      "host/public/settings-ui.mjs"
+    ]
+  },
+  {
+    "source": "암호화 백업",
+    "files": [
+      "host/backups.mjs"
+    ]
+  },
+  {
+    "source": "암호화 백업 형식을 확인하세요.",
+    "files": [
+      "host/backups.mjs",
+      "host/secret-vault.mjs"
+    ]
+  },
+  {
+    "source": "암호화 백업이 손상되었거나 복구 키가 다릅니다.",
+    "files": [
+      "host/secret-vault.mjs"
+    ]
+  },
+  {
+    "source": "암호화 비밀 저장소",
+    "files": [
+      "host/public/security-ui.mjs"
+    ]
+  },
+  {
+    "source": "암호화 비밀 저장소를 사용할 수 없습니다.",
+    "files": [
+      "host/backups.mjs"
+    ]
+  },
+  {
+    "source": "암호화 설정을 확인하세요.",
+    "files": [
+      "host/secret-vault.mjs"
+    ]
+  },
+  {
+    "source": "암호화 키 정보를 확인하세요.",
+    "files": [
+      "host/secret-vault.mjs"
+    ]
+  },
+  {
+    "source": "암호화 파일 형식을 확인하세요.",
+    "files": [
+      "host/secret-vault.mjs"
+    ]
+  },
+  {
+    "source": "암호화됨",
+    "files": [
+      "host/public/settings-ui.mjs"
+    ],
+    "english": "Encrypted"
+  },
+  {
+    "source": "암호화됨 · 저장소 잠금 해제 필요",
+    "files": [
+      "host/public/settings-ui.mjs"
+    ],
+    "english": "Encrypted · unlock the vault to restore"
+  },
+  {
+    "source": "암호화하지 않는 LAN 호스트를 찾았습니다. 연결 전에 주소를 확인하세요.",
+    "files": [
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
+    "source": "암호화하지 않는 Wi-Fi 허용",
+    "files": [
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
+    "source": "압축 ",
+    "files": [
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
+    "source": "앞으로 일정과 업무 알림을 이 태블릿에서 확인할 수 있어요.",
+    "files": [
+      "host/extensions.mjs"
+    ]
+  },
+  {
+    "source": "앱 내 알림 배너",
+    "files": [
+      "host/public/settings-ui.mjs"
+    ]
+  },
+  {
+    "source": "앱 밝기",
+    "files": [
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
+    "source": "앱 사용량 비교 중",
+    "files": [
+      "host/public/app.js"
+    ]
+  },
+  {
+    "source": "앱 사용량 비교 중…",
+    "files": [
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
+    "source": "앱 설정",
+    "files": [
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
+    "source": "앱 설정 미포함",
+    "files": [
+      "host/public/settings-ui.mjs"
+    ],
+    "english": "No app settings"
+  },
+  {
+    "source": "앱 설정 복원 옵션을 확인하세요.",
+    "files": [
+      "host/backups.mjs"
+    ]
+  },
+  {
+    "source": "앱 설정 포함",
+    "files": [
+      "host/public/settings-ui.mjs"
+    ],
+    "english": "App settings included"
+  },
+  {
+    "source": "앱 설치 완료",
+    "files": [
+      "host/public/settings-ui.mjs"
+    ],
+    "english": "App installation complete"
+  },
+  {
+    "source": "앱 실행",
+    "files": [
+      "host/public/app.js"
+    ]
+  },
+  {
+    "source": "앱 안에서 경고 배너",
+    "files": [
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
+    "source": "앱 업데이트 전에 백업",
+    "files": [
+      "host/public/settings-ui.mjs"
+    ]
+  },
+  {
+    "source": "앱 연결에는 bundle ID가 필요합니다.",
+    "files": [
+      "host/public/profiles.mjs"
+    ]
+  },
+  {
+    "source": "앱 정보 · 업데이트",
+    "files": [
+      "host/public/settings-ui.mjs"
+    ]
+  },
+  {
+    "source": "앱 제목과 연결 상태를 표시합니다.",
+    "files": [
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
+    "source": "앱 종료 시 ADB 서버 정지",
+    "files": [
+      "host/public/settings-ui.mjs"
+    ]
+  },
+  {
+    "source": "앱 테마",
+    "files": [
+      "host/public/settings-ui.mjs"
+    ]
+  },
+  {
+    "source": "앱 포커스 시 자동 전환 · Bundle ID (쉼표 구분)",
+    "files": [
+      "host/public/app.js"
+    ]
+  },
+  {
+    "source": "앱별 사용량",
+    "files": [
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
+    "source": "앱을 다시 열 때 마지막으로 사용한 페이지를 보여줍니다.",
+    "files": [
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
+    "source": "약간 높음",
+    "files": [
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
+    "source": "어둡게",
+    "files": [
+      "host/public/settings-ui.mjs",
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
+    "source": "언어",
+    "files": [
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
+    "source": "업데이트 확인",
+    "files": [
+      "host/public/settings-ui.mjs"
+    ]
+  },
+  {
+    "source": "업데이트 확인 실패 (HTTP ",
+    "files": [
+      "host/settings.mjs"
+    ]
+  },
+  {
+    "source": "업무 시작",
+    "files": [
+      "host/config.mjs"
+    ]
+  },
+  {
+    "source": "업무 요청",
+    "files": [
+      "host/public/app.js",
+      "host/extensions.mjs"
+    ]
+  },
+  {
+    "source": "업무 요청 확인 ›",
+    "files": [
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
+    "source": "없음",
+    "files": [
+      "host/public/app.js",
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
+    "source": "여유 ",
+    "files": [
+      "host/public/app.js"
+    ]
+  },
+  {
+    "source": "연결 · 기기 이름",
+    "files": [
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
+    "source": "연결 끄기",
+    "files": [
+      "host/public/app.js"
+    ]
+  },
+  {
+    "source": "연결 끊김",
+    "files": [
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
+    "source": "연결 끊김 · 자동 재연결 중",
+    "files": [
+      "host/public/app.js"
+    ]
+  },
+  {
+    "source": "연결 대기",
+    "files": [
+      "host/public/settings-ui.mjs"
+    ],
+    "english": "Offline"
+  },
+  {
+    "source": "연결 방식 · 주소",
+    "files": [
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
+    "source": "연결 변수",
+    "files": [
+      "host/public/app.js"
+    ]
+  },
+  {
+    "source": "연결 비밀 추가",
+    "files": [
+      "host/public/security-ui.mjs"
+    ]
+  },
+  {
+    "source": "연결 상태를 확인하고 있어요.",
+    "files": [
+      "host/public/app.js"
+    ]
+  },
+  {
+    "source": "연결 새로 고침",
+    "files": [
+      "host/public/settings-ui.mjs"
+    ]
+  },
+  {
+    "source": "연결 설정 저장",
+    "files": [
+      "host/public/app.js"
+    ]
+  },
+  {
+    "source": "연결 수",
+    "files": [
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
+    "source": "연결 요약",
+    "files": [
+      "host/public/settings-ui.mjs"
+    ]
+  },
+  {
+    "source": "연결 인증, 현재 프로필과 맥의 덱은 유지됩니다.",
+    "files": [
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
+    "source": "연결 전",
+    "files": [
+      "host/public/app.js"
+    ]
+  },
+  {
+    "source": "연결 정보",
+    "files": [
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
+    "source": "연결 중…",
+    "files": [
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
+    "source": "연결 진단",
+    "files": [
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
+    "source": "연결 진단 보기",
+    "files": [
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
+    "source": "연결 후 재시도 예정",
+    "files": [
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
+    "source": "연결 후 확인",
+    "files": [
+      "host/public/app.js"
+    ]
+  },
+  {
+    "source": "연결: ",
+    "files": [
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
+    "source": "연결된 Android 기기 확인",
+    "files": [
+      "host/public/settings-ui.mjs"
+    ]
+  },
+  {
+    "source": "연결된 Android 기기를 선택하세요.",
+    "files": [
+      "host/system-tools.mjs"
+    ]
+  },
+  {
+    "source": "연결된 기기",
+    "files": [
+      "host/public/index.html"
+    ]
+  },
+  {
+    "source": "연결된 위젯을 확인하세요.",
+    "files": [
+      "host/server.mjs"
+    ]
+  },
+  {
+    "source": "연결된 위젯을 확인해 주세요.",
+    "files": [
+      "host/server.mjs"
+    ]
+  },
+  {
+    "source": "연결된 태블릿",
+    "files": [
+      "host/public/index.html"
+    ]
+  },
+  {
+    "source": "연결된 태블릿 앱 자동 업데이트",
+    "files": [
+      "host/public/settings-ui.mjs"
+    ]
+  },
+  {
+    "source": "연결된 태블릿 자동 재연결",
+    "files": [
+      "host/public/settings-ui.mjs"
+    ]
+  },
+  {
+    "source": "연결된 태블릿에 알림을 보냈어요.",
+    "files": [
+      "host/public/app.js"
+    ]
+  },
+  {
+    "source": "연결된 태블릿은 계속 사용할 수 있습니다.",
+    "files": [
+      "host/public/editor-lock.mjs"
+    ],
+    "english": "Connected tablets remain available."
+  },
+  {
+    "source": "연결된 화면",
+    "files": [
+      "host/public/settings-ui.mjs"
+    ],
+    "english": "Connected views"
+  },
+  {
+    "source": "연결됨",
+    "files": [
+      "host/public/settings-ui.mjs",
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ],
+    "english": "Online"
+  },
+  {
+    "source": "연결됨 · 일정과 업무 요청을 동기화하고 있어요.",
+    "files": [
+      "host/public/app.js"
+    ]
+  },
+  {
+    "source": "연결됨: ",
+    "files": [
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
+    "source": "연결을 기다리고 있어요.",
+    "files": [
+      "host/public/app.js"
+    ]
+  },
+  {
+    "source": "연결하고 OS 탭 추가",
+    "files": [
+      "host/public/app.js"
+    ]
+  },
+  {
+    "source": "연결하기",
+    "files": [
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
+    "source": "연결하지 못했습니다. USB와 맥 앱, 페어링 코드를 확인하세요.\n",
+    "files": [
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
+    "source": "연결한 플러그인을 찾을 수 없어요.",
+    "files": [
+      "host/extensions.mjs"
+    ]
+  },
+  {
+    "source": "연결할 수 없습니다.",
+    "files": [
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
+    "source": "연결할 수 있는 USB 기기가 없습니다.",
+    "files": [
+      "host/system-tools.mjs"
+    ]
+  },
+  {
+    "source": "연동",
+    "files": [
+      "host/public/app.js"
+    ]
+  },
+  {
+    "source": "연동 ID가 충돌합니다: ",
+    "files": [
+      "host/public/profile-tools.mjs"
+    ]
+  },
+  {
+    "source": "연동 URL을 확인하세요.",
+    "files": [
+      "host/config.mjs"
+    ]
+  },
+  {
+    "source": "연동 선택",
+    "files": [
+      "host/public/app.js"
+    ]
+  },
+  {
+    "source": "연동은 최대 32개입니다.",
+    "files": [
+      "host/config.mjs"
+    ]
+  },
+  {
+    "source": "연동을 찾을 수 없습니다.",
+    "files": [
+      "host/connectors.mjs"
+    ]
+  },
+  {
+    "source": "연동의 저장 변수를 선택하세요.",
+    "files": [
+      "host/config.mjs"
+    ]
+  },
+  {
+    "source": "연동이 준비되지 않았습니다.",
+    "files": [
+      "host/engine.mjs"
+    ]
+  },
+  {
+    "source": "열",
+    "files": [
+      "host/public/index.html"
+    ]
+  },
+  {
+    "source": "열 수는 2~12입니다.",
+    "files": [
+      "host/config.mjs"
+    ]
+  },
+  {
+    "source": "열 화면",
+    "files": [
+      "host/public/app.js"
+    ]
+  },
+  {
+    "source": "예: https://192.168.0.10:8841",
+    "files": [
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
+    "source": "예상하지 못한 Android 도구 경로입니다.",
+    "files": [
+      "host/system-tools.mjs"
+    ]
+  },
+  {
+    "source": "예약 업무",
+    "files": [
+      "host/public/app.js",
+      "host/extensions.mjs"
+    ]
+  },
+  {
+    "source": "예정 일정",
+    "files": [
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
+    "source": "예정된 일정이 없어요",
+    "files": [
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
+    "source": "오래된 데이터",
+    "files": [
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
+    "source": "오른쪽",
+    "files": [
+      "host/public/app.js"
+    ]
+  },
+  {
+    "source": "오른쪽 위 모서리를 1초간 누르면 설정을 엽니다.",
+    "files": [
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
+    "source": "오픈소스 라이선스",
+    "files": [
+      "host/public/settings-ui.mjs"
+    ]
+  },
+  {
+    "source": "완료",
+    "files": [
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
+    "source": "완료 답글 (선택)",
+    "files": [
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
+    "source": "완료로 표시",
+    "files": [
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
+    "source": "완료하기",
+    "files": [
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
+    "source": "완료하면 Jimin OS와 연결된 업무에도 반영돼요. 답글을 쓰면 일감에 저장하고, Google Chat에서 받은 일감은 원래 대화에도 전달해요.",
+    "files": [
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
+    "source": "왼쪽",
+    "files": [
+      "host/public/app.js"
+    ]
+  },
+  {
+    "source": "요일 · 시간",
+    "files": [
+      "host/public/app.js"
+    ]
+  },
+  {
+    "source": "요일 (0: 일요일)",
+    "files": [
+      "host/public/settings-ui.mjs"
+    ]
+  },
+  {
+    "source": "요일을 확인하세요.",
+    "files": [
+      "host/config.mjs"
+    ]
+  },
+  {
+    "source": "요청 본문 JSON",
+    "files": [
+      "host/public/app.js"
+    ]
+  },
+  {
+    "source": "요청 본문이 너무 큽니다.",
+    "files": [
+      "host/config.mjs"
+    ]
+  },
+  {
+    "source": "요청이 너무 큽니다.",
+    "files": [
+      "host/server.mjs"
+    ]
+  },
+  {
+    "source": "움직임 줄이기",
+    "files": [
+      "host/public/settings-ui.mjs"
+    ]
+  },
+  {
+    "source": "원래 프로필에 페이지 하나를 남겨 두세요.",
+    "files": [
+      "host/public/app.js"
+    ]
+  },
+  {
+    "source": "원문 열기",
+    "files": [
+      "host/public/settings-ui.mjs"
+    ],
+    "english": "Open source notice"
+  },
+  {
+    "source": "웹 주소",
+    "files": [
+      "host/public/app.js"
+    ]
+  },
+  {
+    "source": "위",
+    "files": [
+      "host/public/app.js"
+    ]
+  },
+  {
+    "source": "위젯 배치가 겹치거나 페이지를 벗어납니다.",
+    "files": [
+      "host/config.mjs"
+    ]
+  },
+  {
+    "source": "위젯 삭제",
+    "files": [
+      "host/public/index.html"
+    ]
+  },
+  {
+    "source": "위젯 편집",
+    "files": [
+      "host/public/index.html"
+    ]
+  },
+  {
+    "source": "위젯에서 {{변수명}}으로 표시하거나 토글·슬라이더에 연결하세요.",
+    "files": [
+      "host/public/index.html"
+    ]
+  },
+  {
+    "source": "위젯은 최대 1024개입니다.",
+    "files": [
+      "host/config.mjs"
+    ]
+  },
+  {
+    "source": "위젯이 놓인 행은 제거할 수 없습니다. 먼저 이동하거나 자동 정렬하세요.",
+    "files": [
+      "host/public/app.js"
+    ]
+  },
+  {
+    "source": "위험",
+    "files": [
+      "host/public/app.js",
+      "host/monitor-alerts.mjs",
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
+    "source": "위험 색상 표시",
+    "files": [
+      "host/public/app.js"
+    ]
+  },
+  {
+    "source": "유효한 2MB 이하 이미지가 필요합니다.",
+    "files": [
+      "host/assets.mjs"
+    ]
+  },
+  {
+    "source": "유휴 밝기, 시계와 첫 터치 동작",
+    "files": [
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
+    "source": "음량은 0~100입니다.",
+    "files": [
+      "host/engine.mjs"
+    ]
+  },
+  {
+    "source": "음소거 전환",
+    "files": [
+      "host/config.mjs"
+    ]
+  },
+  {
+    "source": "음악",
+    "files": [
+      "host/config.mjs"
+    ]
+  },
+  {
+    "source": "응답 제한 시간을 넘겼습니다. 요청을 취소했습니다.",
+    "files": [
+      "host/engine.mjs"
+    ]
+  },
+  {
+    "source": "응답: ",
+    "files": [
+      "host/public/app.js"
+    ]
+  },
+  {
+    "source": "응답이 너무 큽니다.",
+    "files": [
+      "host/connectors.mjs",
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
+    "source": "이 기기에 최신 Open Deck 앱을 설치할까요? 설정은 유지됩니다.",
+    "files": [
+      "host/public/settings-ui.mjs"
+    ],
+    "english": "Install the latest Open Deck app on this device? Settings are preserved."
+  },
+  {
+    "source": "이 기기에서 호스트 검색을 사용할 수 없습니다.",
+    "files": [
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
+    "source": "이 기기의 저장 요청을 찾을 수 없어요.",
+    "files": [
+      "host/extensions.mjs"
+    ]
+  },
+  {
+    "source": "이 기기의 저장 요청이 아니에요.",
+    "files": [
+      "host/extensions.mjs"
+    ]
+  },
+  {
+    "source": "이 맥과 Open Deck이 실행 중일 때 지정한 버튼을 실행합니다.",
+    "files": [
+      "host/public/index.html"
+    ]
+  },
+  {
+    "source": "이 맥에서 실행",
+    "files": [
+      "host/public/index.html"
+    ]
+  },
+  {
+    "source": "이 맥의 저장된 인증을 제거하고 다시 등록합니다.",
+    "files": [
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
+    "source": "이 백업 파일을 삭제할까요?",
+    "files": [
+      "host/public/settings-ui.mjs"
+    ],
+    "english": "Delete this backup?"
+  },
+  {
+    "source": "이 백업에는 복원 가능한 변수·할 일 상태가 없습니다.",
+    "files": [
+      "host/backups.mjs"
+    ]
+  },
+  {
+    "source": "이 백업으로 덱과 설정을 복원할까요? 현재 상태는 별도 백업됩니다.",
+    "files": [
+      "host/public/settings-ui.mjs"
+    ],
+    "english": "Restore this backup? The current state will be backed up first."
+  },
+  {
+    "source": "이 비밀을 삭제할까요? 연결에서 더 이상 사용할 수 없습니다.",
+    "files": [
+      "host/public/security-ui.mjs"
+    ],
+    "english": "Delete this secret? Connections will no longer be able to use it."
+  },
+  {
+    "source": "이 위젯에서 사용할 수 없는 동작이에요.",
+    "files": [
+      "host/server.mjs"
+    ]
+  },
+  {
+    "source": "이 키는 지금 한 번만 표시됩니다. 암호와 다른 안전한 위치에 보관하세요. 보관 확인 전에는 기존 키가 유지됩니다.",
+    "files": [
+      "host/public/security-ui.mjs"
+    ],
+    "english": "This key is displayed once. Store it somewhere safe, separate from your password. Your previous key remains active until confirmation."
+  },
+  {
+    "source": "이 태블릿에서 맥 인증을 제거합니다. 맥의 덱과 버튼은 삭제되지 않습니다.",
+    "files": [
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
+    "source": "이 태블릿에서 받을 알림을 선택합니다. 맥의 수집과 임계치 설정은 유지됩니다.",
+    "files": [
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
+    "source": "이 태블릿의 설정은 자동 저장됩니다. 맥의 기기 설정과도 연결됩니다.",
+    "files": [
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
+    "source": "이 태블릿의 연결 권한을 해제할까요?",
+    "files": [
+      "host/public/settings-ui.mjs"
+    ],
+    "english": "Remove this tablet’s pairing?"
+  },
+  {
+    "source": "이 페이지 설정 검색 / Search settings",
+    "files": [
+      "host/public/settings-ui.mjs"
+    ]
+  },
+  {
+    "source": "이 페이지를 삭제할까요? 실행 취소로 복구할 수 있습니다.",
+    "files": [
+      "host/public/app.js"
+    ]
+  },
+  {
+    "source": "이 페이지에만",
+    "files": [
+      "host/public/app.js"
+    ]
+  },
+  {
+    "source": "이 프로필의 모든 페이지",
+    "files": [
+      "host/public/app.js"
+    ]
+  },
+  {
+    "source": "이 환경에서는 백업을 복원할 수 없습니다.",
+    "files": [
+      "host/backups.mjs"
+    ]
+  },
+  {
+    "source": "이 환경에서는 앱 설정을 복원할 수 없습니다.",
+    "files": [
+      "host/backups.mjs"
+    ]
+  },
+  {
+    "source": "이동",
+    "files": [
+      "host/public/app.js"
+    ]
+  },
+  {
+    "source": "이동할 페이지",
+    "files": [
+      "host/public/app.js"
+    ]
+  },
+  {
+    "source": "이동할 페이지를 먼저 추가하세요.",
+    "files": [
+      "host/public/app.js"
+    ]
+  },
+  {
+    "source": "이동할 페이지를 선택하세요.",
+    "files": [
+      "host/config.mjs"
+    ]
+  },
+  {
+    "source": "이름",
+    "files": [
+      "host/public/app.js"
+    ]
+  },
+  {
+    "source": "이름 / {{변수}}",
+    "files": [
+      "host/public/app.js"
+    ]
+  },
+  {
+    "source": "이름 변경",
+    "files": [
+      "host/public/index.html"
+    ]
+  },
+  {
+    "source": "이미 갱신 중입니다.",
+    "files": [
+      "host/connectors.mjs"
+    ]
+  },
+  {
+    "source": "이미 등록된 플러그인입니다.",
+    "files": [
+      "host/plugins.mjs"
+    ]
+  },
+  {
+    "source": "이미 완료된 할 일이에요.",
+    "files": [
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
+    "source": "이미지",
+    "files": [
+      "host/public/app.js"
+    ]
+  },
+  {
+    "source": "이미지 변경",
+    "files": [
+      "host/public/app.js"
+    ]
+  },
+  {
+    "source": "이미지 선택",
+    "files": [
+      "host/public/app.js"
+    ]
+  },
+  {
+    "source": "이미지 식별자를 확인하세요.",
+    "files": [
+      "host/backups.mjs"
+    ]
+  },
+  {
+    "source": "이미지 제거",
+    "files": [
+      "host/public/app.js"
+    ]
+  },
+  {
+    "source": "이미지 파일 검증에 실패했습니다.",
+    "files": [
+      "host/public/app.js"
+    ]
+  },
+  {
+    "source": "이미지 파일의 체크섬이 일치하지 않습니다.",
+    "files": [
+      "host/backups.mjs"
+    ]
+  },
+  {
+    "source": "이미지 해상도",
+    "files": [
+      "host/public/settings-ui.mjs"
+    ]
+  },
+  {
+    "source": "이미지는 2MB 이하여야 합니다.",
+    "files": [
+      "host/public/app.js",
+      "host/assets.mjs"
+    ]
+  },
+  {
+    "source": "이미지를 내보내지 못했습니다.",
+    "files": [
+      "host/public/app.js"
+    ]
+  },
+  {
+    "source": "이미지를 찾을 수 없습니다.",
+    "files": [
+      "host/assets.mjs"
+    ]
+  },
+  {
+    "source": "이미지를 확인하세요.",
+    "files": [
+      "host/config.mjs"
+    ]
+  },
+  {
+    "source": "이벤트",
+    "files": [
+      "host/public/settings-ui.mjs"
+    ],
+    "english": "Event"
+  },
+  {
+    "source": "이벤트 ID",
+    "files": [
+      "host/public/app.js"
+    ]
+  },
+  {
+    "source": "이벤트·메시지 검색",
+    "files": [
+      "host/public/settings-ui.mjs"
+    ],
+    "english": "Search events or messages"
+  },
+  {
+    "source": "이상일 때",
+    "files": [
+      "host/public/app.js"
+    ]
+  },
+  {
+    "source": "이전",
+    "files": [
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
+    "source": "이전 데이터",
+    "files": [
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
+    "source": "이전 데이터 · ",
+    "files": [
+      "host/public/app.js"
+    ]
+  },
+  {
+    "source": "이전 데이터 · 자동 재연결 중",
+    "files": [
+      "host/public/app.js"
+    ]
+  },
+  {
+    "source": "이전 데이터를 보여주고 있어요. 자동으로 다시 연결한 뒤 일정을 추가할 수 있어요.\n\n",
+    "files": [
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
+    "source": "이전 요청의 처리 결과를 확인해 주세요. 다시 시도해도 같은 요청으로 확인해 중복 저장을 막아요.",
+    "files": [
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
+    "source": "이하일 때",
+    "files": [
+      "host/public/app.js"
+    ]
+  },
+  {
+    "source": "인증 값은 macOS 키체인에서 설정하세요.",
+    "files": [
+      "host/connectors.mjs"
+    ]
+  },
+  {
+    "source": "인증 값을 확인하세요.",
+    "files": [
+      "host/connectors.mjs"
+    ]
+  },
+  {
+    "source": "인증 정보를 확인하세요.",
+    "files": [
+      "host/security-storage.mjs"
+    ]
+  },
+  {
+    "source": "인증 토큰을 키체인에 저장했습니다.",
+    "files": [
+      "host/public/app.js"
+    ]
+  },
+  {
+    "source": "인증서 PEM 파일",
+    "files": [
+      "host/public/settings-ui.mjs"
+    ],
+    "english": "Certificate PEM file"
+  },
+  {
+    "source": "인증서 교체",
+    "files": [
+      "host/public/settings-ui.mjs"
+    ]
+  },
+  {
+    "source": "인증서 정보 확인",
+    "files": [
+      "host/public/settings-ui.mjs"
+    ]
+  },
+  {
+    "source": "인증서 체인을 확인할 수 없습니다.",
+    "files": [
+      "host/network.mjs"
+    ]
+  },
+  {
+    "source": "인증서 파일이 너무 큽니다.",
+    "files": [
+      "host/public/settings-ui.mjs"
+    ],
+    "english": "Certificate file is too large."
+  },
+  {
+    "source": "인증서를 교체하면 태블릿을 USB로 연결해 신뢰 정보를 다시 받아야 합니다. 계속할까요?",
+    "files": [
+      "host/public/settings-ui.mjs"
+    ],
+    "english": "Replacing this certificate requires USB to refresh tablet trust. Continue?"
+  },
+  {
+    "source": "인증서를 교체했습니다. USB로 신뢰 정보를 갱신하세요.",
+    "files": [
+      "host/public/settings-ui.mjs"
+    ],
+    "english": "Certificate replaced. Refresh tablet trust over USB."
+  },
+  {
+    "source": "인증서를 발급했습니다. USB로 태블릿 신뢰 정보를 갱신하세요.",
+    "files": [
+      "host/public/settings-ui.mjs"
+    ],
+    "english": "Certificate issued. Refresh tablet trust over USB."
+  },
+  {
+    "source": "인증서와 개인 키 파일을 모두 선택하세요.",
+    "files": [
+      "host/public/settings-ui.mjs"
+    ],
+    "english": "Choose both certificate and private-key files."
+  },
+  {
+    "source": "일부 설정은 연결 후 다시 저장합니다.",
+    "files": [
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
+    "source": "일부 수집 없음",
+    "files": [
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
+    "source": "일정",
+    "files": [
+      "host/public/app.js"
+    ]
+  },
+  {
+    "source": "일정 · 할 일",
+    "files": [
+      "host/extensions.mjs"
+    ]
+  },
+  {
+    "source": "일정 시작, 할 일 마감, 새 업무 요청을 알려드려요.",
+    "files": [
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
+    "source": "일정 시작, 할 일 마감과 업무 요청",
+    "files": [
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
+    "source": "일정 제목",
+    "files": [
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
+    "source": "일정 추가",
+    "files": [
+      "host/public/app.js",
+      "host/extensions.mjs",
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
+    "source": "일정 추가 연결 대기",
+    "files": [
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
+    "source": "일정·새 업무 요청 알림",
+    "files": [
+      "host/public/app.js"
+    ]
+  },
+  {
+    "source": "일정과 마감 알림 (분 전)",
+    "files": [
+      "host/public/app.js"
+    ]
+  },
+  {
+    "source": "일정과 업무 요청을 태블릿에 연결하고, 자주 쓰는 기능을 한 번에 열어요.",
+    "files": [
+      "host/public/index.html"
+    ]
+  },
+  {
+    "source": "일정과 할 일 확인 ›",
+    "files": [
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
+    "source": "일정을 저장했어요.",
+    "files": [
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
+    "source": "읽기",
+    "files": [
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
+    "source": "읽기 ",
+    "files": [
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
+    "source": "임계치 · 태블릿 알림",
+    "files": [
+      "host/public/app.js"
+    ]
+  },
+  {
+    "source": "임계치 방향을 확인하세요.",
+    "files": [
+      "host/public/monitor-rules.mjs"
+    ]
+  },
+  {
+    "source": "임계치 사용",
+    "files": [
+      "host/public/app.js"
+    ]
+  },
+  {
+    "source": "임계치 알림이 태블릿에 정상적으로 도착했습니다. 실제 장애 알림이 아닙니다.",
+    "files": [
+      "host/monitor-alerts.mjs"
+    ]
+  },
+  {
+    "source": "임계치 입력",
+    "files": [
+      "host/public/app.js"
+    ]
+  },
+  {
+    "source": "자동",
+    "files": [
+      "host/public/settings-ui.mjs",
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
+    "source": "자동 (Wi-Fi 우선)",
+    "files": [
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
+    "source": "자동 갱신",
+    "files": [
+      "host/public/settings-ui.mjs"
+    ],
+    "english": "Auto-refresh"
+  },
+  {
+    "source": "자동 갱신 (GET만)",
+    "files": [
+      "host/public/app.js"
+    ]
+  },
+  {
+    "source": "자동 백업",
+    "files": [
+      "host/public/settings-ui.mjs"
+    ],
+    "english": "Scheduled backup"
+  },
+  {
+    "source": "자동 백업 켜기",
+    "files": [
+      "host/public/settings-ui.mjs"
+    ]
+  },
+  {
+    "source": "자동 복구",
+    "files": [
+      "host/public/settings-ui.mjs"
+    ],
+    "english": "Recoveries"
+  },
+  {
+    "source": "자동 선택",
+    "files": [
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
+    "source": "자동 잠금 대기 (분, 0: 끔)",
+    "files": [
+      "host/public/settings-ui.mjs"
+    ]
+  },
+  {
+    "source": "자동 정렬",
+    "files": [
+      "host/public/index.html"
+    ]
+  },
+  {
+    "source": "자동: Wi-Fi 우선 · USB 대체",
+    "files": [
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
+    "source": "자동으로 다시 연결하고 있어요. 맥에서 Jimin OS 앱과 로그인을 확인해 주세요.",
+    "files": [
+      "host/public/app.js"
+    ]
+  },
+  {
+    "source": "자동화",
+    "files": [
+      "host/public/index.html"
+    ]
+  },
+  {
+    "source": "자동화 버튼을 선택하세요.",
+    "files": [
+      "host/config.mjs"
+    ]
+  },
+  {
+    "source": "자동화 변수를 선택하세요.",
+    "files": [
+      "host/config.mjs"
+    ]
+  },
+  {
+    "source": "자동화 시간을 확인하세요.",
+    "files": [
+      "host/config.mjs"
+    ]
+  },
+  {
+    "source": "자동화는 최대 64개입니다.",
+    "files": [
+      "host/config.mjs"
+    ]
+  },
+  {
+    "source": "자주 하는 일을 한 번의 터치로.",
+    "files": [
+      "host/public/index.html"
+    ]
+  },
+  {
+    "source": "잘라내기",
+    "files": [
+      "macos/OpenDeck.swift"
+    ]
+  },
+  {
+    "source": "잘못된 스타일입니다.",
+    "files": [
+      "host/config.mjs"
+    ]
+  },
+  {
+    "source": "잘못된 실행 경로입니다.",
+    "files": [
+      "host/plugins.mjs"
+    ]
+  },
+  {
+    "source": "잘못된 연동입니다.",
+    "files": [
+      "host/config.mjs"
+    ]
+  },
+  {
+    "source": "잘못된 위젯입니다.",
+    "files": [
+      "host/config.mjs"
+    ]
+  },
+  {
+    "source": "잘못된 저장 요청이에요.",
+    "files": [
+      "host/extensions.mjs"
+    ]
+  },
+  {
+    "source": "잘못된 제스처입니다.",
+    "files": [
+      "host/engine.mjs"
+    ]
+  },
+  {
+    "source": "잘못된 페이지입니다.",
+    "files": [
+      "host/config.mjs"
+    ]
+  },
+  {
+    "source": "잘못된 플러그인 요청입니다.",
+    "files": [
+      "host/server.mjs"
+    ]
+  },
+  {
+    "source": "잠금 상태를 확인할 수 없습니다.",
+    "files": [
+      "host/public/editor-lock.mjs"
+    ],
+    "english": "Could not check lock status."
+  },
+  {
+    "source": "잠금 작업을 확인하세요.",
+    "files": [
+      "host/server.mjs"
+    ]
+  },
+  {
+    "source": "잠금 해제",
+    "files": [
+      "host/public/editor-lock.mjs"
+    ],
+    "english": "Unlock"
+  },
+  {
+    "source": "잠금 해제에 실패했습니다.",
+    "files": [
+      "host/public/editor-lock.mjs"
+    ],
+    "english": "Could not unlock the editor."
+  },
+  {
+    "source": "잠금은 이 맥의 편집기와 설정 변경을 보호합니다. 태블릿의 버튼과 모니터링은 계속 동작합니다.",
+    "files": [
+      "host/public/settings-ui.mjs"
+    ]
+  },
+  {
+    "source": "잠시 후 다시 시도하세요.",
+    "files": [
+      "host/editor-lock.mjs",
+      "host/server.mjs"
+    ]
+  },
+  {
+    "source": "재실행 간격을 확인하세요.",
+    "files": [
+      "host/config.mjs"
+    ]
+  },
+  {
+    "source": "재알림 간격 (초)",
+    "files": [
+      "host/public/app.js"
+    ]
+  },
+  {
+    "source": "재연결 요청 완료",
+    "files": [
+      "host/public/settings-ui.mjs"
+    ],
+    "english": "Reconnection requested"
+  },
+  {
+    "source": "재연결 중",
+    "files": [
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
+    "source": "재연결 중: ",
+    "files": [
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
+    "source": "저장",
+    "files": [
+      "host/public/app.js",
+      "android/app/src/main/java/app/opendeck/client/ClientSettingsPanel.java",
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
+    "source": "저장 결과를 확인하고 있어요…",
+    "files": [
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
+    "source": "저장 공간",
+    "files": [
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
+    "source": "저장 공간 · 전원 · 네트워크는 상세에서",
+    "files": [
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
+    "source": "저장 공간 여유 ",
+    "files": [
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
+    "source": "저장 공간 확인 필요",
+    "files": [
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
+    "source": "저장 공간·디스크 I/O",
+    "files": [
+      "host/public/app.js"
+    ]
+  },
+  {
+    "source": "저장 변수",
+    "files": [
+      "host/public/app.js"
+    ]
+  },
+  {
+    "source": "저장 상태를 확인하세요.",
+    "files": [
+      "host/backups.mjs"
+    ]
+  },
+  {
+    "source": "저장 안 함",
+    "files": [
+      "host/public/app.js"
+    ]
+  },
+  {
+    "source": "저장 여부를 확인해야 해요. 같은 요청을 다시 시도하면 중복 여부를 먼저 확인해요.",
+    "files": [
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
+    "source": "저장된 백업",
+    "files": [
+      "host/public/settings-ui.mjs"
+    ]
+  },
+  {
+    "source": "저장된 연결 비밀",
+    "files": [
+      "host/public/security-ui.mjs"
+    ]
+  },
+  {
+    "source": "저장된 인증서가 일치하는 맥을 찾았습니다.",
+    "files": [
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
+    "source": "저장소 복구 키",
+    "files": [
+      "host/public/security-ui.mjs"
+    ],
+    "english": "Vault recovery key"
+  },
+  {
+    "source": "저장소 복구 키를 확인하세요.",
+    "files": [
+      "host/secret-vault.mjs"
+    ]
+  },
+  {
+    "source": "저장소 암호",
+    "files": [
+      "host/public/security-ui.mjs"
+    ],
+    "english": "Vault password"
+  },
+  {
+    "source": "저장소 암호 (8자 이상)",
+    "files": [
+      "host/public/security-ui.mjs"
+    ],
+    "english": "Vault password (8+ characters)"
+  },
+  {
+    "source": "저장소 암호 다시 입력",
+    "files": [
+      "host/public/security-ui.mjs"
+    ],
+    "english": "Confirm vault password"
+  },
+  {
+    "source": "저장소 암호 변경",
+    "files": [
+      "host/public/security-ui.mjs"
+    ]
+  },
+  {
+    "source": "저장소 암호 복구",
+    "files": [
+      "host/public/security-ui.mjs"
+    ]
+  },
+  {
+    "source": "저장소 암호를 확인하세요.",
+    "files": [
+      "host/secret-vault.mjs"
+    ]
+  },
+  {
+    "source": "저장소 작업을 확인하세요.",
+    "files": [
+      "host/server.mjs"
+    ]
+  },
+  {
+    "source": "저장소 잠금 해제",
+    "files": [
+      "host/public/security-ui.mjs"
+    ]
+  },
+  {
+    "source": "저장소 잠금 해제됨",
+    "files": [
+      "host/public/security-ui.mjs"
+    ]
+  },
+  {
+    "source": "저장소 잠김",
+    "files": [
+      "host/public/security-ui.mjs"
+    ]
+  },
+  {
+    "source": "저장소는 별도의 암호로 보호됩니다. 앱을 다시 시작하면 잠기며, 잠긴 동안 암호화 예약 백업과 저장소 비밀을 쓰는 연결은 대기합니다.",
+    "files": [
+      "host/public/security-ui.mjs"
+    ]
+  },
+  {
+    "source": "저장하지 못했어요. 닫고 내용을 확인한 뒤 다시 시도해 주세요.",
+    "files": [
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
+    "source": "저장하지 않은 변경",
+    "files": [
+      "host/public/app.js",
+      "host/public/settings-ui.mjs"
+    ],
+    "english": "Unsaved changes"
+  },
+  {
+    "source": "저장하지 않은 설정을 버릴까요?",
+    "files": [
+      "host/public/settings-ui.mjs"
+    ],
+    "english": "Discard unsaved settings?"
+  },
+  {
+    "source": "저장한 색상 팔레트",
+    "files": [
+      "host/public/settings-ui.mjs"
+    ]
+  },
+  {
+    "source": "저전력 모드 꺼짐",
+    "files": [
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
+    "source": "저전력 모드 켜짐",
+    "files": [
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
+    "source": "적용",
+    "files": [
+      "host/public/index.html"
+    ]
+  },
+  {
+    "source": "전원 연결됨",
+    "files": [
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
+    "source": "전원·발열",
+    "files": [
+      "host/public/app.js",
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
+    "source": "전체 ",
+    "files": [
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
+    "source": "전체 CPU",
+    "files": [
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
+    "source": "전체 CPU  ",
+    "files": [
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
+    "source": "전체 QPS · 쿼리/초",
+    "files": [
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
+    "source": "전체 TPS · 커밋/초",
+    "files": [
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
+    "source": "전체 노드의 현재 연결 합계",
+    "files": [
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
+    "source": "전체 화면",
+    "files": [
+      "host/public/settings-ui.mjs",
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
+    "source": "정보 · 진단 · 초기화",
+    "files": [
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
+    "source": "정상",
+    "files": [
+      "host/public/app.js",
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
+    "source": "정상 대상 / 전체 대상",
+    "files": [
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
+    "source": "정상 복구",
+    "files": [
+      "host/monitor-alerts.mjs"
+    ]
+  },
+  {
+    "source": "정상 수집",
+    "files": [
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
+    "source": "정수 값이 필요합니다.",
+    "files": [
+      "android/app/src/main/java/app/opendeck/client/ClientSettingsPolicy.java"
+    ]
+  },
+  {
+    "source": "제목을 입력해 주세요.",
+    "files": [
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
+    "source": "제어 위젯이 아닙니다.",
+    "files": [
+      "host/engine.mjs"
+    ]
+  },
+  {
+    "source": "조건 값의 형식을 확인하세요.",
+    "files": [
+      "host/config.mjs"
+    ]
+  },
+  {
+    "source": "조건 분기 (JSON)",
+    "files": [
+      "host/public/app.js"
+    ]
+  },
+  {
+    "source": "조건에 맞는 로그가 없습니다.",
+    "files": [
+      "host/public/settings-ui.mjs"
+    ],
+    "english": "No logs match these filters."
+  },
+  {
+    "source": "조회 전용 토큰 · 맥 키체인에만 저장",
+    "files": [
+      "host/public/app.js"
+    ]
+  },
+  {
+    "source": "조회 중단",
+    "files": [
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
+    "source": "조회 토큰 사용",
+    "files": [
+      "host/public/app.js"
+    ]
+  },
+  {
+    "source": "조회 토큰 키체인에 저장",
+    "files": [
+      "host/public/app.js"
+    ]
+  },
+  {
+    "source": "종료",
+    "files": [
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java",
+      "macos/OpenDeck.swift"
+    ]
+  },
+  {
+    "source": "종료 시간을 시작 시간 뒤로 설정해 주세요.",
+    "files": [
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
+    "source": "종료 코드 {0}",
+    "files": [
+      "host/engine.mjs"
+    ]
+  },
+  {
+    "source": "좌우 스와이프",
+    "files": [
+      "host/public/settings-ui.mjs"
+    ]
+  },
+  {
+    "source": "좌우 제스처",
+    "files": [
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
+    "source": "주기 (초)",
+    "files": [
+      "host/public/app.js"
+    ]
+  },
+  {
+    "source": "주소 수정",
+    "files": [
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
+    "source": "주소 제거",
+    "files": [
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
+    "source": "주소 추가",
+    "files": [
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
+    "source": "주소는 최대 8개입니다.",
+    "files": [
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
+    "source": "주의",
+    "files": [
+      "host/public/app.js",
+      "host/monitor-alerts.mjs",
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
+    "source": "주의·위험 임계치 순서를 확인하세요.",
+    "files": [
+      "host/public/monitor-rules.mjs"
+    ]
+  },
+  {
+    "source": "주의·위험 임계치 초과와 정상 복구를 알려드려요.",
+    "files": [
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
+    "source": "준비 상태 · 수집 대상 확인",
+    "files": [
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
+    "source": "중복되지 않는 영문 변수 이름을 입력하세요.",
+    "files": [
+      "host/public/app.js"
+    ]
+  },
+  {
+    "source": "중지",
+    "files": [
+      "host/public/app.js"
+    ]
+  },
+  {
+    "source": "증감에는 숫자 변수를 선택하세요.",
+    "files": [
+      "host/config.mjs"
+    ]
+  },
+  {
+    "source": "지금 · 2초 갱신",
+    "files": [
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
+    "source": "지금 갱신",
+    "files": [
+      "host/public/app.js"
+    ]
+  },
+  {
+    "source": "지금 다시 연결",
+    "files": [
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
+    "source": "지금 미리보기",
+    "files": [
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
+    "source": "지금 백업",
+    "files": [
+      "host/public/settings-ui.mjs"
+    ]
+  },
+  {
+    "source": "지금 잠그기",
+    "files": [
+      "host/public/settings-ui.mjs"
+    ]
+  },
+  {
+    "source": "지금 저장소 잠그기",
+    "files": [
+      "host/public/security-ui.mjs"
+    ]
+  },
+  {
+    "source": "지민에게 말하기",
+    "files": [
+      "host/public/app.js",
+      "host/extensions.mjs"
+    ]
+  },
+  {
+    "source": "지속 시간 (초)",
+    "files": [
+      "host/public/app.js"
+    ]
+  },
+  {
+    "source": "지원: ",
+    "files": [
+      "host/public/app.js"
+    ]
+  },
+  {
+    "source": "지원되는 플러그인 동작이 아닙니다.",
+    "files": [
+      "host/plugins.mjs"
+    ]
+  },
+  {
+    "source": "지원하지 않는 Open Deck 백업입니다.",
+    "files": [
+      "host/backups.mjs"
+    ]
+  },
+  {
+    "source": "지원하지 않는 USB 작업입니다.",
+    "files": [
+      "host/system-tools.mjs"
+    ]
+  },
+  {
+    "source": "지원하지 않는 기기 설정입니다.",
+    "files": [
+      "android/app/src/main/java/app/opendeck/client/ClientSettingsPolicy.java"
+    ]
+  },
+  {
+    "source": "지원하지 않는 기기 필드입니다.",
+    "files": [
+      "host/server.mjs"
+    ]
+  },
+  {
+    "source": "지원하지 않는 동작입니다.",
+    "files": [
+      "host/config.mjs",
+      "host/engine.mjs"
+    ]
+  },
+  {
+    "source": "지원하지 않는 메서드입니다.",
+    "files": [
+      "host/server.mjs"
+    ]
+  },
+  {
+    "source": "지원하지 않는 백업 암호화 형식입니다.",
+    "files": [
+      "host/backups.mjs"
+    ]
+  },
+  {
+    "source": "지원하지 않는 설정 버전입니다.",
+    "files": [
+      "host/public/layout.mjs"
+    ]
+  },
+  {
+    "source": "지원하지 않는 설정 영역입니다.",
+    "files": [
+      "host/settings.mjs"
+    ]
+  },
+  {
+    "source": "지원하지 않는 암호화 형식입니다.",
+    "files": [
+      "host/secret-vault.mjs"
+    ]
+  },
+  {
+    "source": "지원하지 않는 연결입니다.",
+    "files": [
+      "host/config.mjs",
+      "host/server.mjs"
+    ]
+  },
+  {
+    "source": "지원하지 않는 위젯 동작입니다.",
+    "files": [
+      "host/server.mjs"
+    ]
+  },
+  {
+    "source": "지원하지 않는 자동화 조건입니다.",
+    "files": [
+      "host/config.mjs"
+    ]
+  },
+  {
+    "source": "지표 수집 실패 대상 있음",
+    "files": [
+      "host/monitor-alerts.mjs"
+    ]
+  },
+  {
+    "source": "지표 숫자 크기",
+    "files": [
+      "host/public/app.js"
+    ]
+  },
+  {
+    "source": "지표 연결 확인",
+    "files": [
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
+    "source": "지표 조회 대기",
+    "files": [
+      "host/public/app.js"
+    ]
+  },
+  {
+    "source": "지표 조회가 오래됐어요 · 다시 연결 중",
+    "files": [
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
+    "source": "지표 조회가 중단됐어요 · 다시 연결 중",
+    "files": [
+      "host/grafana.mjs"
+    ]
+  },
+  {
+    "source": "지표가 설정한 정상 범위로 돌아왔습니다.",
+    "files": [
+      "host/monitor-alerts.mjs"
+    ]
+  },
+  {
+    "source": "지표를 조회하고 있어요.",
+    "files": [
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
+    "source": "지표별 임계치를 확인하세요.",
+    "files": [
+      "host/public/monitor-rules.mjs"
+    ]
+  },
+  {
+    "source": "진단 · 로그",
+    "files": [
+      "host/public/settings-ui.mjs"
+    ]
+  },
+  {
+    "source": "진단 공유",
+    "files": [
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
+    "source": "진단 내보내기",
+    "files": [
+      "host/public/settings-ui.mjs"
+    ]
+  },
+  {
+    "source": "진단에는 비밀번호·인증 토큰·할 일과 일정 내용이 포함되지 않습니다.\n소스와 라이선스: github.com/Yaklede/open-deck",
+    "files": [
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
+    "source": "진동 길이",
+    "files": [
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
+    "source": "진동 길이 (ms)",
+    "files": [
+      "host/public/settings-ui.mjs"
+    ]
+  },
+  {
+    "source": "진동 시간 직접 설정",
+    "files": [
+      "host/public/settings-ui.mjs"
+    ]
+  },
+  {
+    "source": "진동, 효과음, 제스처와 메뉴 표시",
+    "files": [
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
+    "source": "집중",
+    "files": [
+      "host/public/app.js",
+      "host/public/index.html"
+    ]
+  },
+  {
+    "source": "집중 · 25분",
+    "files": [
+      "host/config.mjs"
+    ]
+  },
+  {
+    "source": "집중 타이머",
+    "files": [
+      "host/public/app.js"
+    ]
+  },
+  {
+    "source": "짧은 진동이 잘 느껴지지 않는 기기에 사용합니다.",
+    "files": [
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
+    "source": "창을 닫아도 메뉴 막대에서 계속 실행됩니다. Dock을 숨겨도 메뉴 막대의 ◈에서 편집기를 열 수 있어요.",
+    "files": [
+      "host/public/settings-ui.mjs"
+    ]
+  },
+  {
+    "source": "찾을 수 없습니다.",
+    "files": [
+      "host/server.mjs"
+    ]
+  },
+  {
+    "source": "처리 결과 확인",
+    "files": [
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
+    "source": "처리 확인 중…",
+    "files": [
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
+    "source": "첫 터치는 화면만 깨우기",
+    "files": [
+      "host/public/settings-ui.mjs",
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
+    "source": "초 전",
+    "files": [
+      "host/public/app.js",
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
+    "source": "초기화",
+    "files": [
+      "host/public/settings-ui.mjs",
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
+    "source": "초깃값",
+    "files": [
+      "host/public/app.js"
+    ]
+  },
+  {
+    "source": "초록 정상 · 주황 주의 · 빨강 위험. 설정한 시간 이상 유지되면 알림을 보내고 정상 복구도 알려드려요.",
+    "files": [
+      "host/public/app.js"
+    ]
+  },
+  {
+    "source": "최근",
+    "files": [
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
+    "source": "최근 1시간",
+    "files": [
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
+    "source": "최근 사용",
+    "files": [
+      "host/public/security-ui.mjs"
+    ],
+    "english": "Last active"
+  },
+  {
+    "source": "최근 알림",
+    "files": [
+      "host/extensions.mjs"
+    ]
+  },
+  {
+    "source": "최소 간격 (초)",
+    "files": [
+      "host/public/app.js"
+    ]
+  },
+  {
+    "source": "최소 로그 수준",
+    "files": [
+      "host/public/settings-ui.mjs"
+    ]
+  },
+  {
+    "source": "최신 APK 설치",
+    "files": [
+      "host/public/settings-ui.mjs"
+    ]
+  },
+  {
+    "source": "최신 데이터",
+    "files": [
+      "host/public/app.js"
+    ]
+  },
+  {
+    "source": "최신 데이터를 기다리고 있어요",
+    "files": [
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
+    "source": "최신 버전 · 설치 파일",
+    "files": [
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
+    "source": "최신 버전: {0}",
+    "files": [
+      "host/public/settings-ui.mjs"
+    ]
+  },
+  {
+    "source": "최초 등록은 USB로 맥에 연결하고 Open Deck 앱을 실행하세요.\n6자리 코드로 등록하면 같은 Wi-Fi에서 무선으로 사용할 수 있습니다.",
+    "files": [
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
+    "source": "최초 등록이 필요합니다",
+    "files": [
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
+    "source": "추가",
+    "files": [
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
+    "source": "추가 HTTPS 포트",
+    "files": [
+      "host/public/settings-ui.mjs"
+    ]
+  },
+  {
+    "source": "추가로 확인할 문제 없음",
+    "files": [
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
+    "source": "추이 수집 중",
+    "files": [
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
+    "source": "취소",
+    "files": [
+      "host/public/app.js",
+      "host/public/settings-ui.mjs",
+      "android/app/src/main/java/app/opendeck/client/ClientSettingsPanel.java",
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java",
+      "macos/OpenDeck.swift"
+    ]
+  },
+  {
+    "source": "커밋/초 · 5분 평균",
+    "files": [
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
+    "source": "켜면 다른 개발 도구가 공유하는 ADB 연결도 종료됩니다. 기본값은 끔입니다.",
+    "files": [
+      "host/public/settings-ui.mjs"
+    ]
+  },
+  {
+    "source": "켜졌을 때 아이콘",
+    "files": [
+      "host/public/app.js"
+    ]
+  },
+  {
+    "source": "켜졌을 때 이름",
+    "files": [
+      "host/public/app.js"
+    ]
+  },
+  {
+    "source": "켜짐 글자색",
+    "files": [
+      "host/public/app.js"
+    ]
+  },
+  {
+    "source": "켜짐 배경색",
+    "files": [
+      "host/public/app.js"
+    ]
+  },
+  {
+    "source": "켜짐 상태 디자인",
+    "files": [
+      "host/public/app.js"
+    ]
+  },
+  {
+    "source": "켜짐 상태 변수",
+    "files": [
+      "host/public/app.js"
+    ]
+  },
+  {
+    "source": "켜짐 스타일 초기화",
+    "files": [
+      "host/public/app.js"
+    ]
+  },
+  {
+    "source": "켜짐 테두리색",
+    "files": [
+      "host/public/app.js"
+    ]
+  },
+  {
+    "source": "코드 갱신",
+    "files": [
+      "host/public/index.html"
+    ]
+  },
+  {
+    "source": "코어",
+    "files": [
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
+    "source": "코어\n",
+    "files": [
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
+    "source": "코어 ",
+    "files": [
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
+    "source": "코어 · 전체 사용률",
+    "files": [
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
+    "source": "쿼리/초 · 전체 노드 합계",
+    "files": [
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
+    "source": "크기 조절",
+    "files": [
+      "host/public/app.js"
+    ]
+  },
+  {
+    "source": "키 파일 저장",
+    "files": [
+      "host/public/security-ui.mjs"
+    ]
+  },
+  {
+    "source": "키를 교체해도 이미 내보낸 백업에는 당시의 복구 키가 필요합니다. 새 키를 만든 뒤 중요한 백업을 다시 내보내세요.",
+    "files": [
+      "host/public/security-ui.mjs"
+    ]
+  },
+  {
+    "source": "타이머 (분)",
+    "files": [
+      "host/public/app.js"
+    ]
+  },
+  {
+    "source": "타이머는 1~1440분입니다.",
+    "files": [
+      "host/config.mjs"
+    ]
+  },
+  {
+    "source": "타이머를 찾을 수 없습니다.",
+    "files": [
+      "host/engine.mjs"
+    ]
+  },
+  {
+    "source": "태블릿 미리보기",
+    "files": [
+      "host/public/index.html"
+    ]
+  },
+  {
+    "source": "태블릿 설정을 초기화할까요?",
+    "files": [
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
+    "source": "태블릿 알림",
+    "files": [
+      "host/public/app.js"
+    ]
+  },
+  {
+    "source": "태블릿 알림 테스트",
+    "files": [
+      "host/public/app.js"
+    ]
+  },
+  {
+    "source": "태블릿 페어링 코드",
+    "files": [
+      "host/public/index.html"
+    ]
+  },
+  {
+    "source": "태블릿별 설정",
+    "files": [
+      "host/public/settings-ui.mjs"
+    ]
+  },
+  {
+    "source": "태블릿에 반영했습니다.",
+    "files": [
+      "host/public/app.js"
+    ]
+  },
+  {
+    "source": "태블릿에 적용했습니다.",
+    "files": [
+      "host/public/settings-ui.mjs"
+    ],
+    "english": "Applied to tablet."
+  },
+  {
+    "source": "태블릿에 테스트 알림을 보냈습니다.",
+    "files": [
+      "host/public/app.js"
+    ]
+  },
+  {
+    "source": "태블릿으로 연결 알림 보내기",
+    "files": [
+      "host/public/app.js"
+    ]
+  },
+  {
+    "source": "탭: 시작·일시정지   길게: 초기화",
+    "files": [
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
+    "source": "탭하여 수정하거나 제거",
+    "files": [
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
+    "source": "탭해서 목록 편집",
+    "files": [
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
+    "source": "탭해서 할 일 추가",
+    "files": [
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
+    "source": "터치 · 페이지 이동",
+    "files": [
+      "host/public/settings-ui.mjs",
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
+    "source": "터치 소리",
+    "files": [
+      "host/public/settings-ui.mjs"
+    ]
+  },
+  {
+    "source": "터치 진동",
+    "files": [
+      "host/public/settings-ui.mjs",
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
+    "source": "터치 효과음",
+    "files": [
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
+    "source": "테두리",
+    "files": [
+      "host/public/app.js"
+    ]
+  },
+  {
+    "source": "테두리색",
+    "files": [
+      "host/public/app.js"
+    ]
+  },
+  {
+    "source": "테마 내보내기",
+    "files": [
+      "host/public/app.js"
+    ]
+  },
+  {
+    "source": "테마, 회전, 글자 크기와 렌더링",
+    "files": [
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
+    "source": "텍스트",
+    "files": [
+      "host/public/app.js"
+    ]
+  },
+  {
+    "source": "템플릿에서 추가",
+    "files": [
+      "host/public/index.html"
+    ]
+  },
+  {
+    "source": "토글",
+    "files": [
+      "host/public/app.js"
+    ]
+  },
+  {
+    "source": "토글 값이 잘못되었습니다.",
+    "files": [
+      "host/engine.mjs"
+    ]
+  },
+  {
+    "source": "토글에는 Boolean 변수를 선택하세요.",
+    "files": [
+      "host/config.mjs"
+    ]
+  },
+  {
+    "source": "토글은 Boolean, 슬라이더는 숫자 변수에 연결하세요.",
+    "files": [
+      "host/config.mjs"
+    ]
+  },
+  {
+    "source": "파일 내보내기",
+    "files": [
+      "host/public/settings-ui.mjs"
+    ]
+  },
+  {
+    "source": "파일 저장",
+    "files": [
+      "host/public/migration-ui.mjs"
+    ]
+  },
+  {
+    "source": "페어링 코드가 틀리거나 만료되었습니다.",
+    "files": [
+      "host/server.mjs"
+    ]
+  },
+  {
+    "source": "페어링 해제",
+    "files": [
+      "host/public/settings-ui.mjs",
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
+    "source": "페어링된 기기에서 사용하세요.",
+    "files": [
+      "host/server.mjs"
+    ]
+  },
+  {
+    "source": "페어링을 해제할까요?",
+    "files": [
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
+    "source": "페이지",
+    "files": [
+      "host/public/migration-ui.mjs"
+    ],
+    "english": "Pages"
+  },
+  {
+    "source": "페이지 계층이 순환합니다.",
+    "files": [
+      "host/config.mjs"
+    ]
+  },
+  {
+    "source": "페이지 디자인 · 배치",
+    "files": [
+      "host/public/index.html"
+    ]
+  },
+  {
+    "source": "페이지 배치 값을 확인하세요.",
+    "files": [
+      "host/config.mjs"
+    ]
+  },
+  {
+    "source": "페이지 복제",
+    "files": [
+      "host/public/index.html"
+    ]
+  },
+  {
+    "source": "페이지 삭제",
+    "files": [
+      "host/public/index.html"
+    ]
+  },
+  {
+    "source": "페이지 연결 대상의 프로필도 함께 선택하세요.",
+    "files": [
+      "host/backups.mjs"
+    ]
+  },
+  {
+    "source": "페이지 위로",
+    "files": [
+      "host/public/index.html"
+    ]
+  },
+  {
+    "source": "페이지 이동",
+    "files": [
+      "host/public/app.js",
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
+    "source": "페이지 이름",
+    "files": [
+      "host/public/app.js"
+    ]
+  },
+  {
+    "source": "페이지 전환과 버튼 누름 애니메이션을 줄입니다.",
+    "files": [
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
+    "source": "페이지 템플릿",
+    "files": [
+      "host/public/index.html"
+    ]
+  },
+  {
+    "source": "페이지 표시 설정을 확인하세요.",
+    "files": [
+      "host/config.mjs"
+    ]
+  },
+  {
+    "source": "페이지가 여러 프로필에 중복되어 있습니다.",
+    "files": [
+      "host/public/profiles.mjs"
+    ]
+  },
+  {
+    "source": "페이지는 최대 40개입니다.",
+    "files": [
+      "host/public/app.js",
+      "host/public/profile-tools.mjs"
+    ]
+  },
+  {
+    "source": "페이지당 최대 128개입니다.",
+    "files": [
+      "host/public/app.js"
+    ]
+  },
+  {
+    "source": "페이지로 이동",
+    "files": [
+      "host/public/index.html"
+    ]
+  },
+  {
+    "source": "페이지별 테마·글자·배경은 덱 편집 → 페이지 디자인에서 따로 설정할 수 있어요.",
+    "files": [
+      "host/public/settings-ui.mjs"
+    ]
+  },
+  {
+    "source": "페이지에 위젯을 더 배치할 수 없습니다.",
+    "files": [
+      "host/public/layout.mjs"
+    ]
+  },
+  {
+    "source": "편집",
+    "files": [
+      "macos/OpenDeck.swift"
+    ]
+  },
+  {
+    "source": "편집기 모양",
+    "files": [
+      "host/public/settings-ui.mjs"
+    ]
+  },
+  {
+    "source": "편집기 암호",
+    "files": [
+      "host/public/editor-lock.mjs",
+      "host/public/settings-ui.mjs"
+    ],
+    "english": "Editor password"
+  },
+  {
+    "source": "편집기 암호 제거",
+    "files": [
+      "host/public/settings-ui.mjs"
+    ]
+  },
+  {
+    "source": "편집기 암호가 설정되어 있습니다.",
+    "files": [
+      "host/public/settings-ui.mjs"
+    ]
+  },
+  {
+    "source": "편집기 암호를 설정하지 않았습니다.",
+    "files": [
+      "host/public/settings-ui.mjs"
+    ]
+  },
+  {
+    "source": "편집기 암호를 저장했습니다.",
+    "files": [
+      "host/public/settings-ui.mjs"
+    ],
+    "english": "Editor password saved."
+  },
+  {
+    "source": "편집기 잠금 파일이 손상되었습니다.",
+    "files": [
+      "host/editor-lock.mjs"
+    ]
+  },
+  {
+    "source": "편집기 잠금을 껐습니다.",
+    "files": [
+      "host/public/settings-ui.mjs"
+    ],
+    "english": "Editor locking disabled."
+  },
+  {
+    "source": "편집기 잠금을 먼저 해제하세요.",
+    "files": [
+      "host/server.mjs"
+    ]
+  },
+  {
+    "source": "편집기 창을 숨긴 채 시작",
+    "files": [
+      "host/public/settings-ui.mjs"
+    ]
+  },
+  {
+    "source": "편집기가 잠겨 있습니다.",
+    "files": [
+      "host/server.mjs"
+    ]
+  },
+  {
+    "source": "편집기가 잠겨 있습니다. 비밀번호로 잠금을 해제하세요.",
+    "files": [
+      "host/server.mjs"
+    ]
+  },
+  {
+    "source": "편집기가 잠겨 있어요",
+    "files": [
+      "host/public/editor-lock.mjs"
+    ],
+    "english": "Editor locked"
+  },
+  {
+    "source": "폴더 등록",
+    "files": [
+      "host/public/app.js"
+    ]
+  },
+  {
+    "source": "표시 지표",
+    "files": [
+      "host/public/app.js"
+    ]
+  },
+  {
+    "source": "표준 · 디자인 유지",
+    "files": [
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
+    "source": "프로젝트",
+    "files": [
+      "host/public/app.js",
+      "host/public/monitor-layout.mjs",
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
+    "source": "프로젝트 ",
+    "files": [
+      "host/public/app.js"
+    ]
+  },
+  {
+    "source": "프로젝트 변경",
+    "files": [
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
+    "source": "프로젝트 선택",
+    "files": [
+      "host/public/app.js",
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
+    "source": "프로젝트 추가",
+    "files": [
+      "host/public/app.js"
+    ]
+  },
+  {
+    "source": "프로젝트 필터 이름",
+    "files": [
+      "host/public/app.js"
+    ]
+  },
+  {
+    "source": "프로젝트 필터 이름을 확인하세요.",
+    "files": [
+      "host/config.mjs"
+    ]
+  },
+  {
+    "source": "프로필",
+    "files": [
+      "host/public/migration-ui.mjs"
+    ],
+    "english": "Profiles"
+  },
+  {
+    "source": "프로필 · 시작 페이지",
+    "files": [
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
+    "source": "프로필 {0} · 페이지 {1} · 위젯 {2} · 이미지 {3}",
+    "files": [
+      "host/public/settings-ui.mjs"
+    ]
+  },
+  {
+    "source": "프로필 관리",
+    "files": [
+      "host/public/app.js",
+      "host/public/index.html"
+    ]
+  },
+  {
+    "source": "프로필 기본 디자인",
+    "files": [
+      "host/public/app.js"
+    ]
+  },
+  {
+    "source": "프로필 기본 디자인 범위를 확인하세요.",
+    "files": [
+      "host/config.mjs"
+    ]
+  },
+  {
+    "source": "프로필 기본 디자인 상속",
+    "files": [
+      "host/public/app.js"
+    ]
+  },
+  {
+    "source": "프로필 기본 디자인을 확인하세요.",
+    "files": [
+      "host/config.mjs"
+    ]
+  },
+  {
+    "source": "프로필 기본 페이지",
+    "files": [
+      "host/public/settings-ui.mjs"
+    ],
+    "english": "Profile default"
+  },
+  {
+    "source": "프로필 내보내기",
+    "files": [
+      "host/public/app.js"
+    ]
+  },
+  {
+    "source": "프로필 배경색을 확인하세요.",
+    "files": [
+      "host/config.mjs"
+    ]
+  },
+  {
+    "source": "프로필 복제",
+    "files": [
+      "host/public/app.js"
+    ]
+  },
+  {
+    "source": "프로필 삭제 · 페이지 보존",
+    "files": [
+      "host/public/app.js"
+    ]
+  },
+  {
+    "source": "프로필 선택",
+    "files": [
+      "host/public/index.html"
+    ]
+  },
+  {
+    "source": "프로필 이름",
+    "files": [
+      "host/public/app.js"
+    ]
+  },
+  {
+    "source": "프로필 정보를 확인하세요.",
+    "files": [
+      "host/public/profiles.mjs"
+    ]
+  },
+  {
+    "source": "프로필 첫 페이지",
+    "files": [
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
+    "source": "프로필 표시 설정을 확인하세요.",
+    "files": [
+      "host/config.mjs"
+    ]
+  },
+  {
+    "source": "프로필마다 페이지 구성을 분리하고, 태블릿의 시작 프로필을 지정할 수 있어요.",
+    "files": [
+      "host/public/app.js"
+    ]
+  },
+  {
+    "source": "프로필에는 페이지가 하나 이상 필요합니다.",
+    "files": [
+      "host/public/profile-tools.mjs"
+    ]
+  },
+  {
+    "source": "프로필은 1~40개입니다.",
+    "files": [
+      "host/public/profiles.mjs"
+    ]
+  },
+  {
+    "source": "프로필은 맥에서 만들고 이 태블릿에서 선택할 수 있습니다.",
+    "files": [
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
+    "source": "프로필을 가져왔습니다. 자동화와 앱 자동 전환은 꺼진 상태로 시작합니다.",
+    "files": [
+      "host/public/app.js"
+    ]
+  },
+  {
+    "source": "프로필을 삭제하고 페이지를 다른 프로필로 옮길까요?",
+    "files": [
+      "host/public/app.js"
+    ]
+  },
+  {
+    "source": "프로필을 찾을 수 없습니다.",
+    "files": [
+      "host/settings.mjs"
+    ]
+  },
+  {
+    "source": "플러그인",
+    "files": [
+      "host/public/index.html"
+    ]
+  },
+  {
+    "source": "플러그인 ID",
+    "files": [
+      "host/public/app.js"
+    ]
+  },
+  {
+    "source": "플러그인 동작",
+    "files": [
+      "host/public/app.js"
+    ]
+  },
+  {
+    "source": "플러그인 동작 실패",
+    "files": [
+      "host/plugins.mjs"
+    ]
+  },
+  {
+    "source": "플러그인 동작 정보를 확인하세요.",
+    "files": [
+      "host/config.mjs"
+    ]
+  },
+  {
+    "source": "플러그인 연결 시간이 초과됐습니다.",
+    "files": [
+      "host/plugins.mjs"
+    ]
+  },
+  {
+    "source": "플러그인 연결이 끊겼습니다.",
+    "files": [
+      "host/plugins.mjs"
+    ]
+  },
+  {
+    "source": "플러그인 연결이 없습니다.",
+    "files": [
+      "host/plugins.mjs"
+    ]
+  },
+  {
+    "source": "플러그인 연결이 종료됐습니다.",
+    "files": [
+      "host/plugins.mjs"
+    ]
+  },
+  {
+    "source": "플러그인 응답 시간 초과",
+    "files": [
+      "host/plugins.mjs"
+    ]
+  },
+  {
+    "source": "플러그인 이벤트",
+    "files": [
+      "host/public/app.js"
+    ]
+  },
+  {
+    "source": "플러그인 이벤트를 확인하세요.",
+    "files": [
+      "host/config.mjs"
+    ]
+  },
+  {
+    "source": "플러그인 전송 한도 초과",
+    "files": [
+      "host/plugins.mjs"
+    ]
+  },
+  {
+    "source": "플러그인 폴더",
+    "files": [
+      "host/public/app.js"
+    ]
+  },
+  {
+    "source": "플러그인은 최대 12개입니다.",
+    "files": [
+      "host/plugins.mjs"
+    ]
+  },
+  {
+    "source": "플러그인을 찾을 수 없습니다.",
+    "files": [
+      "host/plugins.mjs"
+    ]
+  },
+  {
+    "source": "플러그인이 연결되지 않았습니다.",
+    "files": [
+      "host/engine.mjs",
+      "host/plugins.mjs"
+    ]
+  },
+  {
+    "source": "플러그인이 종료됐습니다 ({0}).",
+    "files": [
+      "host/plugins.mjs"
+    ]
+  },
+  {
+    "source": "플러그인이 처리 중입니다.",
+    "files": [
+      "host/plugins.mjs"
+    ]
+  },
+  {
+    "source": "필요한 이미지가 백업에 없습니다.",
+    "files": [
+      "host/backups.mjs"
+    ]
+  },
+  {
+    "source": "하단 탭 표시",
+    "files": [
+      "host/public/settings-ui.mjs"
+    ]
+  },
+  {
+    "source": "하단 페이지 버튼",
+    "files": [
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
+    "source": "한 카드로 요약",
+    "files": [
+      "host/public/app.js"
+    ]
+  },
+  {
+    "source": "할 일",
+    "files": [
+      "host/public/app.js",
+      "host/extensions.mjs",
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
+    "source": "할 일 · ",
+    "files": [
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
+    "source": "할 일 완료",
+    "files": [
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
+    "source": "할 일 완료 요청",
+    "files": [
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
+    "source": "할 일 위젯이 아닙니다.",
+    "files": [
+      "host/engine.mjs"
+    ]
+  },
+  {
+    "source": "할 일 추가",
+    "files": [
+      "host/public/app.js"
+    ]
+  },
+  {
+    "source": "할 일은 1~160자, 최대 50개입니다.",
+    "files": [
+      "host/engine.mjs"
+    ]
+  },
+  {
+    "source": "할 일을 완료했어요.",
+    "files": [
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
+    "source": "할 일을 찾을 수 없습니다.",
+    "files": [
+      "host/engine.mjs"
+    ]
+  },
+  {
+    "source": "할 일을 태블릿에서 추가하세요.",
+    "files": [
+      "host/public/app.js"
+    ]
+  },
+  {
+    "source": "함께 사용 모드에서만 적용합니다.",
+    "files": [
+      "host/public/settings-ui.mjs"
+    ]
+  },
+  {
+    "source": "해제",
+    "files": [
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
+    "source": "행",
+    "files": [
+      "host/public/index.html"
+    ]
+  },
+  {
+    "source": "허용되지 않은 출처입니다.",
+    "files": [
+      "host/server.mjs"
+    ]
+  },
+  {
+    "source": "현재 ",
+    "files": [
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
+    "source": "현재 Wi-Fi 주소 없음",
+    "files": [
+      "host/public/settings-ui.mjs"
+    ]
+  },
+  {
+    "source": "현재 계정 암호",
+    "files": [
+      "host/public/security-ui.mjs"
+    ],
+    "english": "Current account password"
+  },
+  {
+    "source": "현재 백업 복구 키를 비활성화하고 분실 처리할까요? 저장소 암호는 계속 사용할 수 있습니다.",
+    "files": [
+      "host/public/security-ui.mjs"
+    ],
+    "english": "Deactivate the backup recovery key and mark it lost? Your vault password will keep working."
+  },
+  {
+    "source": "현재 복구 키를 비활성화하고 분실 처리할까요? 새 키를 생성하기 전까지 계정 복구가 불가능합니다.",
+    "files": [
+      "host/public/security-ui.mjs"
+    ],
+    "english": "Deactivate the current recovery key and mark it lost? Account recovery will be unavailable until a new key is created."
+  },
+  {
+    "source": "현재 사용자: {0}",
+    "files": [
+      "host/public/security-ui.mjs"
+    ]
+  },
+  {
+    "source": "현재 세션",
+    "files": [
+      "host/public/security-ui.mjs"
+    ],
+    "english": "Current session"
+  },
+  {
+    "source": "현재 연결 정보",
+    "files": [
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
+    "source": "현재 연결이 끊겨 있어 프로필 변경은 다시 연결되면 적용됩니다.",
+    "files": [
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
+    "source": "현재 유효한 인증서가 필요합니다.",
+    "files": [
+      "host/network.mjs"
+    ]
+  },
+  {
+    "source": "현재 자동 설치는 macOS에서 지원됩니다.",
+    "files": [
+      "host/system-tools.mjs"
+    ]
+  },
+  {
+    "source": "현재 저장소 암호",
+    "files": [
+      "host/public/security-ui.mjs"
+    ],
+    "english": "Current vault password"
+  },
+  {
+    "source": "현재 창을 포함한 모든 로그인 세션을 종료할까요?",
+    "files": [
+      "host/public/security-ui.mjs"
+    ],
+    "english": "Sign out every session, including this window?"
+  },
+  {
+    "source": "현재 편집기 암호",
+    "files": [
+      "host/public/settings-ui.mjs"
+    ],
+    "english": "Current editor password"
+  },
+  {
+    "source": "현재 프로필의 버튼이 아닙니다.",
+    "files": [
+      "host/server.mjs"
+    ]
+  },
+  {
+    "source": "현재: ",
+    "files": [
+      "host/public/app.js"
+    ]
+  },
+  {
+    "source": "호스트:포트 형식으로 입력하세요.",
+    "files": [
+      "host/system-tools.mjs"
+    ]
+  },
+  {
+    "source": "호스트가 준비되지 않았습니다. 다른 앱이 포트 8840을 사용 중인지 확인하세요. 로그: {0}",
+    "files": [
+      "macos/OpenDeck.swift"
+    ]
+  },
+  {
+    "source": "호스트를 시작하지 못했습니다: {0}",
+    "files": [
+      "macos/OpenDeck.swift"
+    ]
+  },
+  {
+    "source": "홈",
+    "files": [
+      "host/public/app.js"
+    ]
+  },
+  {
+    "source": "화면 · 밝기",
+    "files": [
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
+    "source": "화면 · 성능",
+    "files": [
+      "host/public/settings-ui.mjs"
+    ]
+  },
+  {
+    "source": "화면 · 언어",
+    "files": [
+      "host/public/settings-ui.mjs"
+    ]
+  },
+  {
+    "source": "화면 방향",
+    "files": [
+      "host/public/settings-ui.mjs"
+    ]
+  },
+  {
+    "source": "화면 보호",
+    "files": [
+      "host/public/settings-ui.mjs",
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
+    "source": "화면 보호 대기 (분, 0: 끔)",
+    "files": [
+      "host/public/settings-ui.mjs"
+    ]
+  },
+  {
+    "source": "화면 보호 모드",
+    "files": [
+      "host/public/settings-ui.mjs"
+    ]
+  },
+  {
+    "source": "화면 보호 밝기",
+    "files": [
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
+    "source": "화면 보호 밝기 (%)",
+    "files": [
+      "host/public/settings-ui.mjs"
+    ]
+  },
+  {
+    "source": "화면 보호 방식",
+    "files": [
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
+    "source": "화면 보호 지금 시작",
+    "files": [
+      "host/public/settings-ui.mjs"
+    ]
+  },
+  {
+    "source": "화면 보호를 시작했습니다.",
+    "files": [
+      "host/public/settings-ui.mjs"
+    ],
+    "english": "Screensaver requested."
+  },
+  {
+    "source": "화면 켜짐 유지",
+    "files": [
+      "host/public/settings-ui.mjs",
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
+    "source": "화면 크기 (%)",
+    "files": [
+      "host/public/settings-ui.mjs"
+    ]
+  },
+  {
+    "source": "화면 회전",
+    "files": [
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
+    "source": "화면·입력·알림 설정을 기본값으로 되돌립니다. 페어링과 프로필은 유지합니다.",
+    "files": [
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
+    "source": "화면을 깨울 때 버튼이 잘못 실행되지 않게 합니다. 시계 화면은 항상 적용됩니다.",
+    "files": [
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
+    "source": "화면을 터치하면 돌아갑니다",
+    "files": [
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
+    "source": "확인",
+    "files": [
+      "host/public/settings-ui.mjs",
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java",
+      "macos/OpenDeck.swift"
+    ]
+  },
+  {
+    "source": "확인 불가",
+    "files": [
+      "host/public/app.js",
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
+    "source": "확인 중",
+    "files": [
+      "host/public/app.js",
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
+    "source": "확인 필요",
+    "files": [
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
+    "source": "확인 후 가져오기",
+    "files": [
+      "host/public/migration-ui.mjs"
+    ]
+  },
+  {
+    "source": "확인할 상태 ",
+    "files": [
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
+    "source": "확인할 상태가 없어요.",
+    "files": [
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
+    "source": "활성화할 지표의 주의·위험 임계치를 입력하세요.",
+    "files": [
+      "host/public/monitor-rules.mjs"
+    ]
+  },
+  {
+    "source": "회의 기록",
+    "files": [
+      "host/public/app.js",
+      "host/extensions.mjs"
+    ]
+  }
+]

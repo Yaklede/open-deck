@@ -1,10 +1,12 @@
+import { t, tf, localizedObject, locale as uiLocale, translateError } from "./i18n.mjs";
 import {
   ensureEditorUnlocked,
   showEditorLock,
+  showAccountLogin,
   startEditorLockMonitor,
 } from "./editor-lock.mjs";
 import { effectivePages } from "./profiles.mjs";
-import { createSettingsCenter } from "./settings-ui.mjs";
+import { createSettingsCenter, applyAppearanceVariables } from "./settings-ui.mjs";
 import {
   activeProfile,
   profilePages,
@@ -53,7 +55,7 @@ const paths = {
   music: "M9 18V5l11-2v13 M9 5v4l11-2 M9 18a3 3 0 1 1-3-3 M20 16a3 3 0 1 1-3-3",
   volume: "M3 9h4l5-5v16l-5-5H3z M16 8a6 6 0 0 1 0 8 M19 5a10 10 0 0 1 0 14",
 };
-const names = {
+const names = localizedObject({
   button: "동작 버튼",
   clock: "시계",
   gauges: "CPU · 메모리",
@@ -73,8 +75,8 @@ const names = {
   image: "이미지",
   spacer: "빈 공간",
   page: "페이지 이동",
-};
-const kinds = {
+});
+const kinds = localizedObject({
   openApp: "앱 실행",
   openUrl: "웹 주소",
   chrome: "Chrome 프로필 / 기존 탭",
@@ -89,7 +91,7 @@ const kinds = {
   plugin: "플러그인 동작",
   extension: "Jimin OS 열기",
   if: "조건 분기 (JSON)",
-};
+});
 const n = (tag, text, cls) => {
   const e = document.createElement(tag);
   if (text !== undefined) e.textContent = text;
@@ -97,7 +99,7 @@ const n = (tag, text, cls) => {
   return e;
 };
 const editorLocale = () =>
-  document.documentElement.lang === "en" ? "en-US" : "ko-KR";
+  uiLocale();
 const editorHour12 = () => document.body.dataset.timeFormat === "12h";
 const page = () => config.pages.find((p) => p.id === pageId) || config.pages[0],
   widget = () => page().widgets.find((w) => w.id === selected);
@@ -112,8 +114,9 @@ async function api(url, method = "GET", body) {
     body: body ? JSON.stringify(body) : undefined,
   });
   const d = await r.json();
-  if (r.status === 423) showEditorLock();
-  if (!r.ok) throw Error(d.error || r.statusText);
+  if (r.status === 401 && d.code === "ACCOUNT_LOGIN_REQUIRED") showAccountLogin();
+  if (r.status === 423 && d.code !== "VAULT_LOCKED") showEditorLock();
+  if (!r.ok) throw Error(translateError(d.error || r.statusText));
   return d;
 }
 function checkpoint() {
@@ -126,8 +129,8 @@ function checkpoint() {
 }
 function changed() {
   dirty = true;
-  $("#saved").textContent = "저장하지 않은 변경";
-  $("#save").textContent = "변경 저장 ·";
+  $("#saved").textContent = t("저장하지 않은 변경");
+  $("#save").textContent = t("변경 저장 ·");
   $("#undo").disabled = !undo.length;
   $("#redo").disabled = !redo.length;
 }
@@ -272,7 +275,7 @@ function renderBoard() {
         );
       c.tabIndex = 0;
       c.setAttribute("role", "button");
-      c.setAttribute("aria-label", w.label + " 편집");
+      c.setAttribute("aria-label", w.label + t(" 편집"));
       c.dataset.widgetId = w.id;
       c.dataset.type = w.type;
       c.draggable = !portrait && !w.inheritedPin;
@@ -314,9 +317,9 @@ function renderBoard() {
       else if (w.type === "calendar")
         body.append(n("div", "—", "calendar-reading"));
       else if (["agenda", "inbox", "notification-feed"].includes(w.type))
-        body.append(n("div", "연결을 기다리고 있어요.", "os-reading"));
+        body.append(n("div", t("연결을 기다리고 있어요."), "os-reading"));
       else if (w.type === "todo")
-        body.append(n("div", "할 일을 태블릿에서 추가하세요.", "todo-reading"));
+        body.append(n("div", t("할 일을 태블릿에서 추가하세요."), "todo-reading"));
       else if (w.type === "graph") {
         const plot = n("div", undefined, "graph-bars");
         for (let i = 0; i < 40; i++) plot.append(n("i"));
@@ -324,7 +327,7 @@ function renderBoard() {
       }
       c.append(body, n("div", labelText(w.label), "label"));
       const resize = n("button", "↘", "resize-handle");
-      resize.setAttribute("aria-label", "크기 조절");
+      resize.setAttribute("aria-label", t("크기 조절"));
       if (!portrait && !w.inheritedPin) {
         c.append(resize);
         resize.onpointerdown = (e) => resizeStart(e, c, w);
@@ -340,7 +343,7 @@ function renderBoard() {
           selectedWidgets.clear();
           selectedWidgets.add(w.id);
           render();
-          notice("고정 위젯의 원본 페이지에서 편집합니다.");
+          notice(t("고정 위젯의 원본 페이지에서 편집합니다."));
           return;
         }
         if (e.shiftKey || e.metaKey || e.ctrlKey) {
@@ -429,7 +432,7 @@ function move(w, next) {
     next.y + next.h > p.rows ||
     p.widgets.some((x) => x.id !== w.id && overlaps(x, next))
   )
-    return notice("빈 공간에 배치하세요. 위젯은 서로 겹칠 수 없습니다.", true);
+    return notice(t("빈 공간에 배치하세요. 위젯은 서로 겹칠 수 없습니다."), true);
   change(() => Object.assign(w, next));
   if (selected) inspect();
 }
@@ -530,7 +533,7 @@ function updateLive() {
       const target = c.querySelector(".system-reading"),
         s = state.system;
       if (!s || s.status !== "connected")
-        target.textContent = "맥 상태 연결 대기";
+        target.textContent = t("맥 상태 연결 대기");
       else {
         const bytes = (v) =>
           typeof v === "number"
@@ -546,12 +549,12 @@ function updateLive() {
               ? bytes(s.memory?.usedBytes) +
                 " / " +
                 bytes(s.memory?.totalBytes) +
-                "\n메모리 압력 " +
-                ({ normal: "정상", warning: "주의", critical: "높음" }[
+                t("\n메모리 압력 ") +
+                ({ normal: t("정상"), warning: t("주의"), critical: t("높음") }[
                   s.memory?.pressure
-                ] || "확인 중")
+                ] || t("확인 중"))
               : w.metric === "disk"
-                ? "여유 " + bytes(s.disk?.availableBytes)
+                ? t("여유 ") + bytes(s.disk?.availableBytes)
                 : w.metric === "network"
                   ? "↓ " +
                     bytes(s.network?.rxBytesPerSecond) +
@@ -562,11 +565,11 @@ function updateLive() {
                     ? (s.power?.batteryPercent ?? "—") +
                       "% · " +
                       ({
-                        normal: "발열 정상",
-                        fair: "발열 약간 높음",
-                        serious: "발열 높음",
-                        critical: "발열 매우 높음",
-                      }[s.power?.thermal] || "확인 중")
+                        normal: t("발열 정상"),
+                        fair: t("발열 약간 높음"),
+                        serious: t("발열 높음"),
+                        critical: t("발열 매우 높음"),
+                      }[s.power?.thermal] || t("확인 중"))
                     : w.metric === "processes"
                       ? (s.processes?.cpu || [])
                           .slice(0, 3)
@@ -574,8 +577,8 @@ function updateLive() {
                             (p) =>
                               p.name + " · " + p.cpuPercent.toFixed(1) + "%",
                           )
-                          .join("\n") || "앱 사용량 비교 중"
-                      : (s.model || "내 Mac") + "\n실시간 시스템 상태";
+                          .join("\n") || t("앱 사용량 비교 중")
+                      : (s.model || t("내 Mac")) + t("\n실시간 시스템 상태");
       }
     }
     if (w.type === "grafana") {
@@ -584,15 +587,15 @@ function updateLive() {
           w.projects?.[0],
         data = state.grafana?.widgets?.[w.id]?.projects?.[p?.value];
       const disconnected = !state.at || Date.now() - state.at >= 8000;
-      const pct = (v) => (v == null ? "수집 없음" : v.toFixed(1) + "%");
+      const pct = (v) => (v == null ? t("수집 없음") : v.toFixed(1) + "%");
       c.querySelector(".system-reading").textContent =
-        (p?.label || "프로젝트 선택") +
+        (p?.label || t("프로젝트 선택")) +
         "\n" +
         (data?.status === "ready" && !disconnected
           ? w.metric === "system"
-            ? "시스템 CPU " +
+            ? t("시스템 CPU ") +
               pct(data.system?.value) +
-              "\n지표 수집 " +
+              t("\n지표 수집 ") +
               (data.collection?.healthy ?? 0) +
               "/" +
               (data.collection?.total ?? 0)
@@ -613,18 +616,18 @@ function updateLive() {
                             " GiB"),
                     )
                     .join("\n")
-                : "DB 노드 지표 수집 없음") +
-              "\n전체 TPS " +
+                : t("DB 노드 지표 수집 없음")) +
+              t("\n전체 TPS ") +
               (data.tps.value == null ? "—" : data.tps.value.toFixed(2)) +
-              " · 전체 QPS " +
+              t(" · 전체 QPS ") +
               (data.qps?.value == null ? "—" : data.qps.value.toFixed(2)) +
-              " · DB 연결 " +
+              t(" · DB 연결 ") +
               (data.database?.connections == null
                 ? "—"
                 : data.database.connections.toFixed(0))
           : disconnected
-            ? "연결 끊김 · 자동 재연결 중"
-            : data?.message || "지표 조회 대기");
+            ? t("연결 끊김 · 자동 재연결 중")
+            : data?.message || t("지표 조회 대기"));
       const key = w.metric === "system" ? "system" : "cpu",
         source = data?.freshness?.[key];
       const at = source?.sampleAt || source?.lastSampleAt;
@@ -633,16 +636,16 @@ function updateLive() {
             hour12: editorHour12(),
             timeZone: "Asia/Seoul",
           })
-        : "확인 불가";
+        : t("확인 불가");
       const age = at ? Math.max(0, Math.floor((Date.now() - at) / 1000)) : null;
       c.querySelector(".system-reading").textContent +=
-        "\n원본 수집 " +
+        t("\n원본 수집 ") +
         stamp +
-        (age == null ? "" : " · " + age + "초 전") +
+        (age == null ? "" : " · " + age + t("초 전")) +
         (source?.status === "delayed"
-          ? " · 수집 지연"
+          ? t(" · 수집 지연")
           : source?.status === "stale"
-            ? " · 오래된 데이터"
+            ? t(" · 오래된 데이터")
             : "");
       c.classList.toggle(
         "data-stale",
@@ -679,8 +682,8 @@ function updateLive() {
       c.querySelector(".label").textContent = String(value);
     if (w.type === "toggle")
       c.querySelector(".toggle-reading").textContent = value
-        ? "● 켜짐"
-        : "○ 꺼짐";
+        ? t("● 켜짐")
+        : t("○ 꺼짐");
     if (w.type === "calendar" && !w.provider)
       c.querySelector(".calendar-reading").textContent =
         new Date().toLocaleDateString(editorLocale(), {
@@ -693,16 +696,16 @@ function updateLive() {
         data = provider?.data;
       const target = c.querySelector(".os-reading,.calendar-reading");
       if (target) {
-        if (!data) target.textContent = "Jimin OS 연결을 기다리고 있어요.";
+        if (!data) target.textContent = t("Jimin OS 연결을 기다리고 있어요.");
         else if (w.type === "inbox")
           target.textContent =
-            `새 업무 요청 ${data.counts.requests} · 업데이트 ${data.counts.updates}\n` +
+            tf("새 업무 요청 {0} · 업데이트 {1}\n", data.counts.requests, data.counts.updates) +
             data.inbox
               .slice(0, 3)
               .map((x) => x.title)
               .join("\n");
         else if (w.type === "notification-feed")
-          target.textContent = `알림 ${(state.notifications || []).length}개`;
+          target.textContent = tf("알림 {0}개", (state.notifications || []).length);
         else
           target.textContent =
             (data.events || [])
@@ -719,7 +722,7 @@ function updateLive() {
                   "  " +
                   x.title,
               )
-              .join("\n") || "다가오는 일정이 없어요.";
+              .join("\n") || t("다가오는 일정이 없어요.");
         if (data) {
           const stale =
             provider.status !== "connected" ||
@@ -735,10 +738,10 @@ function updateLive() {
             },
           );
           target.textContent =
-            (stale ? "이전 데이터 · 자동 재연결 중" : "최신 데이터") +
+            (stale ? t("이전 데이터 · 자동 재연결 중") : t("최신 데이터")) +
             " · " +
             stamp +
-            " 수집\n" +
+            t(" 수집\n") +
             target.textContent;
         }
       }
@@ -748,7 +751,7 @@ function updateLive() {
         (state.todos?.[w.id] || [])
           .slice(0, 5)
           .map((x) => (x.done ? "✓ " : "○ ") + x.text)
-          .join("\n") || "할 일을 태블릿에서 추가하세요.";
+          .join("\n") || t("할 일을 태블릿에서 추가하세요.");
     if (w.type === "graph") {
       const h = (state.history?.[w.binding || "cpu"] || []).slice(-40),
         bars = c.querySelectorAll("i");
@@ -762,19 +765,19 @@ function pageSettings() {
   const p = page(),
     box = $("#pageSettings");
   box.replaceChildren();
-  field(box, "기본 테마", p.theme, (v) => change(() => (p.theme = v)), {
+  field(box, t("기본 테마"), p.theme, (v) => change(() => (p.theme = v)), {
     choices: Object.fromEntries(Object.keys(themes).map((k) => [k, k])),
   });
   field(
     box,
-    "배경색",
+    t("배경색"),
     p.background || themes[p.theme].background,
     (v) => change(() => (p.background = v)),
     { type: "color" },
   );
   field(
     box,
-    "그라데이션",
+    t("그라데이션"),
     !!p.gradient,
     (v) =>
       change(() => {
@@ -786,24 +789,24 @@ function pageSettings() {
   if (p.gradient)
     field(
       box,
-      "두 번째 색",
+      t("두 번째 색"),
       p.gradient,
       (v) => change(() => (p.gradient = v)),
       { type: "color" },
     );
-  field(box, "간격", p.gap, (v) => change(() => (p.gap = v)), {
+  field(box, t("간격"), p.gap, (v) => change(() => (p.gap = v)), {
     type: "range",
     min: 0,
     max: 32,
   });
-  field(box, "모서리", p.radius, (v) => change(() => (p.radius = v)), {
+  field(box, t("모서리"), p.radius, (v) => change(() => (p.radius = v)), {
     type: "range",
     min: 0,
     max: 40,
   });
   field(
     box,
-    "세로 화면 열",
+    t("세로 화면 열"),
     p.portrait?.columns || 2,
     (v) =>
       change(() => (p.portrait = { columns: v, rows: p.portrait?.rows || 1 })),
@@ -811,7 +814,7 @@ function pageSettings() {
   );
   field(
     box,
-    "상위 페이지",
+    t("상위 페이지"),
     p.parentId || "",
     (v) =>
       change(() => {
@@ -820,7 +823,7 @@ function pageSettings() {
       }, true),
     {
       choices: {
-        "": "없음",
+        "": t("없음"),
         ...Object.fromEntries(
           profilePages(config, profileId)
             .filter((x) => x.id !== p.id)
@@ -831,28 +834,28 @@ function pageSettings() {
   );
   field(
     box,
-    "프로필 기본 디자인 상속",
+    t("프로필 기본 디자인 상속"),
     !!p.inheritProfileDesign,
     (v) => change(() => (p.inheritProfileDesign = v), true),
     { type: "checkbox" },
   );
   field(
     box,
-    "그림자 표시",
+    t("그림자 표시"),
     p.shadow !== false,
     (v) => change(() => (p.shadow = v)),
     { type: "checkbox" },
   );
   field(
     box,
-    "빈 셀 표시",
+    t("빈 셀 표시"),
     !!p.showEmptyCells,
     (v) => change(() => (p.showEmptyCells = v)),
     { type: "checkbox" },
   );
   field(
     box,
-    "소속 프로필",
+    t("소속 프로필"),
     activeProfile(config, profileId)?.id,
     (v) => movePageToProfile(p.id, v),
     {
@@ -861,14 +864,14 @@ function pageSettings() {
       ),
     },
   );
-  button(box, "배경 이미지", () =>
+  button(box, t("배경 이미지"), () =>
     upload((id) => change(() => (p.backgroundImage = id))),
   );
   if (p.backgroundImage)
-    button(box, "배경 이미지 제거", () =>
+    button(box, t("배경 이미지 제거"), () =>
       change(() => delete p.backgroundImage),
     );
-  button(box, "테마 내보내기", () =>
+  button(box, t("테마 내보내기"), () =>
     exportFile({
       kind: "open-deck-theme",
       theme: p.theme,
@@ -888,33 +891,33 @@ function inspect() {
   const box = $("#widgetFields");
   box.replaceChildren();
   $("#widgetTitle").textContent = names[w.type] || w.type;
-  field(box, "이름 / {{변수}}", w.label, (v) => change(() => (w.label = v)));
+  field(box, t("이름 / {{변수}}"), w.label, (v) => change(() => (w.label = v)));
   field(
     box,
-    "강조색",
+    t("강조색"),
     w.color || "#8bb8ff",
     (v) => change(() => (w.color = v)),
     { type: "color" },
   );
   field(
     box,
-    "다른 페이지에도 고정",
+    t("다른 페이지에도 고정"),
     w.pinScope || "none",
     (v) => change(() => (w.pinScope = v), true),
     {
       choices: {
-        none: "이 페이지에만",
-        profile: "이 프로필의 모든 페이지",
-        global: "모든 프로필의 페이지",
+        none: t("이 페이지에만"),
+        profile: t("이 프로필의 모든 페이지"),
+        global: t("모든 프로필의 페이지"),
       },
     },
   );
   const stateFields = n("details", undefined, "state-style-editor");
-  stateFields.append(n("summary", "켜짐 상태 디자인"));
+  stateFields.append(n("summary", t("켜짐 상태 디자인")));
   box.append(stateFields);
   field(
     stateFields,
-    "켜짐 상태 변수",
+    t("켜짐 상태 변수"),
     w.stateVariable || "",
     (v) =>
       change(() => {
@@ -928,7 +931,7 @@ function inspect() {
       }, true),
     {
       choices: {
-        "": "사용 안 함",
+        "": t("사용 안 함"),
         ...Object.fromEntries(
           Object.entries(config.variables)
             .filter(([, v]) => typeof v === "boolean")
@@ -938,21 +941,21 @@ function inspect() {
     },
   );
   if (w.stateVariable) {
-    field(stateFields, "켜졌을 때 이름", w.activeLabel || w.label, (v) =>
+    field(stateFields, t("켜졌을 때 이름"), w.activeLabel || w.label, (v) =>
       change(() => (w.activeLabel = v)),
     );
     field(
       stateFields,
-      "켜졌을 때 아이콘",
+      t("켜졌을 때 아이콘"),
       w.activeIcon || w.icon,
       (v) => change(() => (w.activeIcon = v)),
       { choices: Object.fromEntries(Object.keys(paths).map((k) => [k, k])) },
     );
     w.activeStyle ??= {};
     for (const [key, label, def] of [
-      ["background", "켜짐 배경색", "#285545"],
-      ["textColor", "켜짐 글자색", "#ecfff6"],
-      ["borderColor", "켜짐 테두리색", "#7bdbb5"],
+      ["background", t("켜짐 배경색"), "#285545"],
+      ["textColor", t("켜짐 글자색"), "#ecfff6"],
+      ["borderColor", t("켜짐 테두리색"), "#7bdbb5"],
     ])
       field(
         stateFields,
@@ -961,7 +964,7 @@ function inspect() {
         (v) => change(() => (w.activeStyle[key] = v)),
         { type: "color" },
       );
-    button(stateFields, "켜짐 스타일 초기화", () =>
+    button(stateFields, t("켜짐 스타일 초기화"), () =>
       change(() => (w.activeStyle = {}), true),
     );
   }
@@ -975,8 +978,8 @@ function inspect() {
   const size = n("div", undefined, "two");
   box.append(size);
   for (const [key, title, max] of [
-    ["w", "너비", page().columns],
-    ["h", "높이", Math.min(12, page().rows)],
+    ["w", t("너비"), page().columns],
+    ["h", t("높이"), Math.min(12, page().rows)],
   ])
     field(size, title, w[key], (v) => move(w, { ...w, [key]: v }), {
       type: "number",
@@ -986,33 +989,33 @@ function inspect() {
   if (["button", "page"].includes(w.type))
     field(
       box,
-      "아이콘",
+      t("아이콘"),
       w.icon || "monitor",
       (v) => change(() => (w.icon = v)),
       { choices: Object.fromEntries(Object.keys(paths).map((k) => [k, k])) },
     );
   if (["button", "page", "image"].includes(w.type)) {
-    button(box, w.image ? "이미지 변경" : "이미지 선택", () =>
+    button(box, w.image ? t("이미지 변경") : t("이미지 선택"), () =>
       upload((id) => change(() => (w.image = id))),
     );
-    if (w.image) button(box, "이미지 제거", () => change(() => delete w.image));
+    if (w.image) button(box, t("이미지 제거"), () => change(() => delete w.image));
   }
   if (["calendar", "agenda", "inbox", "notification-feed"].includes(w.type))
     field(
       box,
-      "데이터 연결",
+      t("데이터 연결"),
       w.provider || "",
       (v) =>
         change(() => {
           if (v) w.provider = v;
           else delete w.provider;
         }),
-      { choices: { "": "로컬", "jimin-os": "Jimin OS" } },
+      { choices: { "": t("로컬"), "jimin-os": "Jimin OS" } },
     );
   if (w.type === "system")
     field(
       box,
-      "시스템 지표",
+      t("시스템 지표"),
       w.metric || "overview",
       (v) =>
         change(() => {
@@ -1021,27 +1024,27 @@ function inspect() {
         }),
       {
         choices: {
-          overview: "맥 상태 요약",
+          overview: t("맥 상태 요약"),
           cpu: "CPU",
-          memory: "메모리 압력·사용량",
-          disk: "저장 공간·디스크 I/O",
-          network: "네트워크",
-          processes: "사용량 높은 앱",
-          power: "전원·발열",
+          memory: t("메모리 압력·사용량"),
+          disk: t("저장 공간·디스크 I/O"),
+          network: t("네트워크"),
+          processes: t("사용량 높은 앱"),
+          power: t("전원·발열"),
         },
       },
     );
   if (w.type === "system" && (!w.metric || w.metric === "overview"))
     field(
       box,
-      "한 카드로 요약",
+      t("한 카드로 요약"),
       !!w.compact,
       (v) => change(() => (w.compact = v)),
       { type: "checkbox" },
     );
   if (["grafana", "system"].includes(w.type)) {
     const alertBox = n("details");
-    alertBox.append(n("summary", "임계치 · 태블릿 알림"));
+    alertBox.append(n("summary", t("임계치 · 태블릿 알림")));
     box.append(alertBox);
     const settings = monitorSettings(w);
     const edit = (key, value) =>
@@ -1051,24 +1054,24 @@ function inspect() {
       });
     field(
       alertBox,
-      "위험 색상 표시",
+      t("위험 색상 표시"),
       settings.enabled,
       (v) => edit("enabled", v),
       { type: "checkbox" },
     );
-    field(alertBox, "태블릿 알림", settings.notify, (v) => edit("notify", v), {
+    field(alertBox, t("태블릿 알림"), settings.notify, (v) => edit("notify", v), {
       type: "checkbox",
     });
     field(
       alertBox,
-      "지속 시간 (초)",
+      t("지속 시간 (초)"),
       settings.holdSeconds,
       (v) => edit("holdSeconds", v),
       { type: "number", min: 0, max: 3600 },
     );
     field(
       alertBox,
-      "재알림 간격 (초)",
+      t("재알림 간격 (초)"),
       settings.cooldownSeconds,
       (v) => edit("cooldownSeconds", v),
       { type: "number", min: 60, max: 86400 },
@@ -1076,7 +1079,7 @@ function inspect() {
     alertBox.append(
       n(
         "p",
-        "초록 정상 · 주황 주의 · 빨강 위험. 설정한 시간 이상 유지되면 알림을 보내고 정상 복구도 알려드려요.",
+        t("초록 정상 · 주황 주의 · 빨강 위험. 설정한 시간 이상 유지되면 알림을 보내고 정상 복구도 알려드려요."),
       ),
     );
     for (const [key, rule] of Object.entries(settings.rules)) {
@@ -1090,34 +1093,34 @@ function inspect() {
           w.alerts.rules[key] ??= { ...rule };
           w.alerts.rules[key][name] = value;
         });
-      field(group, "임계치 사용", rule.enabled, (v) => setRule("enabled", v), {
+      field(group, t("임계치 사용"), rule.enabled, (v) => setRule("enabled", v), {
         type: "checkbox",
       });
-      field(group, "기준", rule.direction, (v) => setRule("direction", v), {
-        choices: { above: "이상일 때", below: "이하일 때" },
+      field(group, t("기준"), rule.direction, (v) => setRule("direction", v), {
+        choices: { above: t("이상일 때"), below: t("이하일 때") },
       });
       for (const [name, title] of [
-        ["warning", "주의"],
-        ["critical", "위험"],
+        ["warning", t("주의")],
+        ["critical", t("위험")],
       ]) {
         const input = field(group, title, rule[name], () => {}, {
           type: "number",
           min: 0,
         });
         input.step = "any";
-        input.placeholder = "임계치 입력";
+        input.placeholder = t("임계치 입력");
         input.onchange = () =>
           setRule(name, input.value.trim() === "" ? null : Number(input.value));
       }
     }
-    button(alertBox, "태블릿 알림 테스트", async () => {
+    button(alertBox, t("태블릿 알림 테스트"), async () => {
       if (dirty) {
-        notice("변경 저장 후 알림을 테스트해 주세요.", true);
+        notice(t("변경 저장 후 알림을 테스트해 주세요."), true);
         return;
       }
       try {
         await api("/api/admin/monitor-test", "POST", { widgetId: w.id });
-        notice("태블릿에 테스트 알림을 보냈습니다.");
+        notice(t("태블릿에 테스트 알림을 보냈습니다."));
       } catch (e) {
         notice(e.message, true);
       }
@@ -1126,39 +1129,39 @@ function inspect() {
       alertBox.append(
         n(
           "p",
-          "TPS·QPS·연결 수는 임계치를 입력한 뒤 켜세요. 처리량 감소를 감지하려면 ‘이하일 때’를 선택하세요.",
+          t("TPS·QPS·연결 수는 임계치를 입력한 뒤 켜세요. 처리량 감소를 감지하려면 ‘이하일 때’를 선택하세요."),
         ),
       );
   }
   if (w.type === "grafana") {
     field(
       box,
-      "표시 지표",
+      t("표시 지표"),
       w.metric || "database",
       (v) => change(() => (w.metric = v)),
       {
         choices: {
-          system: "시스템 CPU · 수집 상태",
-          database: "DB 상태 · CPU · TPS",
+          system: t("시스템 CPU · 수집 상태"),
+          database: t("DB 상태 · CPU · TPS"),
         },
       },
     );
-    field(box, "Grafana HTTPS 대시보드 주소", w.url || "", (v) =>
+    field(box, t("Grafana HTTPS 대시보드 주소"), w.url || "", (v) =>
       change(() => (w.url = v)),
     );
-    field(box, "조회 토큰 사용", !!w.auth, (v) => change(() => (w.auth = v)), {
+    field(box, t("조회 토큰 사용"), !!w.auth, (v) => change(() => (w.auth = v)), {
       type: "checkbox",
     });
     field(
       box,
-      "CPU 패널 ID",
+      t("CPU 패널 ID"),
       w.cpuPanelId || 1,
       (v) => change(() => (w.cpuPanelId = v)),
       { type: "number", min: 1 },
     );
     field(
       box,
-      "TPS 합계 패널 ID",
+      t("TPS 합계 패널 ID"),
       w.tpsPanelId || 2,
       (v) => change(() => (w.tpsPanelId = v)),
       { type: "number", min: 1 },
@@ -1166,12 +1169,12 @@ function inspect() {
     const token = n("input");
     token.type = "password";
     token.autocomplete = "off";
-    token.placeholder = "조회 전용 토큰 · 맥 키체인에만 저장";
-    token.setAttribute("aria-label", "Grafana 조회 토큰");
+    token.placeholder = t("조회 전용 토큰 · 맥 키체인에만 저장");
+    token.setAttribute("aria-label", t("Grafana 조회 토큰"));
     box.append(token);
-    button(box, "조회 토큰 키체인에 저장", async () => {
+    button(box, t("조회 토큰 키체인에 저장"), async () => {
       if (dirty) {
-        notice("변경 저장 후 토큰을 등록해 주세요.", true);
+        notice(t("변경 저장 후 토큰을 등록해 주세요."), true);
         return;
       }
       try {
@@ -1180,23 +1183,23 @@ function inspect() {
           token: token.value,
         });
         token.value = "";
-        notice("Grafana 조회 토큰을 키체인에 저장했습니다.");
+        notice(t("Grafana 조회 토큰을 키체인에 저장했습니다."));
       } catch (e) {
         notice(e.message, true);
       }
     });
-    field(box, "프로젝트 필터 이름", w.projectVariable || "project", (v) =>
+    field(box, t("프로젝트 필터 이름"), w.projectVariable || "project", (v) =>
       change(() => (w.projectVariable = v)),
     );
     (w.projects || []).forEach((p, i) => {
-      field(box, "프로젝트 " + (i + 1) + " 이름", p.label, (v) =>
+      field(box, t("프로젝트 ") + (i + 1) + t(" 이름"), p.label, (v) =>
         change(() => (p.label = v)),
       );
-      field(box, "프로젝트 " + (i + 1) + " 필터 값", p.value, (v) =>
+      field(box, t("프로젝트 ") + (i + 1) + t(" 필터 값"), p.value, (v) =>
         change(() => (p.value = v)),
       );
       if (w.projects.length > 1)
-        button(box, "프로젝트 " + (i + 1) + " 제거", () =>
+        button(box, t("프로젝트 ") + (i + 1) + t(" 제거"), () =>
           change(() => {
             w.projects.splice(i, 1);
             if (w.defaultProject === p.value)
@@ -1204,11 +1207,11 @@ function inspect() {
           }, true),
         );
     });
-    button(box, "프로젝트 추가", () =>
+    button(box, t("프로젝트 추가"), () =>
       change(
         () =>
           w.projects.push({
-            label: "새 프로젝트",
+            label: t("새 프로젝트"),
             value: "project-" + (w.projects.length + 1),
           }),
         true,
@@ -1216,7 +1219,7 @@ function inspect() {
     );
     field(
       box,
-      "기본 프로젝트",
+      t("기본 프로젝트"),
       w.defaultProject || w.projects?.[0]?.value,
       (v) => change(() => (w.defaultProject = v)),
       {
@@ -1227,7 +1230,7 @@ function inspect() {
     );
   }
   if (w.type === "timer")
-    field(box, "타이머 (분)", w.minutes, (v) => change(() => (w.minutes = v)), {
+    field(box, t("타이머 (분)"), w.minutes, (v) => change(() => (w.minutes = v)), {
       type: "number",
       min: 1,
       max: 1440,
@@ -1235,7 +1238,7 @@ function inspect() {
   if (w.type === "page")
     field(
       box,
-      "이동할 페이지",
+      t("이동할 페이지"),
       w.targetPage,
       (v) => change(() => (w.targetPage = v)),
       {
@@ -1247,12 +1250,12 @@ function inspect() {
   if (["text", "toggle", "slider", "graph"].includes(w.type))
     field(
       box,
-      "연결 변수",
+      t("연결 변수"),
       w.binding || "",
       (v) => change(() => (w.binding = v)),
       {
         choices: {
-          "": "선택 안 함",
+          "": t("선택 안 함"),
           ...Object.fromEntries(
             Object.entries(config.variables)
               .filter(([, v]) =>
@@ -1264,7 +1267,7 @@ function inspect() {
               )
               .map(([k]) => [k, k]),
           ),
-          ...(w.type === "graph" ? { cpu: "CPU", memory: "메모리" } : {}),
+          ...(w.type === "graph" ? { cpu: "CPU", memory: t("메모리") } : {}),
           ...(["text", "graph"].includes(w.type)
             ? Object.fromEntries(
                 pluginItems.flatMap((p) =>
@@ -1282,7 +1285,7 @@ function inspect() {
     for (const k of ["min", "max"])
       field(box, k, w[k], (v) => change(() => (w[k] = v)), { type: "number" });
   const style = n("details"),
-    summary = n("summary", "글자 · 색상 · 모양");
+    summary = n("summary", t("글자 · 색상 · 모양"));
   style.append(summary);
   box.append(style);
   w.style ??= {};
@@ -1291,15 +1294,15 @@ function inspect() {
     for (const [key, title, choices] of [
       [
         "labelPosition",
-        "글자 위치",
-        { top: "위", center: "가운데", bottom: "아래", hidden: "숨김" },
+        t("글자 위치"),
+        { top: t("위"), center: t("가운데"), bottom: t("아래"), hidden: t("숨김") },
       ],
       [
         "align",
-        "글자 정렬",
-        { left: "왼쪽", center: "가운데", right: "오른쪽" },
+        t("글자 정렬"),
+        { left: t("왼쪽"), center: t("가운데"), right: t("오른쪽") },
       ],
-      ["font", "글꼴", { sans: "기본", mono: "고정폭", serif: "세리프" }],
+      ["font", t("글꼴"), { sans: t("기본"), mono: t("고정폭"), serif: t("세리프") }],
     ])
       field(
         style,
@@ -1314,17 +1317,17 @@ function inspect() {
   if (["grafana", "system"].includes(w.type))
     field(
       style,
-      "지표 숫자 크기",
+      t("지표 숫자 크기"),
       w.style.valueSize ||
         (w.type === "system" ? 28 : w.metric === "system" ? 44 : 36),
       (v) => change(() => (w.style.valueSize = v)),
       { type: "number", min: 20, max: 60 },
     );
   for (const [key, title, value, min, max] of [
-    ["textSize", "글자 크기", 17, 9, 36],
-    ["iconSize", "아이콘 크기 (%)", 32, 10, 65],
-    ["borderWidth", "테두리", 1, 0, 5],
-    ["opacity", "불투명도 (%)", 100, 20, 100],
+    ["textSize", t("글자 크기"), 17, 9, 36],
+    ["iconSize", t("아이콘 크기 (%)"), 32, 10, 65],
+    ["borderWidth", t("테두리"), 1, 0, 5],
+    ["opacity", t("불투명도 (%)"), 100, 20, 100],
   ].filter(([key]) =>
     key === "textSize"
       ? freeLabel || ["grafana", "system"].includes(w.type)
@@ -1340,9 +1343,9 @@ function inspect() {
       { type: "range", min, max },
     );
   for (const [key, title, value] of [
-    ["textColor", "글자색", themes[page().theme].text],
-    ["background", "버튼 배경", themes[page().theme].surface],
-    ["borderColor", "테두리색", w.color || "#8bb8ff"],
+    ["textColor", t("글자색"), themes[page().theme].text],
+    ["background", t("버튼 배경"), themes[page().theme].surface],
+    ["borderColor", t("테두리색"), w.color || "#8bb8ff"],
   ].filter(([key]) => key !== "textColor" || freeLabel))
     field(
       style,
@@ -1351,7 +1354,7 @@ function inspect() {
       (v) => change(() => (w.style[key] = v)),
       { type: "color" },
     );
-  button(style, "스타일 초기화", () => change(() => (w.style = {}), true));
+  button(style, t("스타일 초기화"), () => change(() => (w.style = {}), true));
   const flow = $("#flowEditor");
   flow.hidden = !["button", "toggle"].includes(w.type);
   if (!flow.hidden) renderActions();
@@ -1368,7 +1371,7 @@ function renderActions() {
     box.append(row);
     field(
       row,
-      "동작",
+      t("동작"),
       a.type,
       (v) => {
         checkpoint();
@@ -1379,7 +1382,7 @@ function renderActions() {
       { choices: kinds },
     );
     if (a.type === "chrome")
-      field(row, "Chrome 프로필 폴더", a.profile || "Default", (v) => {
+      field(row, t("Chrome 프로필 폴더"), a.profile || "Default", (v) => {
         checkpoint();
         a.profile = v;
         changed();
@@ -1387,7 +1390,7 @@ function renderActions() {
     if (["setVariable", "increment", "toggleVariable", "if"].includes(a.type))
       field(
         row,
-        "변수",
+        t("변수"),
         a.variable || "",
         (v) => {
           checkpoint();
@@ -1396,7 +1399,7 @@ function renderActions() {
         },
         {
           choices: {
-            "": "변수 선택",
+            "": t("변수 선택"),
             ...Object.fromEntries(
               Object.keys(config.variables).map((k) => [k, k]),
             ),
@@ -1406,7 +1409,7 @@ function renderActions() {
     if (a.type === "http")
       field(
         row,
-        "연동",
+        t("연동"),
         a.integrationId || "",
         (v) => {
           checkpoint();
@@ -1415,7 +1418,7 @@ function renderActions() {
         },
         {
           choices: {
-            "": "연동 선택",
+            "": t("연동 선택"),
             ...Object.fromEntries(
               config.integrations.map((x) => [x.id, x.name]),
             ),
@@ -1429,7 +1432,7 @@ function renderActions() {
     )
       field(
         row,
-        "값",
+        t("값"),
         typeof a.value === "object" ? JSON.stringify(a.value) : (a.value ?? ""),
         (v) => {
           checkpoint();
@@ -1448,7 +1451,7 @@ function renderActions() {
               ? "/Applications/ChatGPT.app"
               : a.type === "chrome" || a.type === "openUrl"
                 ? "https://"
-                : "값",
+                : t("값"),
         },
       );
     if (a.type === "extension") {
@@ -1457,7 +1460,7 @@ function renderActions() {
       a.parameters ||= { view: "home" };
       field(
         row,
-        "열 화면",
+        t("열 화면"),
         a.operation === "refresh" ? "refresh" : a.parameters.view,
         (v) => {
           checkpoint();
@@ -1467,33 +1470,33 @@ function renderActions() {
         },
         {
           choices: {
-            home: "나의 하루",
-            requests: "업무 요청",
-            scheduled: "예약 업무",
-            calendar: "일정",
-            tasks: "할 일",
-            meetings: "회의 기록",
-            memory: "기억",
-            assistant: "지민에게 말하기",
-            "new-schedule": "일정 추가",
-            "new-task": "할 일 추가",
-            refresh: "새로고침",
+            home: t("나의 하루"),
+            requests: t("업무 요청"),
+            scheduled: t("예약 업무"),
+            calendar: t("일정"),
+            tasks: t("할 일"),
+            meetings: t("회의 기록"),
+            memory: t("기억"),
+            assistant: t("지민에게 말하기"),
+            "new-schedule": t("일정 추가"),
+            "new-task": t("할 일 추가"),
+            refresh: t("새로고침"),
           },
         },
       );
     }
     if (a.type === "plugin") {
-      field(row, "플러그인 ID", a.pluginId || "", (v) => {
+      field(row, t("플러그인 ID"), a.pluginId || "", (v) => {
         checkpoint();
         a.pluginId = v;
         changed();
       });
-      field(row, "동작 ID", a.actionId || "", (v) => {
+      field(row, t("동작 ID"), a.actionId || "", (v) => {
         checkpoint();
         a.actionId = v;
         changed();
       });
-      field(row, "매개변수 (JSON)", JSON.stringify(a.parameters || {}), (v) => {
+      field(row, t("매개변수 (JSON)"), JSON.stringify(a.parameters || {}), (v) => {
         try {
           const parsed = JSON.parse(v);
           if (!parsed || Array.isArray(parsed) || typeof parsed !== "object")
@@ -1502,7 +1505,7 @@ function renderActions() {
           a.parameters = parsed;
           changed();
         } catch {
-          notice("JSON 객체를 입력하세요.", true);
+          notice(t("JSON 객체를 입력하세요."), true);
         }
       });
     }
@@ -1514,7 +1517,7 @@ function renderActions() {
       changed();
       renderActions();
     });
-    button(actions, "삭제", () => {
+    button(actions, t("삭제"), () => {
       checkpoint();
       w[key].splice(i, 1);
       changed();
@@ -1552,7 +1555,7 @@ function addWidget(type) {
     if (type === "grafana")
       Object.assign(w, {
         url: "",
-        projects: [{ label: "프로젝트", value: "project" }],
+        projects: [{ label: t("프로젝트"), value: "project" }],
         defaultProject: "project",
         projectVariable: "project",
       });
@@ -1571,7 +1574,7 @@ function addWidget(type) {
     selected = w.id;
   }, true);
 }
-function addPage(name = "새 페이지", template = "empty") {
+function addPage(name = t("새 페이지"), template = "empty") {
   change(() => {
     const p = {
       id: uid(),
@@ -1639,7 +1642,7 @@ function addPage(name = "새 페이지", template = "empty") {
         );
       }
       const back = p.widgets.find((w) => w.type === "page");
-      back.label = "Workspace로";
+      back.label = t("Workspace로");
       back.icon = "tasks";
       selected = null;
     }, true);
@@ -1649,9 +1652,9 @@ async function save() {
   const result = await api("/api/admin/config", "PUT", config);
   config = result.config || config;
   dirty = false;
-  $("#saved").textContent = "모든 변경 저장됨";
-  $("#save").textContent = "변경 저장";
-  notice("태블릿에 반영했습니다.");
+  $("#saved").textContent = t("모든 변경 저장됨");
+  $("#save").textContent = t("변경 저장");
+  notice(t("태블릿에 반영했습니다."));
 }
 async function upload(done) {
   const input = $("#imageFile");
@@ -1659,7 +1662,7 @@ async function upload(done) {
     try {
       const file = input.files[0];
       if (!file) return;
-      if (file.size > 2097152) throw Error("이미지는 2MB 이하여야 합니다.");
+      if (file.size > 2097152) throw Error(t("이미지는 2MB 이하여야 합니다."));
       const data = await new Promise((r, j) => {
         const f = new FileReader();
         f.onload = () => r(f.result);
@@ -1687,7 +1690,7 @@ async function exportFile(data) {
       data.assets = {};
       for (const id of ids) {
         const res = await fetch("/api/assets/" + id);
-        if (!res.ok) throw Error("이미지를 내보내지 못했습니다.");
+        if (!res.ok) throw Error(t("이미지를 내보내지 못했습니다."));
         const blob = await res.blob();
         data.assets[id] = await new Promise((resolve) => {
           const r = new FileReader();
@@ -1698,7 +1701,7 @@ async function exportFile(data) {
     }
     const text = JSON.stringify(data, null, 2);
     if (new TextEncoder().encode(text).length >= 96 * 1024 * 1024)
-      throw Error("내보낼 파일은 96MB 이하여야 합니다.");
+      throw Error(t("내보낼 파일은 96MB 이하여야 합니다."));
     if (window.webkit?.messageHandlers?.exportConfig) {
       window.webkit.messageHandlers.exportConfig.postMessage(text);
       return;
@@ -1725,7 +1728,7 @@ function variables() {
   for (const [key, value] of Object.entries(config.variables)) {
     const row = n("div", undefined, "variable-row");
     row.append(n("code", key));
-    field(row, "초깃값", JSON.stringify(value), (v) => {
+    field(row, t("초깃값"), JSON.stringify(value), (v) => {
       try {
         const parsed = JSON.parse(v);
         if (!["number", "boolean", "string"].includes(typeof parsed))
@@ -1735,7 +1738,7 @@ function variables() {
         changed();
       } catch {
         notice(
-          "숫자, true/false 또는 따옴표로 감싼 문자열을 입력하세요.",
+          t("숫자, true/false 또는 따옴표로 감싼 문자열을 입력하세요."),
           true,
         );
       }
@@ -1743,11 +1746,11 @@ function variables() {
     row.append(
       n(
         "span",
-        "현재: " + String(state.variables?.[key] ?? value),
+        t("현재: ") + String(state.variables?.[key] ?? value),
         "text-muted",
       ),
     );
-    button(row, "삭제", () => change(() => delete config.variables[key], true));
+    button(row, t("삭제"), () => change(() => delete config.variables[key], true));
     box.append(row);
   }
 }
@@ -1764,65 +1767,65 @@ function connectors() {
       i[k] = v;
       changed();
     };
-    field(row, "이름", i.name, (v) => {
+    field(row, t("이름"), i.name, (v) => {
       set("name", v);
       summary.textContent = v;
     });
     field(row, "URL", i.url, (v) => set("url", v), {
       placeholder: "https://service.example/api/status",
     });
-    field(row, "메서드", i.method || "GET", (v) => set("method", v), {
+    field(row, t("메서드"), i.method || "GET", (v) => set("method", v), {
       choices: Object.fromEntries(
         ["GET", "POST", "PUT", "PATCH", "DELETE"].map((k) => [k, k]),
       ),
     });
-    field(row, "JSON 경로 (예: result.count)", i.path || "", (v) =>
+    field(row, t("JSON 경로 (예: result.count)"), i.path || "", (v) =>
       set("path", v),
     );
-    field(row, "저장 변수", i.variable || "", (v) => set("variable", v), {
+    field(row, t("저장 변수"), i.variable || "", (v) => set("variable", v), {
       choices: {
-        "": "저장 안 함",
+        "": t("저장 안 함"),
         ...Object.fromEntries(Object.keys(config.variables).map((k) => [k, k])),
       },
     });
     field(
       row,
-      "주기 (초)",
+      t("주기 (초)"),
       i.intervalSeconds || 60,
       (v) => set("intervalSeconds", v),
       { type: "number", min: 5, max: 86400 },
     );
-    field(row, "자동 갱신 (GET만)", i.enabled, (v) => set("enabled", v), {
+    field(row, t("자동 갱신 (GET만)"), i.enabled, (v) => set("enabled", v), {
       type: "checkbox",
     });
-    field(row, "Bearer 토큰 사용", i.auth, (v) => set("auth", v), {
+    field(row, t("Bearer 토큰 사용"), i.auth, (v) => set("auth", v), {
       type: "checkbox",
     });
-    field(row, "요청 본문 JSON", i.body || "", (v) => set("body", v));
+    field(row, t("요청 본문 JSON"), i.body || "", (v) => set("body", v));
     field(
       row,
-      "Bearer 토큰 · macOS 키체인에 저장",
+      t("Bearer 토큰 · macOS 키체인에 저장"),
       "",
       async (v) => {
         try {
           await api("/api/admin/secret", "POST", { id: i.id, value: v });
-          notice("인증 토큰을 키체인에 저장했습니다.");
+          notice(t("인증 토큰을 키체인에 저장했습니다."));
         } catch (e) {
           notice(e.message, true);
         }
       },
       { type: "password" },
     );
-    button(row, "지금 갱신", async () => {
+    button(row, t("지금 갱신"), async () => {
       try {
         await save();
         const r = await api("/api/admin/refresh", "POST", { id: i.id });
-        notice("응답: " + String(r.value));
+        notice(t("응답: ") + String(r.value));
       } catch (e) {
         notice(e.message, true);
       }
     });
-    button(row, "삭제", () =>
+    button(row, t("삭제"), () =>
       change(
         () =>
           (config.integrations = config.integrations.filter(
@@ -1835,7 +1838,7 @@ function connectors() {
     row.append(
       n(
         "p",
-        st?.state === "error" ? st.message : st?.state || "미연결",
+        st?.state === "error" ? st.message : st?.state || t("미연결"),
         "connector-status",
       ),
     );
@@ -1851,10 +1854,10 @@ function renderPlugins() {
   box.replaceChildren();
   const form = n("div", undefined, "variable-row");
   let folder = "";
-  field(form, "플러그인 폴더", folder, (v) => (folder = v), {
-    placeholder: "/폴더/manifest.json이 들어 있는 경로",
+  field(form, t("플러그인 폴더"), folder, (v) => (folder = v), {
+    placeholder: t("/폴더/manifest.json이 들어 있는 경로"),
   });
-  button(form, "폴더 등록", async () => {
+  button(form, t("폴더 등록"), async () => {
     try {
       await api("/api/admin/plugins", "POST", {
         operation: "register",
@@ -1883,17 +1886,17 @@ function renderPlugins() {
     row.append(
       n(
         "p",
-        "지원: " +
+        t("지원: ") +
           (accepted.length
             ? [...new Set(accepted)].join(", ")
-            : "연결 후 확인"),
+            : t("연결 후 확인")),
       ),
     );
-    if (rejected.length) row.append(n("p", "미지원: " + rejected.join(", ")));
+    if (rejected.length) row.append(n("p", t("미지원: ") + rejected.join(", ")));
     for (const op of [p.enabled ? "stop" : "start", "remove"])
       button(
         row,
-        op === "start" ? "실행" : op === "stop" ? "중지" : "등록 해제",
+        op === "start" ? t("실행") : op === "stop" ? t("중지") : t("등록 해제"),
         async () => {
           try {
             await api("/api/admin/plugins", "POST", {
@@ -1906,13 +1909,13 @@ function renderPlugins() {
           }
         },
       );
-    button(row, "상태 새로고침", () =>
+    button(row, t("상태 새로고침"), () =>
       refreshPlugins().catch((e) => notice(e.message, true)),
     );
     for (const a of p.actions || []) {
       const action = n("div", undefined, "variable-row");
       action.append(n("code", a.localId));
-      button(action, "동작 버튼 추가", () => {
+      button(action, t("동작 버튼 추가"), () => {
         pageId = config.pages[0].id;
         const w = {
           id: uid(),
@@ -1948,7 +1951,7 @@ function renderPlugins() {
     for (const v of p.variables || []) {
       const line = n("div", undefined, "variable-row");
       line.append(n("code", v.alias));
-      button(line, "값 위젯 추가", () => {
+      button(line, t("값 위젯 추가"), () => {
         const w = {
           id: uid(),
           type: "text",
@@ -1981,7 +1984,7 @@ function automations() {
     box.append(row);
     field(
       row,
-      "사용",
+      t("사용"),
       a.enabled,
       (v) => {
         checkpoint();
@@ -1992,7 +1995,7 @@ function automations() {
     );
     field(
       row,
-      "실행 조건",
+      t("실행 조건"),
       a.trigger || "time",
       (v) => {
         checkpoint();
@@ -2004,16 +2007,16 @@ function automations() {
       },
       {
         choices: {
-          time: "요일 · 시간",
-          variable: "변수 변경",
-          plugin: "플러그인 이벤트",
+          time: t("요일 · 시간"),
+          variable: t("변수 변경"),
+          plugin: t("플러그인 이벤트"),
         },
       },
     );
     if (a.trigger === "variable") {
       field(
         row,
-        "변수",
+        t("변수"),
         a.variable || "",
         (v) => {
           checkpoint();
@@ -2028,7 +2031,7 @@ function automations() {
       );
       field(
         row,
-        "값 조건 (JSON · 비우면 모든 변경)",
+        t("값 조건 (JSON · 비우면 모든 변경)"),
         a.equals === undefined ? "" : JSON.stringify(a.equals),
         (v) => {
           try {
@@ -2038,17 +2041,17 @@ function automations() {
             else a.equals = parsed;
             changed();
           } catch {
-            notice("JSON 값을 입력하세요.", true);
+            notice(t("JSON 값을 입력하세요."), true);
           }
         },
       );
     } else if (a.trigger === "plugin") {
-      field(row, "플러그인 ID", a.pluginId || "", (v) => {
+      field(row, t("플러그인 ID"), a.pluginId || "", (v) => {
         checkpoint();
         a.pluginId = v;
         changed();
       });
-      field(row, "이벤트 ID", a.eventId || "", (v) => {
+      field(row, t("이벤트 ID"), a.eventId || "", (v) => {
         checkpoint();
         a.eventId = v;
         changed();
@@ -2057,7 +2060,7 @@ function automations() {
     if (a.trigger && a.trigger !== "time")
       field(
         row,
-        "최소 간격 (초)",
+        t("최소 간격 (초)"),
         a.cooldownSeconds || 5,
         (v) => {
           checkpoint();
@@ -2069,7 +2072,7 @@ function automations() {
     if (!a.trigger || a.trigger === "time")
       field(
         row,
-        "시간",
+        t("시간"),
         a.time,
         (v) => {
           checkpoint();
@@ -2080,7 +2083,7 @@ function automations() {
       );
     field(
       row,
-      "버튼",
+      t("버튼"),
       a.widgetId,
       (v) => {
         checkpoint();
@@ -2091,7 +2094,7 @@ function automations() {
     );
     const days = n("div", undefined, "days");
     if (!a.trigger || a.trigger === "time") row.append(days);
-    ["일", "월", "화", "수", "목", "금", "토"].forEach((d, i) =>
+    [t("일"), t("월"), t("화"), t("수"), t("목"), t("금"), t("토")].forEach((d, i) =>
       field(
         days,
         d,
@@ -2107,7 +2110,7 @@ function automations() {
         { type: "checkbox" },
       ),
     );
-    button(row, "삭제", () =>
+    button(row, t("삭제"), () =>
       change(
         () =>
           (config.automations = config.automations.filter(
@@ -2130,7 +2133,7 @@ $("#rows").onchange = () => {
   const rows = Number($("#rows").value);
   if (page().widgets.some((w) => w.y + w.h > rows)) {
     notice(
-      "위젯이 놓인 행은 제거할 수 없습니다. 먼저 이동하거나 자동 정렬하세요.",
+      t("위젯이 놓인 행은 제거할 수 없습니다. 먼저 이동하거나 자동 정렬하세요."),
       true,
     );
     $("#rows").value = page().rows;
@@ -2145,27 +2148,31 @@ $("#pack").onclick = () =>
   );
 $("#orientation").onclick = () => {
   portrait = !portrait;
-  $("#orientation").textContent = portrait ? "세로 미리보기" : "가로 미리보기";
+  $("#orientation").textContent = portrait ? t("세로 미리보기") : t("가로 미리보기");
   $("#previewHint").textContent = portrait
-    ? "세로 배치는 자동으로 정렬됩니다. 가로 미리보기에서 위젯을 편집하세요."
-    : "드래그로 이동 · 오른쪽 아래 모서리로 크기 조절 · 방향키 이동 / Alt+방향키 크기 조절";
+    ? t("세로 배치는 자동으로 정렬됩니다. 가로 미리보기에서 위젯을 편집하세요.")
+    : t("드래그로 이동 · 오른쪽 아래 모서리로 크기 조절 · 방향키 이동 / Alt+방향키 크기 조절");
   renderBoard();
 };
-for (const type of Object.keys(names))
-  button($("#palette"), "+ " + names[type], () => addWidget(type));
+function renderPalette() {
+  $("#palette").replaceChildren();
+  for (const type of Object.keys(names)) button($("#palette"), "+ " + names[type], () => addWidget(type));
+}
+renderPalette();
+window.addEventListener("opendeck:languagechange", () => { renderPalette(); if (config && pageId) render(); });
 $("#addPage").onclick = () => {
-  const name = prompt("페이지 이름", "새 페이지");
+  const name = prompt(t("페이지 이름"), t("새 페이지"));
   if (name) addPage(name);
 };
 $("#renamePage").onclick = () => {
-  const name = prompt("페이지 이름", page().name);
+  const name = prompt(t("페이지 이름"), page().name);
   if (name) change(() => (page().name = name), true);
 };
 $("#duplicatePage").onclick = () =>
   change(() => {
     const p = structuredClone(page());
     p.id = uid();
-    p.name += " 복사";
+    p.name += t(" 복사");
     for (const w of p.widgets) w.id = uid();
     config.pages.push(p);
     activeProfile(config, profileId)?.pageIds.push(p.id);
@@ -2183,8 +2190,8 @@ $("#pageUp").onclick = () =>
   }, true);
 $("#removePage").onclick = () => {
   if (profilePages(config, profileId).length === 1)
-    return notice("각 프로필에는 페이지 하나를 남겨 두세요.", true);
-  if (!confirm("이 페이지를 삭제할까요? 실행 취소로 복구할 수 있습니다."))
+    return notice(t("각 프로필에는 페이지 하나를 남겨 두세요."), true);
+  if (!confirm(t("이 페이지를 삭제할까요? 실행 취소로 복구할 수 있습니다.")))
     return;
   change(() => {
     const id = pageId;
@@ -2208,7 +2215,7 @@ $("#removePage").onclick = () => {
 };
 $("#template").onchange = () => {
   const v = $("#template").value;
-  if (v) addPage(v === "focus" ? "집중" : "모니터", v);
+  if (v) addPage(v === "focus" ? t("집중") : t("모니터"), v);
   $("#template").value = "";
 };
 $("#closeInspector").onclick = () => {
@@ -2220,7 +2227,7 @@ $("#duplicate").onclick = () =>
   change(() => {
     const w = structuredClone(widget());
     w.id = uid();
-    w.label += " 복사";
+    w.label += t(" 복사");
     page().widgets.push(w);
     ensurePlace();
     selected = w.id;
@@ -2245,7 +2252,7 @@ $("#addAction").onclick = () => {
 $("#applyJson").onclick = () => {
   try {
     const a = JSON.parse($("#actionsJson").value);
-    if (!Array.isArray(a)) throw Error("배열이 필요합니다.");
+    if (!Array.isArray(a)) throw Error(t("배열이 필요합니다."));
     checkpoint();
     widget()[gesture] = a;
     changed();
@@ -2266,19 +2273,19 @@ $("#testAction").onclick = async () => {
             ? "double"
             : "tap",
     });
-    notice("실행했습니다.");
+    notice(t("실행했습니다."));
   } catch (e) {
     notice(e.message, true);
   }
 };
 $("#addVariable").onclick = () => {
-  const key = prompt("변수 이름 (영문·숫자·밑줄)", "counter");
+  const key = prompt(t("변수 이름 (영문·숫자·밑줄)"), "counter");
   if (!key) return;
   if (
     !/^[A-Za-z][A-Za-z0-9_]{0,63}$/.test(key) ||
     Object.hasOwn(config.variables, key)
   )
-    return notice("중복되지 않는 영문 변수 이름을 입력하세요.", true);
+    return notice(t("중복되지 않는 영문 변수 이름을 입력하세요."), true);
   change(() => (config.variables[key] = 0), true);
 };
 $("#addConnector").onclick = () =>
@@ -2287,7 +2294,7 @@ $("#addConnector").onclick = () =>
       config.integrations.push({
         id: uid().replaceAll("-", ""),
         type: "http",
-        name: "새 HTTP 연동",
+        name: t("새 HTTP 연동"),
         url: "https://",
         method: "GET",
         path: "",
@@ -2318,7 +2325,7 @@ $("#file").onchange = async () => {
   try {
     const f = $("#file").files[0];
     if (!f) return;
-    if (f.size > 16777216) throw Error("백업 파일은 16MB 이하여야 합니다.");
+    if (f.size > 16777216) throw Error(t("백업 파일은 16MB 이하여야 합니다."));
     const raw = JSON.parse(await f.text());
     if (raw.kind === "open-deck-theme") {
       change(
@@ -2337,7 +2344,7 @@ $("#file").onchange = async () => {
     }
     for (const [id, data] of Object.entries(raw.assets || {})) {
       if ((await api("/api/admin/assets", "POST", { data })).id !== id)
-        throw Error("이미지 파일 검증에 실패했습니다.");
+        throw Error(t("이미지 파일 검증에 실패했습니다."));
     }
     delete raw.assets;
     if (raw.kind === "open-deck-profile") {
@@ -2349,7 +2356,7 @@ $("#file").onchange = async () => {
       changed();
       render();
       notice(
-        "프로필을 가져왔습니다. 자동화와 앱 자동 전환은 꺼진 상태로 시작합니다.",
+        t("프로필을 가져왔습니다. 자동화와 앱 자동 전환은 꺼진 상태로 시작합니다."),
       );
       return;
     }
@@ -2440,12 +2447,13 @@ try {
   render();
   const events = new EventSource("/api/events");
   events.onopen = () => {
-    if ($("#notice").textContent === "맥 호스트 연결을 기다리는 중입니다.")
-      notice(dirty ? "저장하지 않은 변경" : "다시 연결됨");
+    if ($("#notice").textContent === t("맥 호스트 연결을 기다리는 중입니다."))
+      notice(dirty ? t("저장하지 않은 변경") : t("다시 연결됨"));
   };
   events.addEventListener("snapshot", (e) => {
     const snapshot = JSON.parse(e.data);
     state = snapshot.state;
+    applyAppearanceVariables(state.variables);
     if (
       snapshot.config &&
       !dirty &&
@@ -2465,7 +2473,7 @@ try {
     updateLive();
     updateEcosystemStatus();
   });
-  events.onerror = () => notice("맥 호스트 연결을 기다리는 중입니다.", true);
+  events.onerror = () => notice(t("맥 호스트 연결을 기다리는 중입니다."), true);
 } catch (e) {
   notice(e.message, true);
 }
@@ -2476,40 +2484,40 @@ function updateEcosystemStatus() {
   const p = state.extensions?.["jimin-os"];
   status.textContent =
     p?.status === "connected"
-      ? "연결됨 · 일정과 업무 요청을 동기화하고 있어요."
+      ? t("연결됨 · 일정과 업무 요청을 동기화하고 있어요.")
       : p?.data
-        ? "이전 데이터 · " +
+        ? t("이전 데이터 · ") +
           new Date(p.data.updatedAt).toLocaleTimeString(editorLocale()) +
-          " 수집 · 자동으로 다시 연결하고 있어요."
+          t(" 수집 · 자동으로 다시 연결하고 있어요.")
         : p?.enabled
-          ? "자동으로 다시 연결하고 있어요. 맥에서 Jimin OS 앱과 로그인을 확인해 주세요."
-          : "연결 전";
+          ? t("자동으로 다시 연결하고 있어요. 맥에서 Jimin OS 앱과 로그인을 확인해 주세요.")
+          : t("연결 전");
 }
 function renderEcosystem() {
   const box = $("#ecosystem");
   box.replaceChildren();
-  box.append(n("p", "연결 상태를 확인하고 있어요.", "text-muted"));
+  box.append(n("p", t("연결 상태를 확인하고 있어요."), "text-muted"));
   box.lastChild.id = "osStatus";
   updateEcosystemStatus();
   const options = config.extensions?.["jimin-os"] || {},
     draft = { ...options };
   field(
     box,
-    "일정·새 업무 요청 알림",
+    t("일정·새 업무 요청 알림"),
     options.notifications !== false,
     (v) => (draft.notifications = v),
     { type: "checkbox" },
   );
   field(
     box,
-    "일정과 마감 알림 (분 전)",
+    t("일정과 마감 알림 (분 전)"),
     options.reminderMinutes || 10,
     (v) => (draft.reminderMinutes = v),
     { type: "number", min: 1, max: 120 },
   );
   button(
     box,
-    options.enabled ? "연결 설정 저장" : "연결하고 OS 탭 추가",
+    options.enabled ? t("연결 설정 저장") : t("연결하고 OS 탭 추가"),
     async () => {
       try {
         await save();
@@ -2522,23 +2530,23 @@ function renderEcosystem() {
         config = migrate(r.config);
         pageId = "jimin-os-page";
         render();
-        notice("OS 탭을 연결했어요.");
+        notice(t("OS 탭을 연결했어요."));
       } catch (e) {
         notice(e.message, true);
       }
     },
     "primary",
   );
-  button(box, "태블릿으로 연결 알림 보내기", async () => {
+  button(box, t("태블릿으로 연결 알림 보내기"), async () => {
     try {
       await api("/api/admin/extensions/test-notification", "POST", {});
-      notice("연결된 태블릿에 알림을 보냈어요.");
+      notice(t("연결된 태블릿에 알림을 보냈어요."));
     } catch (e) {
       notice(e.message, true);
     }
   });
   if (options.enabled)
-    button(box, "연결 끄기", async () => {
+    button(box, t("연결 끄기"), async () => {
       const r = await api("/api/admin/extensions", "POST", {
         id: "jimin-os",
         ...draft,
@@ -2566,7 +2574,7 @@ function renderProfiles() {
       const option = n(
         "option",
         profile.name +
-          (profile.id === config.defaultProfileId ? " · 기본" : ""),
+          (profile.id === config.defaultProfileId ? t(" · 기본") : ""),
       );
       option.value = profile.id;
       return option;
@@ -2596,7 +2604,7 @@ function movePageToProfile(id, targetId) {
       }
   }
   if (source.pageIds.every((x) => ids.has(x)))
-    return notice("원래 프로필에 페이지 하나를 남겨 두세요.", true);
+    return notice(t("원래 프로필에 페이지 하나를 남겨 두세요."), true);
   change(() => {
     source.pageIds = source.pageIds.filter((x) => !ids.has(x));
     target.pageIds.push(...ids);
@@ -2609,12 +2617,12 @@ function movePageToProfile(id, targetId) {
 }
 function profileManager() {
   const dialog = n("dialog", undefined, "profile-dialog");
-  const title = n("h2", "프로필 관리");
+  const title = n("h2", t("프로필 관리"));
   dialog.append(
     title,
     n(
       "p",
-      "프로필마다 페이지 구성을 분리하고, 태블릿의 시작 프로필을 지정할 수 있어요.",
+      t("프로필마다 페이지 구성을 분리하고, 태블릿의 시작 프로필을 지정할 수 있어요."),
     ),
   );
   const body = n("div");
@@ -2624,12 +2632,12 @@ function profileManager() {
     for (const profile of config.profiles) {
       const row = n("section", undefined, "settings-section");
       body.append(row);
-      field(row, "프로필 이름", profile.name, (v) =>
+      field(row, t("프로필 이름"), profile.name, (v) =>
         change(() => (profile.name = v), true),
       );
       field(
         row,
-        "시작 페이지",
+        t("시작 페이지"),
         profile.defaultPageId,
         (v) => change(() => (profile.defaultPageId = v)),
         {
@@ -2640,32 +2648,32 @@ function profileManager() {
       );
       profile.defaults ??= {};
       const defaults = n("details");
-      defaults.append(n("summary", "프로필 기본 디자인"));
+      defaults.append(n("summary", t("프로필 기본 디자인")));
       row.append(defaults);
       field(
         defaults,
-        "기본 테마",
+        t("기본 테마"),
         profile.defaults.theme || "midnight",
         (v) => change(() => (profile.defaults.theme = v), true),
         { choices: Object.fromEntries(Object.keys(themes).map((k) => [k, k])) },
       );
       field(
         defaults,
-        "기본 간격",
+        t("기본 간격"),
         profile.defaults.gap ?? 12,
         (v) => change(() => (profile.defaults.gap = v), true),
         { type: "number", min: 0, max: 32 },
       );
       field(
         defaults,
-        "기본 모서리",
+        t("기본 모서리"),
         profile.defaults.radius ?? 13,
         (v) => change(() => (profile.defaults.radius = v), true),
         { type: "number", min: 0, max: 40 },
       );
       field(
         defaults,
-        "기본 배경",
+        t("기본 배경"),
         profile.defaults.background ||
           themes[profile.defaults.theme || "midnight"].background,
         (v) => change(() => (profile.defaults.background = v), true),
@@ -2673,31 +2681,31 @@ function profileManager() {
       );
       field(
         defaults,
-        "기본 그림자",
+        t("기본 그림자"),
         profile.defaults.shadow !== false,
         (v) => change(() => (profile.defaults.shadow = v), true),
         { type: "checkbox" },
       );
       field(
         defaults,
-        "빈 셀 표시",
+        t("빈 셀 표시"),
         !!profile.defaults.showEmptyCells,
         (v) => change(() => (profile.defaults.showEmptyCells = v), true),
         { type: "checkbox" },
       );
-      button(defaults, "모든 페이지에 기본 디자인 상속", () =>
+      button(defaults, t("모든 페이지에 기본 디자인 상속"), () =>
         change(() => {
           for (const p of profilePages(config, profile.id))
             p.inheritProfileDesign = true;
         }, true),
       );
-      button(defaults, "기본 디자인 초기화", () => {
+      button(defaults, t("기본 디자인 초기화"), () => {
         change(() => (profile.defaults = {}), true);
         draw();
       });
       field(
         row,
-        "앱 포커스 시 자동 전환 · Bundle ID (쉼표 구분)",
+        t("앱 포커스 시 자동 전환 · Bundle ID (쉼표 구분)"),
         (profile.focusApps || []).join(", "),
         (v) =>
           change(
@@ -2712,36 +2720,36 @@ function profileManager() {
       button(
         row,
         profile.id === config.defaultProfileId
-          ? "기본 프로필"
-          : "기본으로 설정",
+          ? t("기본 프로필")
+          : t("기본으로 설정"),
         () => {
           change(() => (config.defaultProfileId = profile.id), true);
           draw();
         },
       );
-      button(row, "프로필 복제", () => {
+      button(row, t("프로필 복제"), () => {
         if (config.pages.length + profile.pageIds.length > 40)
-          return notice("페이지는 최대 40개입니다.", true);
+          return notice(t("페이지는 최대 40개입니다."), true);
         change(() => {
           const cloned = importProfile(
             config,
             portableProfile(config, profile.id),
           );
-          cloned.name = profile.name + " 복사";
+          cloned.name = profile.name + t(" 복사");
           profileId = cloned.id;
           pageId = cloned.defaultPageId;
         }, true);
         draw();
       });
-      button(row, "프로필 내보내기", () =>
+      button(row, t("프로필 내보내기"), () =>
         exportFile(portableProfile(config, profile.id)),
       );
       if (config.profiles.length > 1)
         button(
           row,
-          "프로필 삭제 · 페이지 보존",
+          t("프로필 삭제 · 페이지 보존"),
           () => {
-            if (!confirm("프로필을 삭제하고 페이지를 다른 프로필로 옮길까요?"))
+            if (!confirm(t("프로필을 삭제하고 페이지를 다른 프로필로 옮길까요?")))
               return;
             change(() => {
               const target = config.profiles.find((p) => p.id !== profile.id);
@@ -2760,15 +2768,15 @@ function profileManager() {
         );
     }
   }
-  button(dialog, "＋ 새 프로필", () => {
+  button(dialog, t("＋ 새 프로필"), () => {
     if (config.pages.length >= 40)
-      return notice("페이지는 최대 40개입니다.", true);
-    const name = prompt("프로필 이름", "새 프로필");
+      return notice(t("페이지는 최대 40개입니다."), true);
+    const name = prompt(t("프로필 이름"), t("새 프로필"));
     if (!name) return;
     change(() => {
       const p = {
         id: uid(),
-        name: "홈",
+        name: t("홈"),
         columns: 4,
         rows: 3,
         theme: "midnight",
@@ -2787,7 +2795,7 @@ function profileManager() {
   });
   button(
     dialog,
-    "저장",
+    t("저장"),
     async () => {
       try {
         await save();
@@ -2798,7 +2806,7 @@ function profileManager() {
     },
     "primary",
   );
-  button(dialog, "닫기", () => dialog.close());
+  button(dialog, t("닫기"), () => dialog.close());
   dialog.addEventListener("close", () => dialog.remove());
   draw();
   document.body.append(dialog);
@@ -2813,8 +2821,8 @@ function selectedIds() {
 function updateSelection() {
   const count = selectedIds().size;
   $("#selectionCount").textContent = count
-    ? `${count}개 선택됨`
-    : "Shift+클릭으로 여러 위젯 선택";
+    ? tf("{0}개 선택됨", count)
+    : t("Shift+클릭으로 여러 위젯 선택");
   $("#pasteWidgets").disabled = !widgetClipboard.length;
   $("#pasteStyle").disabled = !styleClipboard || !count;
 }
@@ -2824,12 +2832,12 @@ function copyWidgets() {
     page().widgets.filter((w) => ids.has(w.id)),
   );
   updateSelection();
-  notice(`${widgetClipboard.length}개 위젯을 복사했습니다.`);
+  notice(tf("{0}개 위젯을 복사했습니다.", widgetClipboard.length));
 }
 function pasteWidgets() {
   if (!widgetClipboard.length) return;
   if (page().widgets.length + widgetClipboard.length > 128)
-    return notice("페이지당 최대 128개입니다.", true);
+    return notice(t("페이지당 최대 128개입니다."), true);
   change(() => {
     selectedWidgets.clear();
     for (const original of widgetClipboard) {
@@ -2882,22 +2890,22 @@ $("#moveWidgets").onclick = () => {
   const ids = selectedIds();
   if (!ids.size) return;
   const choices = config.pages.filter((p) => p.id !== pageId);
-  if (!choices.length) return notice("이동할 페이지를 먼저 추가하세요.", true);
+  if (!choices.length) return notice(t("이동할 페이지를 먼저 추가하세요."), true);
   const dialog = n("dialog", undefined, "profile-dialog");
-  dialog.append(n("h2", "선택한 위젯 이동"));
+  dialog.append(n("h2", t("선택한 위젯 이동")));
   let targetId = choices[0].id;
-  field(dialog, "이동할 페이지", targetId, (v) => (targetId = v), {
+  field(dialog, t("이동할 페이지"), targetId, (v) => (targetId = v), {
     choices: Object.fromEntries(choices.map((p) => [p.id, p.name])),
   });
   button(
     dialog,
-    "이동",
+    t("이동"),
     () => {
       const target = config.pages.find((p) => p.id === targetId),
         source = page();
       const moved = source.widgets.filter((w) => ids.has(w.id));
       if (target.widgets.length + moved.length > 128)
-        return notice("대상 페이지가 가득 찼습니다.", true);
+        return notice(t("대상 페이지가 가득 찼습니다."), true);
       change(() => {
         source.widgets = source.widgets.filter((w) => !ids.has(w.id));
         target.widgets.push(...moved);
@@ -2913,7 +2921,7 @@ $("#moveWidgets").onclick = () => {
     },
     "primary",
   );
-  button(dialog, "취소", () => dialog.close());
+  button(dialog, t("취소"), () => dialog.close());
   dialog.addEventListener("close", () => dialog.remove());
   document.body.append(dialog);
   dialog.showModal();

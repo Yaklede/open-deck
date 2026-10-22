@@ -13,6 +13,21 @@ import java.util.function.Consumer;
 
 /** Native, scrollable settings forms. The deck remains a native Canvas surface. */
 final class ClientSettingsPanel {
+  private static final java.util.Set<AlertDialog> openDialogs =
+      java.util.Collections.newSetFromMap(new java.util.WeakHashMap<>());
+
+  static boolean dismissForLocaleChange() {
+    boolean visible = false;
+    for (AlertDialog item : new java.util.ArrayList<>(openDialogs)) {
+      if (item.isShowing()) {
+        visible = true;
+        item.dismiss();
+      }
+    }
+    openDialogs.clear();
+    return visible;
+  }
+
   interface Host {
     Object value(String key);
 
@@ -34,7 +49,7 @@ final class ClientSettingsPanel {
                 && (owner.getResources().getConfiguration().uiMode & 0x30) != 0x20;
     context =
         new ContextThemeWrapper(
-            owner,
+            L10n.context(owner),
             light
                 ? android.R.style.Theme_Material_Light_Dialog_Alert
                 : android.R.style.Theme_Material_Dialog_Alert);
@@ -44,6 +59,10 @@ final class ClientSettingsPanel {
     accent = Color.parseColor(light ? "#315a9d" : "#adc7ec");
     content = new LinearLayout(context);
     content.setOrientation(LinearLayout.VERTICAL);
+    content.setLayoutDirection(
+        L10n.rtl()
+            ? android.view.View.LAYOUT_DIRECTION_RTL
+            : android.view.View.LAYOUT_DIRECTION_LTR);
     content.setPadding(dp(20), dp(4), dp(20), dp(16));
     if (!description.isEmpty()) note(description);
     ScrollView scroll = new ScrollView(context);
@@ -53,7 +72,7 @@ final class ClientSettingsPanel {
         new AlertDialog.Builder(context)
             .setTitle(title)
             .setView(scroll)
-            .setPositiveButton("닫기", null)
+            .setPositiveButton(L10n.text("닫기"), null)
             .create();
   }
 
@@ -144,7 +163,7 @@ final class ClientSettingsPanel {
                     value.setText(labels[index] + "  ›");
                     d.dismiss();
                   })
-              .setNegativeButton("취소", null)
+              .setNegativeButton(L10n.text("취소"), null)
               .show();
         });
   }
@@ -196,8 +215,8 @@ final class ClientSettingsPanel {
             .setTitle(title)
             .setMessage(message)
             .setView(field)
-            .setNegativeButton("취소", null)
-            .setPositiveButton("저장", null)
+            .setNegativeButton(L10n.text("취소"), null)
+            .setPositiveButton(L10n.text("저장"), null)
             .create();
     prompt.setOnShowListener(
         d ->
@@ -209,7 +228,7 @@ final class ClientSettingsPanel {
                         save.accept(field.getText().toString().trim());
                         prompt.dismiss();
                       } catch (Exception e) {
-                        field.setError(e.getMessage());
+                        field.setError(L10n.error(e.getMessage()));
                       }
                     }));
     prompt.show();
@@ -217,6 +236,8 @@ final class ClientSettingsPanel {
 
   void show() {
     dialog.show();
+    openDialogs.add(dialog);
+    dialog.setOnDismissListener(d -> openDialogs.remove(dialog));
     if (dialog.getWindow() != null) {
       int width =
           Math.min(dp(660), context.getResources().getDisplayMetrics().widthPixels - dp(32));

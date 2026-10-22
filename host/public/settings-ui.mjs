@@ -1,4 +1,8 @@
 import { editorLockStatus, showEditorLock } from "./editor-lock.mjs";
+import { renderMigration } from "./migration-ui.mjs";
+import { downloadFile } from "./downloads.mjs";
+import { renderAccountSecurity, renderVaultSecurity } from "./security-ui.mjs";
+import { t as translate, locales, setLocale, locale } from "./i18n.mjs";
 const el = (tag, text, cls) => {
   const node = document.createElement(tag);
   if (text !== undefined) node.textContent = text;
@@ -11,14 +15,28 @@ const labels = {
   appearance: ["화면 · 언어", "Appearance & language"],
   startup: ["Mac 시작 · Dock", "Mac startup & Dock"],
   devices: ["태블릿별 설정", "Device settings"],
-  security: ["편집기 잠금", "Editor lock"],
+  security: ["계정 · 보안", "Account & security"],
   network: ["네트워크 · USB", "Network & USB"],
   backups: ["백업 · 복원", "Backup & restore"],
+  migration: ["Macro Deck", "Macro Deck"],
   diagnostics: ["진단 · 로그", "Diagnostics & logs"],
   about: ["앱 정보 · 업데이트", "About & updates"],
 };
-export function applyAppearance(settings) {
+let activeAppearance = {};
+let appearanceVariables = {};
+export function applyAppearanceVariables(variables = {}) {
+  appearanceVariables = variables;
+  const value = activeAppearance.accentColor || "#a6acff";
+  const binding = /^{{([a-zA-Z][a-zA-Z0-9_]*)}}$/.exec(value);
+  const resolved = binding ? variables[binding[1]] : value;
+  document.documentElement.style.setProperty(
+    "--accent",
+    /^#[a-f0-9]{6}([a-f0-9]{2})?$/i.test(resolved || "") ? resolved : "#a6acff",
+  );
+}
+export async function applyAppearance(settings) {
   const a = settings?.appearance || {};
+  activeAppearance = a;
   const mode =
     a.themeMode === "system"
       ? matchMedia("(prefers-color-scheme: light)").matches
@@ -26,16 +44,18 @@ export function applyAppearance(settings) {
         : "dark"
       : a.themeMode || "dark";
   document.documentElement.dataset.theme = mode;
-  document.documentElement.lang = a.language || "ko";
-  document.documentElement.style.setProperty(
-    "--accent",
-    /^#[0-9a-f]{6}$/i.test(a.accentColor) ? a.accentColor : "#a2adff",
-  );
+  await setLocale(a.language || "system");
+  applyAppearanceVariables(appearanceVariables);
   document.documentElement.style.setProperty(
     "--ui-scale",
     String((a.uiScale || 100) / 100),
   );
   document.body.dataset.font = a.fontFamily || "system";
+  document.body.style.fontFamily = ["system", "sans", "mono"].includes(
+    a.fontFamily || "system",
+  )
+    ? ""
+    : JSON.stringify(a.fontFamily) + ", sans-serif";
   document.body.dataset.advanced =
     settings?.developer?.enabled === true ? "yes" : "no";
   document.body.dataset.timeFormat = a.timeFormat || "24h";
@@ -60,7 +80,7 @@ export function createSettingsCenter({
     dirty = false,
     language = "ko",
     renderGeneration = 0;
-  const t = (ko, en) => (language === "en" ? en : ko);
+  const t = (ko, en) => translate(ko, en, language);
   const error = (e) => {
     if (!status) {
       notice(e.message || String(e), true);
@@ -109,8 +129,10 @@ export function createSettingsCenter({
             ? Number(input.value)
             : input.value,
       );
-      dirty = true;
-      status.textContent = t("저장하지 않은 변경", "Unsaved changes");
+      if (!options.transient) {
+        dirty = true;
+        status.textContent = t("저장하지 않은 변경", "Unsaved changes");
+      }
     };
     label.append(description, input);
     parent.append(label);
@@ -193,6 +215,18 @@ export function createSettingsCenter({
     categories();
     const sectionName = t(...labels[active]);
     content.append(el("h2", sectionName));
+    if (active === "migration")
+      renderMigration({
+        section,
+        note,
+        row,
+        action,
+        el,
+        t,
+        api,
+        getConfig,
+        restored,
+      });
     if (active === "appearance") {
       const s = section("편집기 모양", "Editor appearance");
       field(s, "appearance", "themeMode", "색상 모드", "Color mode", {
@@ -203,7 +237,10 @@ export function createSettingsCenter({
         },
       });
       field(s, "appearance", "accentColor", "강조색", "Accent color", {
-        type: "color",
+        help: [
+          "#RRGGBB · #RRGGBBAA · {{variable}}",
+          "#RRGGBB · #RRGGBBAA · {{variable}}",
+        ],
       });
       const swatches = el("div", undefined, "settings-swatches");
       for (const color of draft.appearance.palette || []) {
@@ -211,10 +248,10 @@ export function createSettingsCenter({
         b.title = color;
         b.setAttribute("aria-label", color);
         b.style.backgroundColor = color;
-        b.onclick = () => {
+        b.onclick = async () => {
           draft.appearance.accentColor = color;
           dirty = true;
-          applyAppearance(draft);
+          await applyAppearance(draft);
           render();
         };
         swatches.append(b);
@@ -231,17 +268,29 @@ export function createSettingsCenter({
             .map((x) => x.trim())
             .filter(Boolean)),
         {
-          help: [
-            "쉼표로 구분한 #RRGGBB 색상, 최대 24개",
-            "Comma-separated #RRGGBB colors, up to 24",
-          ],
+          help: ["#RRGGBB / #RRGGBBAA · ≤24", "#RRGGBB / #RRGGBBAA · ≤24"],
         },
       );
+      action(s, "초기화", "Reset", async () => {
+        draft.appearance.palette = [];
+        dirty = true;
+        await applyAppearance(draft);
+        await render();
+      });
       field(s, "appearance", "fontFamily", "글꼴", "Font", {
         choices: {
           system: ["시스템", "System"],
           sans: ["산세리프", "Sans serif"],
           mono: ["고정폭", "Monospace"],
+          ...Object.fromEntries(
+            [
+              ...(response.nativeStatus?.fontFamilies || []),
+              draft.appearance.fontFamily,
+            ]
+              .filter(Boolean)
+              .filter((v) => !["system", "sans", "mono"].includes(v))
+              .map((v) => [v, v]),
+          ),
         },
       });
       field(
@@ -253,7 +302,9 @@ export function createSettingsCenter({
         { type: "number", min: 80, max: 140 },
       );
       field(s, "appearance", "language", "설정 언어", "Settings language", {
-        choices: { ko: "한국어", en: "English" },
+        choices: Object.fromEntries(
+          locales.map(({ code, name }) => [code, name]),
+        ),
         help: [
           "설정 화면과 날짜 표시 언어에 적용됩니다. 사용자 버튼 이름은 유지됩니다.",
           "Applies to Settings and date display. Your button names stay as written.",
@@ -305,11 +356,51 @@ export function createSettingsCenter({
       field(s, "network", "wifiEnabled", "Wi-Fi 연결 허용", "Enable Wi-Fi", {
         type: "checkbox",
       });
-      field(s, "network", "wifiPort", "HTTPS 포트", "HTTPS port", {
-        type: "number",
-        min: 1024,
-        max: 65535,
+      field(
+        s,
+        "network",
+        "wifiPort",
+        "공개 연결 포트",
+        "Public connection port",
+        {
+          type: "number",
+          min: 1024,
+          max: 65535,
+        },
+      );
+      field(
+        s,
+        "network",
+        "tlsEnabled",
+        "HTTPS 암호화 사용",
+        "Enable HTTPS encryption",
+        { type: "checkbox" },
+      );
+      field(s, "network", "tlsMode", "HTTPS 연결 방식", "HTTPS mode", {
+        choices: {
+          Replace: [
+            "기본 포트를 HTTPS로 대체",
+            "Replace public port with HTTPS",
+          ],
+          Additional: ["HTTP와 HTTPS 함께 사용", "HTTP and HTTPS together"],
+        },
       });
+      field(
+        s,
+        "network",
+        "tlsHttpsPort",
+        "추가 HTTPS 포트",
+        "Additional HTTPS port",
+        {
+          type: "number",
+          min: 1024,
+          max: 65535,
+          help: [
+            "함께 사용 모드에서만 적용합니다.",
+            "Used only in Additional mode.",
+          ],
+        },
+      );
       field(
         s,
         "network",
@@ -326,8 +417,8 @@ export function createSettingsCenter({
       );
       note(
         s,
-        "Wi-Fi는 인증서가 고정된 HTTPS로 연결됩니다. 포트 변경 시 기존 연결 주소가 바뀝니다.",
-        "Wi-Fi uses certificate-pinned HTTPS. Changing the port changes the connection address.",
+        "기본값은 HTTPS입니다. 암호화를 끄거나 HTTP 병행을 선택하면 공개 HTTP 연결의 데이터가 암호화되지 않습니다. 태블릿도 비암호화 연결을 명시적으로 허용해야 사용합니다.",
+        "HTTPS is the default. Disabling encryption or adding HTTP makes data on the public HTTP connection unencrypted. Tablets must explicitly allow unencrypted connections to use it.",
       );
       const certificate = section("Wi-Fi 인증서", "Wi-Fi certificate");
       action(
@@ -395,10 +486,84 @@ export function createSettingsCenter({
           "Certificate replaced. Refresh tablet trust over USB.",
         );
       });
+      for (const [operation, ko, en] of [
+        [
+          "issue-local-ca",
+          "로컬 CA로 인증서 재발급",
+          "Reissue certificate with local CA",
+        ],
+        [
+          "regenerate-authority",
+          "로컬 인증기관 재생성",
+          "Regenerate local certificate authority",
+        ],
+      ]) {
+        action(certificate, ko, en, async () => {
+          if (
+            !confirm(
+              t(
+                "신뢰 정보가 변경됩니다. 연결된 태블릿은 USB로 신뢰 정보를 다시 받아야 합니다. 계속할까요?",
+                "Trust information will change. Connected tablets need USB to refresh trust. Continue?",
+              ),
+            )
+          )
+            return;
+          const info = await api("/api/admin/certificate", "POST", {
+            operation,
+          });
+          certificate.querySelector("pre")?.remove();
+          textObject(certificate, info);
+          status.textContent = t(
+            "인증서를 발급했습니다. USB로 태블릿 신뢰 정보를 갱신하세요.",
+            "Certificate issued. Refresh tablet trust over USB.",
+          );
+        });
+      }
+      action(
+        certificate,
+        "공개 CA 인증서 내보내기",
+        "Export public CA certificate",
+        async () => {
+          const result = await api("/api/admin/certificate/authority");
+          downloadFile(
+            "Open-Deck-Local-Authority.pem",
+            result.certificatePem,
+            "application/x-pem-file",
+          );
+        },
+      );
       const usb = section("USB · ADB", "USB · ADB");
       field(usb, "usb", "enabled", "USB 연결 사용", "Enable USB", {
         type: "checkbox",
       });
+      field(
+        usb,
+        "usb",
+        "stopServerOnExit",
+        "앱 종료 시 ADB 서버 정지",
+        "Stop ADB server when quitting",
+        {
+          type: "checkbox",
+          help: [
+            "켜면 다른 개발 도구가 공유하는 ADB 연결도 종료됩니다. 기본값은 끔입니다.",
+            "Also stops ADB connections shared by other developer tools. Off by default.",
+          ],
+        },
+      );
+      field(
+        usb,
+        "usb",
+        "companionAutoUpdate",
+        "연결된 태블릿 앱 자동 업데이트",
+        "Automatically update connected tablet apps",
+        {
+          type: "checkbox",
+          help: [
+            "Open Deck이 이미 설치된 ADB 기기만 업데이트합니다. 새 버전과 체크섬을 확인하며 기존 앱과 서명이 일치해야 설치됩니다. 기본값은 끔입니다.",
+            "Only updates ADB devices that already have Open Deck. Checks the version and checksum; Android requires the existing app signature. Off by default.",
+          ],
+        },
+      );
       field(
         usb,
         "usb",
@@ -480,16 +645,26 @@ export function createSettingsCenter({
         usb.querySelector(".settings-json")?.remove();
         textObject(usb, result);
       });
-      action(usb, "ADB 도구 다운로드 안내", "Download ADB tools", () => {
-        if (window.webkit?.messageHandlers?.nativeSettings)
-          native("openPlatformTools");
-        else
-          window.open(
-            "https://developer.android.com/tools/releases/platform-tools",
-            "_blank",
-            "noopener",
+      action(
+        usb,
+        "ADB 도구 다운로드·설치",
+        "Download and install ADB tools",
+        async () => {
+          status.textContent = t(
+            "공식 플랫폼 도구를 다운로드하고 검증하는 중…",
+            "Downloading and verifying official platform tools…",
           );
-      });
+          const result = await api("/api/admin/usb", "POST", {
+            operation: "download",
+          });
+          draft.usb.executablePath = result.executablePath;
+          await reload();
+          status.textContent = t(
+            "ADB 도구를 설치하고 연결 경로를 저장했습니다.",
+            "ADB tools installed and connection path saved.",
+          );
+        },
+      );
       const http = section("HTTP 요청", "HTTP requests");
       field(http, "http", "userAgent", "사용자 에이전트", "User agent", {
         help: [
@@ -502,6 +677,22 @@ export function createSettingsCenter({
         status.textContent = t("재연결 요청 완료", "Reconnection requested");
       });
     } else if (active === "security") {
+      const securityContext = {
+        api,
+        section,
+        note,
+        action,
+        row,
+        t,
+        passwordInput,
+        reload,
+        el,
+        status,
+        isCurrent: () => generation === renderGeneration,
+      };
+      await renderAccountSecurity(securityContext);
+      if (generation !== renderGeneration) return;
+      const accountStatus = await api("/api/admin/account");
       const lockStatus = await editorLockStatus();
       if (generation !== renderGeneration) return;
       const s = section("로컬 편집기 보호", "Protect the local editor");
@@ -528,81 +719,87 @@ export function createSettingsCenter({
         "Idle lock delay (minutes, 0: off)",
         { type: "number", min: 0, max: 120 },
       );
-      action(
-        s,
-        lockStatus.configured ? "암호 변경" : "암호 설정",
-        lockStatus.configured ? "Change password" : "Set password",
-        async () => {
-          let currentPassword;
-          if (lockStatus.configured) {
-            currentPassword = await passwordInput(
-              t("현재 편집기 암호", "Current editor password"),
-            );
-            if (currentPassword === null) return;
-          }
-          const password = await passwordInput(
-            t(
-              "새 편집기 암호 (8자 이상)",
-              "New editor password (8+ characters)",
-            ),
-          );
-          if (password === null) return;
-          if (password.length < 8)
-            throw Error(
+      if (!accountStatus.configured)
+        action(
+          s,
+          lockStatus.configured ? "암호 변경" : "암호 설정",
+          lockStatus.configured ? "Change password" : "Set password",
+          async () => {
+            let currentPassword;
+            if (lockStatus.configured) {
+              currentPassword = await passwordInput(
+                t("현재 편집기 암호", "Current editor password"),
+              );
+              if (currentPassword === null) return;
+            }
+            const password = await passwordInput(
               t(
-                "암호는 8자 이상이어야 합니다.",
-                "Password must contain at least 8 characters.",
+                "새 편집기 암호 (8자 이상)",
+                "New editor password (8+ characters)",
               ),
             );
-          const confirmation = await passwordInput(
-            t("새 암호 다시 입력", "Confirm new password"),
-          );
-          if (confirmation === null) return;
-          if (password !== confirmation)
-            throw Error(
-              t("새 암호가 일치하지 않습니다.", "New passwords do not match."),
+            if (password === null) return;
+            if (password.length < 8)
+              throw Error(
+                t(
+                  "암호는 8자 이상이어야 합니다.",
+                  "Password must contain at least 8 characters.",
+                ),
+              );
+            const confirmation = await passwordInput(
+              t("새 암호 다시 입력", "Confirm new password"),
             );
-          await api("/api/admin/lock", "POST", {
-            operation: "configure",
-            password,
-            currentPassword,
-            idleMinutes: draft.security.idleLockMinutes,
-          });
-          await reload();
-          status.textContent = t(
-            "편집기 암호를 저장했습니다.",
-            "Editor password saved.",
-          );
-        },
-        "primary",
-      );
+            if (confirmation === null) return;
+            if (password !== confirmation)
+              throw Error(
+                t(
+                  "새 암호가 일치하지 않습니다.",
+                  "New passwords do not match.",
+                ),
+              );
+            await api("/api/admin/lock", "POST", {
+              operation: "configure",
+              password,
+              currentPassword,
+              idleMinutes: draft.security.idleLockMinutes,
+            });
+            await reload();
+            status.textContent = t(
+              "편집기 암호를 저장했습니다.",
+              "Editor password saved.",
+            );
+          },
+          "primary",
+        );
       if (lockStatus.configured) {
         action(s, "지금 잠그기", "Lock now", async () => {
           await api("/api/admin/lock", "POST", { operation: "lock" });
           showEditorLock();
         });
-        action(
-          s,
-          "편집기 암호 제거",
-          "Remove editor password",
-          async () => {
-            const password = await passwordInput(
-              t("편집기 암호", "Editor password"),
-            );
-            if (password === null) return;
-            await api("/api/admin/lock", "POST", {
-              operation: "disable",
-              password,
-            });
-            await reload();
-            status.textContent = t(
-              "편집기 잠금을 껐습니다.",
-              "Editor locking disabled.",
-            );
-          },
-          "danger",
-        );
+        if (!accountStatus.configured)
+          action(
+            s,
+            "편집기 암호 제거",
+            "Remove editor password",
+            async () => {
+              const password = await passwordInput(
+                t("편집기 암호", "Editor password"),
+              );
+              if (password === null) return;
+              await api("/api/admin/lock", "POST", {
+                operation: "disable",
+                password,
+              });
+              await reload();
+              status.textContent = t(
+                "편집기 잠금을 껐습니다.",
+                "Editor locking disabled.",
+              );
+            },
+            "danger",
+          );
       }
+      await renderVaultSecurity(securityContext);
     } else if (active === "devices") {
       const data = await api("/api/admin/info");
       if (generation !== renderGeneration) return;
@@ -1026,6 +1223,23 @@ export function createSettingsCenter({
         );
       }
     } else if (active === "backups") {
+      await renderVaultSecurity(
+        {
+          api,
+          section,
+          note,
+          action,
+          row,
+          t,
+          passwordInput,
+          reload,
+          el,
+          status,
+          isCurrent: () => generation === renderGeneration,
+        },
+        { backup: true },
+      );
+      if (generation !== renderGeneration) return;
       const s = section("자동 백업", "Scheduled backups");
       field(
         s,
@@ -1099,7 +1313,7 @@ export function createSettingsCenter({
           el(
             "strong",
             new Date(backup.createdAt || backup.at || 0).toLocaleString(
-              language === "en" ? "en-US" : "ko-KR",
+              locale(),
             ),
           ),
         );
@@ -1109,6 +1323,18 @@ export function createSettingsCenter({
             `${{ manual: t("수동 백업", "Manual backup"), scheduled: t("자동 백업", "Scheduled backup"), "before-restore": t("복원 전 백업", "Before restore"), imported: t("가져온 백업", "Imported backup") }[backup.reason] || t("백업", "Backup")} · ${Math.round((backup.sizeBytes || backup.bytes || backup.size || 0) / 1024)} KiB`,
           ),
         );
+        if (backup.encrypted)
+          r.append(
+            el(
+              "small",
+              backup.locked
+                ? t(
+                    "암호화됨 · 저장소 잠금 해제 필요",
+                    "Encrypted · unlock the vault to restore",
+                  )
+                : t("암호화됨", "Encrypted"),
+            ),
+          );
         action(r, "미리 보기", "Preview", async () => {
           const data = await api("/api/admin/backups", "POST", {
             operation: "preview",
@@ -1217,6 +1443,19 @@ export function createSettingsCenter({
           });
           await exportFile(result.archive);
         });
+        action(
+          r,
+          "복구 키로 보호해 내보내기",
+          "Export protected by recovery key",
+          async () => {
+            const result = await api("/api/admin/backups", "POST", {
+              operation: "export",
+              id: backup.id,
+              recoveryProtected: true,
+            });
+            await exportFile(result.archive);
+          },
+        );
         action(r, "파일 내보내기", "Export file", async () => {
           const result = await api("/api/admin/backups", "POST", {
             operation: "export",
@@ -1261,7 +1500,11 @@ export function createSettingsCenter({
             archive.encrypted ||
             archive.cipher
           ) {
-            password = await passwordInput(t("백업 암호", "Backup password"));
+            password = await passwordInput(
+              archive.kind === "open-deck-backup-vault-encrypted"
+                ? t("백업 복구 키", "Backup recovery key")
+                : t("백업 암호", "Backup password"),
+            );
             if (password === null) return;
           }
           await api("/api/admin/backups", "POST", {
@@ -1390,10 +1633,9 @@ export function createSettingsCenter({
           const tr = el("tr"),
             at = el(
               "td",
-              new Date(entry.at).toLocaleTimeString(
-                language === "en" ? "en-US" : "ko-KR",
-                { hour12: draft.appearance.timeFormat === "12h" },
-              ),
+              new Date(entry.at).toLocaleTimeString(locale(), {
+                hour12: draft.appearance.timeFormat === "12h",
+              }),
             ),
             badge = el(
               "span",
@@ -1499,14 +1741,17 @@ export function createSettingsCenter({
           a.href = url;
           a.target = "_blank";
           a.rel = "noreferrer";
-          a.onclick = (e) => {
-            if (window.webkit?.messageHandlers?.nativeSettings) {
-              e.preventDefault();
-              window.webkit.messageHandlers.nativeSettings.postMessage({
-                operation: "openRelease",
-                url,
-              });
-            }
+          a.onclick = (event) => {
+            event.preventDefault();
+            run(async () => {
+              await api("/api/admin/update/prepare", "POST", {});
+              if (window.webkit?.messageHandlers?.nativeSettings) {
+                window.webkit.messageHandlers.nativeSettings.postMessage({
+                  operation: "openRelease",
+                  url,
+                });
+              } else window.location.assign(url);
+            })();
           };
           result.append(a);
         }
@@ -1552,7 +1797,7 @@ export function createSettingsCenter({
     draft = structuredClone(response.settings);
     language = draft.appearance.language;
     dirty = false;
-    applyAppearance(draft);
+    await applyAppearance(draft);
     await render();
   }
   async function open(category = "appearance") {
@@ -1562,9 +1807,18 @@ export function createSettingsCenter({
       return;
     }
     dialog = el("dialog", undefined, "settings-dialog");
-    dialog.setAttribute("aria-label", "Open Deck 설정");
+    dialog.setAttribute(
+      "aria-label",
+      t("Open Deck 설정", "Open Deck settings"),
+    );
     const head = el("div", undefined, "settings-head");
-    head.append(el("div", "Open Deck · 설정", "settings-title"));
+    head.append(
+      el(
+        "div",
+        t("Open Deck · 설정", "Open Deck · Settings"),
+        "settings-title",
+      ),
+    );
     const search = el("input");
     search.type = "search";
     search.placeholder = "이 페이지 설정 검색 / Search settings";
@@ -1607,7 +1861,7 @@ export function createSettingsCenter({
         response.settings = draft;
         language = draft.appearance.language;
         dirty = false;
-        applyAppearance(draft);
+        await applyAppearance(draft);
         native("applySettings");
         await render();
         status.textContent = t("설정을 저장했습니다.", "Settings saved.");
@@ -1645,7 +1899,7 @@ export function createSettingsCenter({
     openCategory: (category) => run(() => open(category))(),
     initialize: async () => {
       response = await api("/api/admin/settings");
-      applyAppearance(response.settings);
+      await applyAppearance(response.settings);
       matchMedia("(prefers-color-scheme: light)").addEventListener(
         "change",
         () => applyAppearance(response.settings),

@@ -1,0 +1,74 @@
+{
+  "testedAt": "2026-10-22T09:27:44.221154+00:00",
+  "appId": "app.opendeck.verification",
+  "model": "Samsung SM-T870",
+  "productionUsbPortUnchanged": 8840,
+  "verificationUsbPort": 18840,
+  "steps": [
+    {
+      "name": "paired-over-isolated-usb",
+      "passed": true
+    },
+    {
+      "name": "automatic-https-wifi-transition",
+      "passed": true
+    },
+    {
+      "name": "restart-with-verification-usb-tunnel-removed",
+      "passed": true,
+      "reconnectSeconds": 1.0,
+      "evidence": "Host SSE connection is TLS with non-loopback peer; verification USB tunnel removed.",
+      "offlineObservedBeforeRestart": true
+    },
+    {
+      "name": "local-ca-certificate-rotation-rejects-old-pin-without-usb",
+      "passed": true,
+      "certificateChanged": true,
+      "authorityCertificateIssued": true,
+      "onlineWithOldPin": false,
+      "observationSeconds": 8
+    },
+    {
+      "name": "usb-trust-refresh-after-local-ca-certificate-rotation",
+      "passed": true,
+      "reconnectSeconds": 10.2,
+      "evidence": "Adding only verification USB reverse permits authenticated pin refresh and automatic TLS Wi-Fi reconnection."
+    },
+    {
+      "name": "unencrypted-wifi-rejected-by-default",
+      "passed": true,
+      "httpListenerAvailable": true,
+      "clientConnected": false,
+      "observationSeconds": 8
+    },
+    {
+      "name": "explicit-plain-http-lan-opt-in",
+      "passed": true,
+      "nonLoopbackPeer": true,
+      "reconnectSeconds": 9.6,
+      "usbTunnelRemoved": true
+    },
+    {
+      "name": "secure-defaults-restored-after-http-check",
+      "passed": true,
+      "reconnectSeconds": 1.2,
+      "httpOptInDisabled": true
+    },
+    {
+      "name": "running-app-wifi-listener-interruption-and-recovery",
+      "passed": true,
+      "offlineObserved": true,
+      "reconnectSeconds": 6.9,
+      "usbTunnelRemoved": true,
+      "screenshot": "tablet-network-interrupted-retains-deck.png",
+      "cachedDeckRetainedVisualReview": true,
+      "visualEvidence": "Header displays reconnecting; all previously loaded cards remain visible and dimmed, including the unmodified user title."
+    }
+  ],
+  "cleanupState": {
+    "verificationUsbTunnelAbsent": true,
+    "productionUsbTunnelStillPresent": true,
+    "verificationAppRetainedForParentCleanup": true
+  },
+  "completedAt": "2026-10-22T09:34:38.471816+00:00"
+}

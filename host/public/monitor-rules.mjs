@@ -1,10 +1,11 @@
-export const monitorRuleNames = {
+import { t, tf, localizedObject, locale as uiLocale, translateError } from "./i18n.mjs";
+export const monitorRuleNames = localizedObject({
   cpu: "CPU (%)",
   memory: "MEM (%)",
   tps: "TPS (커밋/초)",
   qps: "QPS (쿼리/초)",
   connections: "DB 연결 수",
-};
+});
 export function monitorSettings(widget) {
   const saved = widget.alerts || {};
   const defaults = {
@@ -39,10 +40,10 @@ export function validateMonitorSettings(widget) {
   if (widget.alerts === undefined) return;
   const input = widget.alerts;
   if (!input || typeof input !== "object" || Array.isArray(input))
-    throw Error("모니터 임계치 설정을 확인하세요.");
+    throw Error(t("모니터 임계치 설정을 확인하세요."));
   for (const key of ["enabled", "notify"])
     if (input[key] !== undefined && typeof input[key] !== "boolean")
-      throw Error("모니터 알림 설정을 확인하세요.");
+      throw Error(t("모니터 알림 설정을 확인하세요."));
   const settings = monitorSettings(widget);
   for (const [key, min, max] of [
     ["holdSeconds", 0, 3600],
@@ -53,7 +54,7 @@ export function validateMonitorSettings(widget) {
       settings[key] < min ||
       settings[key] > max
     )
-      throw Error("알림 지속 시간과 재알림 간격을 확인하세요.");
+      throw Error(t("알림 지속 시간과 재알림 간격을 확인하세요."));
   if (
     input.rules !== undefined &&
     (!input.rules ||
@@ -61,27 +62,27 @@ export function validateMonitorSettings(widget) {
       typeof input.rules !== "object" ||
       Object.keys(input.rules).some((k) => !Object.hasOwn(settings.rules, k)))
   )
-    throw Error("모니터 지표별 임계치를 확인하세요.");
+    throw Error(t("모니터 지표별 임계치를 확인하세요."));
   if (
     input.rules &&
     Object.values(input.rules).some(
       (rule) => !rule || typeof rule !== "object" || Array.isArray(rule),
     )
   )
-    throw Error("지표별 임계치를 확인하세요.");
+    throw Error(t("지표별 임계치를 확인하세요."));
   for (const [key, rule] of Object.entries(settings.rules)) {
     if (
       typeof rule.enabled !== "boolean" ||
       !["above", "below"].includes(rule.direction)
     )
-      throw Error("임계치 방향을 확인하세요.");
+      throw Error(t("임계치 방향을 확인하세요."));
     const upper = ["cpu", "memory"].includes(key) ? 100 : 1e12;
     const valid = (v) => Number.isFinite(v) && v >= 0 && v <= upper;
     if (
       [rule.warning, rule.critical].some((v) => v !== null && !valid(v)) ||
       (rule.enabled && (!valid(rule.warning) || !valid(rule.critical)))
     )
-      throw Error("활성화할 지표의 주의·위험 임계치를 입력하세요.");
+      throw Error(t("활성화할 지표의 주의·위험 임계치를 입력하세요."));
     if (
       valid(rule.warning) &&
       valid(rule.critical) &&
@@ -89,7 +90,7 @@ export function validateMonitorSettings(widget) {
         ? rule.warning >= rule.critical
         : rule.warning <= rule.critical)
     )
-      throw Error("주의·위험 임계치 순서를 확인하세요.");
+      throw Error(t("주의·위험 임계치 순서를 확인하세요."));
   }
 }
 export function monitorLevel(value, rule) {

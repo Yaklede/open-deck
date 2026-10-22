@@ -1402,3 +1402,7 @@ dialog::backdrop {
   margin-top: 10px;
   color: var(--accent);
 }
+
+/* Forms follow the selected reading direction; deck coordinates remain unchanged. */
+html[data-ui-direction="rtl"] :is(.settings-dialog, .editor-lock) { direction: rtl; text-align: start; }
+html[data-ui-direction="rtl"] :is(.settings-dialog, .editor-lock) :is(input[type="url"], input[type="email"], input[type="password"], code) { direction: ltr; }

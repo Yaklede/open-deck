@@ -1,0 +1,15 @@
+{
+  "checkedAt": "2026-10-22T09:21:23.588Z",
+  "environment": "isolated headless Chrome, synthetic localhost fixture",
+  "accountCreate": true,
+  "login": true,
+  "logoutAll": true,
+  "recoveryOneTimeConfirmation": true,
+  "recoveryKeyDownload": true,
+  "vaultCreate": true,
+  "localBackupEncryption": true,
+  "plaintextBackupMigration": true,
+  "secretCreate": true,
+  "backupsEncrypted": 4,
+  "consoleErrors": 0
+}

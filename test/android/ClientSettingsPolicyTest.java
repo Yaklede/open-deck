@@ -63,6 +63,41 @@ public final class ClientSettingsPolicyTest {
     check(
         !ClientSettingsPolicy.validWifiUrl("https://example.com:8841"),
         "reject arbitrary public host");
+    check(
+        !Boolean.TRUE.equals(ClientSettingsPolicy.defaults().get("allowInsecureWifi")),
+        "LAN HTTP defaults to disabled");
+    check(
+        ClientSettingsPolicy.validWifiUrl("http://192.168.1.8:8841", true),
+        "explicit HTTP LAN opt-in works");
+    check(
+        !ClientSettingsPolicy.validWifiUrl("http://8.8.8.8:8841", true),
+        "opt-in cannot expose credentials to public IP");
+    check(
+        !ClientSettingsPolicy.validWifiUrl("http://127.0.0.1:8841", true),
+        "WiFi input cannot masquerade as loopback USB");
+    check(
+        !ClientSettingsPolicy.validWifiUrl("http://192.168.1.8:8841/?token=secret", true),
+        "HTTP query credentials rejected");
+    check(
+        LocalePolicy.resolve("system", "zh-HK").equals("zh-TW"),
+        "Hong Kong uses Traditional Chinese");
+    check(
+        LocalePolicy.resolve("system", "zh-Hans-CN").equals("zh"),
+        "Simplified Chinese device follows default");
+    check(
+        LocalePolicy.resolve("system", "pt-PT").equals("pt-BR"),
+        "reference Portuguese locale resolves");
+    check(LocalePolicy.resolve("de", "ko").equals("de"), "explicit language beats device language");
+    check(
+        LocalePolicy.resolve("system", "sv-SE").equals("en"),
+        "unsupported device language defaults predictably");
+    check(LocalePolicy.languages().size() == 20, "19 actual languages plus system setting");
+    check(
+        LocalePolicy.format("{1}: {0} / {1}", "${user}\\path", "원본 일정")
+            .equals("원본 일정: ${user}\\path / 원본 일정"),
+        "interpolation preserves arbitrary user data and order");
+    rejects("language", "xx");
+    rejects("allowInsecureWifi", "true");
     check(!ClientSettingsPolicy.shouldDim(119999, 0, 2, true), "not before deadline");
     check(ClientSettingsPolicy.shouldDim(120000, 0, 2, true), "exact idle deadline");
     check(!ClientSettingsPolicy.shouldDim(120000, 0, 2, false), "background app never dims");

@@ -14,6 +14,8 @@ public final class ClientSettingsPolicy {
     v.put("awake", true);
     v.put("orientation", "auto");
     v.put("theme", "system");
+    v.put("language", "system");
+    v.put("allowInsecureWifi", false);
     v.put("timeFormat", "24h");
     v.put("renderMode", "standard");
     v.put("fullscreen", true);
@@ -70,6 +72,11 @@ public final class ClientSettingsPolicy {
     boolean valid =
         switch (key) {
           case "orientation" -> Set.of("auto", "portrait", "landscape").contains(s);
+          case "language" ->
+              Set.of(
+                      "system", "ar", "pt-BR", "cs", "nl", "en", "fr", "de", "hi", "id", "it", "ja",
+                      "ko", "pl", "ru", "zh", "es", "zh-TW", "tr", "uk")
+                  .contains(s);
           case "theme" -> Set.of("system", "light", "dark").contains(s);
           case "timeFormat" -> Set.of("24h", "12h").contains(s);
           case "renderMode" -> Set.of("standard", "simple").contains(s);
@@ -81,6 +88,10 @@ public final class ClientSettingsPolicy {
   }
 
   public static boolean validWifiUrl(String value) {
+    return validWifiUrl(value, false);
+  }
+
+  public static boolean validWifiUrl(String value, boolean allowInsecureWifi) {
     try {
       URI u = new URI(value);
       String host = u.getHost();
@@ -90,7 +101,7 @@ public final class ClientSettingsPolicy {
       for (String octet : octets) {
         if (!octet.matches("[0-9]{1,3}") || Integer.parseInt(octet) > 255) return false;
       }
-      return "https".equals(u.getScheme())
+      return ("https".equals(u.getScheme()) || allowInsecureWifi && "http".equals(u.getScheme()))
           && u.getUserInfo() == null
           && u.getQuery() == null
           && u.getFragment() == null

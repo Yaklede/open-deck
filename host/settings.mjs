@@ -2,7 +2,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { writeJson } from "./config.mjs";
 
-export const APP_VERSION = "0.9.0";
+export const APP_VERSION = "0.10.0";
 export const defaultSettings = () => ({
   appearance: {
     themeMode: "dark",
@@ -14,12 +14,21 @@ export const defaultSettings = () => ({
     palette: [],
   },
   startup: { autostart: true, openMinimized: true, showDockIcon: true },
-  network: { wifiEnabled: true, wifiPort: 8841, discoveryEnabled: true },
+  network: {
+    wifiEnabled: true,
+    wifiPort: 8841,
+    discoveryEnabled: true,
+    tlsEnabled: true,
+    tlsMode: "Replace",
+    tlsHttpsPort: 8842,
+  },
   usb: {
     enabled: true,
     executablePath: "",
     defaultDeviceSerial: "",
     autoConnect: true,
+    stopServerOnExit: false,
+    companionAutoUpdate: false,
   },
   backups: {
     enabled: true,
@@ -44,14 +53,38 @@ const one =
   (...values) =>
   (v) =>
     values.includes(v);
-const color = (v) => typeof v === "string" && /^#[a-f0-9]{6}$/i.test(v);
+const color = (v) =>
+  typeof v === "string" && /^#[a-f0-9]{6}([a-f0-9]{2})?$/i.test(v);
 const schema = {
   appearance: {
     themeMode: one("dark", "light", "system"),
-    accentColor: color,
-    fontFamily: one("system", "sans", "mono"),
+    accentColor: (v) =>
+      color(v) ||
+      (typeof v === "string" && /^{{[a-zA-Z][a-zA-Z0-9_]{0,63}}}$/.test(v)),
+    fontFamily: (v) => str(120)(v) && v.length > 0 && !/[;{}<>]/.test(v),
     uiScale: num(80, 140),
-    language: one("ko", "en"),
+    language: one(
+      "system",
+      "ar",
+      "pt-BR",
+      "cs",
+      "nl",
+      "en",
+      "fr",
+      "de",
+      "hi",
+      "id",
+      "it",
+      "ja",
+      "ko",
+      "pl",
+      "ru",
+      "zh",
+      "es",
+      "zh-TW",
+      "tr",
+      "uk",
+    ),
     timeFormat: one("24h", "12h"),
     palette: (v) => Array.isArray(v) && v.length <= 24 && v.every(color),
   },
@@ -60,12 +93,17 @@ const schema = {
     wifiEnabled: bool,
     wifiPort: num(1024, 65535),
     discoveryEnabled: bool,
+    tlsEnabled: bool,
+    tlsMode: one("Replace", "Additional"),
+    tlsHttpsPort: num(1024, 65535),
   },
   usb: {
     enabled: bool,
     executablePath: (v) => str(2048)(v) && (!v || v.startsWith("/")),
     defaultDeviceSerial: str(128),
     autoConnect: bool,
+    stopServerOnExit: bool,
+    companionAutoUpdate: bool,
   },
   backups: {
     enabled: bool,
@@ -99,8 +137,14 @@ export function mergeSettings(current, patch) {
       out[section][key] = value;
     }
   }
-  if (out.network.wifiPort === 8840)
+  if (out.network.wifiPort === 8840 || out.network.tlsHttpsPort === 8840)
     throw Error("8840은 맥 편집기 전용 포트입니다.");
+  if (
+    out.network.tlsEnabled &&
+    out.network.tlsMode === "Additional" &&
+    out.network.wifiPort === out.network.tlsHttpsPort
+  )
+    throw Error("HTTP와 HTTPS 포트는 서로 달라야 합니다.");
   return out;
 }
 export function loadSettings(dir) {
@@ -116,6 +160,28 @@ export function loadSettings(dir) {
   );
 }
 const deviceSchema = {
+  language: one(
+    "system",
+    "ar",
+    "pt-BR",
+    "cs",
+    "nl",
+    "en",
+    "fr",
+    "de",
+    "hi",
+    "id",
+    "it",
+    "ja",
+    "ko",
+    "pl",
+    "ru",
+    "zh",
+    "es",
+    "zh-TW",
+    "tr",
+    "uk",
+  ),
   profileId: str(80),
   startPageId: str(80),
   settingsButtonHidden: bool,
@@ -144,6 +210,7 @@ const deviceSchema = {
   notificationBanner: bool,
   renderMode: one("standard", "simple"),
   timeFormat: one("24h", "12h"),
+  allowInsecureWifi: bool,
 };
 export function validateDeviceSettings(current, patch, config) {
   if (!isObject(patch)) throw Error("기기 설정 객체가 필요합니다.");
@@ -294,7 +361,7 @@ export function buildInfo() {
     );
     return { version: APP_VERSION, build: value.build, commit: value.commit };
   } catch {
-    return { version: APP_VERSION, build: 15, commit: "development" };
+    return { version: APP_VERSION, build: 16, commit: "development" };
   }
 }
 export const licenseNotices = () => ({
@@ -318,6 +385,11 @@ export const licenseNotices = () => ({
       name: "Noto Sans KR",
       license: "SIL Open Font License 1.1",
       url: "https://github.com/notofonts/noto-cjk/blob/main/LICENSE",
+    },
+    {
+      name: "Macro Deck common UI translations",
+      license: "Apache-2.0; see bundled localization NOTICE",
+      url: "https://github.com/Yaklede/open-deck/blob/codex/jimin-os-integration/docs/licenses/Macro-Deck-Localization-NOTICE.txt",
     },
     {
       name: "Macro Deck protocol schemas",

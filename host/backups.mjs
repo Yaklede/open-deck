@@ -1,6 +1,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import crypto from "node:crypto";
+import { VAULT_BACKUP_KIND } from "./secret-vault.mjs";
 import { validateConfig } from "./config.mjs";
 import {
   APP_VERSION as appVersion,
@@ -488,6 +489,7 @@ export class Backups {
     applyState,
     getPreferences,
     applyPreferences,
+    vault,
     now = Date.now,
   }) {
     this.dir = dir;
@@ -500,6 +502,7 @@ export class Backups {
     this.applyState = applyState;
     this.getPreferences = getPreferences;
     this.applyPreferences = applyPreferences;
+    this.vault = vault;
     this.now = now;
     this.cache = new Map();
     this.scheduleFile = path.join(this.root, "schedule.json");
@@ -545,7 +548,12 @@ export class Backups {
   }
 
   read(id) {
-    return validated(JSON.parse(readPrivate(this.file(id)).toString("utf8")));
+    let archive = JSON.parse(readPrivate(this.file(id)).toString("utf8"));
+    if (archive.kind === VAULT_BACKUP_KIND) {
+      if (!this.vault) throw Error("암호화 비밀 저장소를 사용할 수 없습니다.");
+      archive = this.vault.decryptBackup(archive);
+    }
+    return validated(archive);
   }
 
   list() {
@@ -562,12 +570,20 @@ export class Backups {
       if (info.isSymbolicLink() || !info.isFile())
         throw Error("안전한 백업 파일이 필요합니다.");
       const cache = this.cache.get(id),
-        stamp = `${info.mtimeMs}:${info.ctimeMs}:${info.size}`;
+        stamp = `${info.mtimeMs}:${info.ctimeMs}:${info.size}:${this.vault?.status().unlocked}`;
       if (cache?.stamp === stamp) return structuredClone(cache.meta);
       let meta;
       try {
         meta = metadata(id, this.read(id), info.size);
-      } catch {
+        if (JSON.parse(readPrivate(this.file(id))).kind === VAULT_BACKUP_KIND) {
+          meta.encrypted = true;
+          meta.storage = "vault-encrypted";
+        }
+      } catch (error) {
+        if (error.code === "VAULT_LOCKED") {
+          const envelope = JSON.parse(readPrivate(this.file(id)));
+          return { id, name: "암호화 백업", createdAt: envelope.createdAt, reason: envelope.reason, sizeBytes: info.size, encrypted: true, locked: true, storage: "vault-encrypted", profiles: [], counts: {}, hasState: false, hasPreferences: false };
+        }
         // A damaged old archive must not prevent a new safety snapshot or scheduled backup.
         // Keep it visible and removable, but never treat it as a usable restore point.
         meta = {
@@ -622,10 +638,21 @@ export class Backups {
 
   store(archive) {
     const id = crypto.randomUUID(),
-      json = boundedJson(archive);
+      encrypted = this.vault?.status().localBackupsEncrypted === true,
+      json = boundedJson(encrypted ? this.vault.encryptBackup(archive) : archive);
     writePrivate(this.file(id), json);
     this.enforceRetention(id);
-    return metadata(id, archive, Buffer.byteLength(json));
+    return { ...metadata(id, archive, Buffer.byteLength(json)), encrypted, storage: encrypted ? "vault-encrypted" : "private-plaintext" };
+  }
+
+  encryptExisting() {
+    if (!this.vault?.status().localBackupsEncrypted) throw Error("먼저 로컬 백업 암호화를 켜세요.");
+    this.vault.required();
+    const candidates = this.list().filter(row => !row.encrypted && !row.corrupt);
+    // Read and validate every source before replacing any file. Each replacement is atomic.
+    const encrypted = candidates.map(row => [row.id, boundedJson(this.vault.encryptBackup(this.read(row.id)))]);
+    for (const [id, json] of encrypted) { writePrivate(this.file(id), json); this.cache.delete(id); }
+    return { converted: encrypted.length };
   }
 
   create(reason = "manual", { profileIds } = {}, at = this.now()) {
@@ -657,7 +684,8 @@ export class Backups {
 
   preview(id) {
     const archive = this.read(id);
-    return metadata(id, archive, fs.statSync(this.file(id)).size);
+    const encrypted = JSON.parse(readPrivate(this.file(id))).kind === VAULT_BACKUP_KIND;
+    return { ...metadata(id, archive, fs.statSync(this.file(id)).size), encrypted, storage: encrypted ? "vault-encrypted" : "private-plaintext" };
   }
 
   remove(id) {
@@ -789,7 +817,7 @@ export class Backups {
     };
   }
 
-  export(id, password, { profileIds } = {}) {
+  export(id, password, { profileIds, recoveryProtected = false } = {}) {
     let archive = this.read(id);
     if (profileIds !== undefined) {
       const config = selectedConfig(archive.config, profileIds),
@@ -804,6 +832,10 @@ export class Backups {
           Object.entries(archive.assets).filter(([key]) => required.has(key)),
         ),
       });
+    }
+    if (recoveryProtected) {
+      if (!this.vault) throw Error("암호화 비밀 저장소를 사용할 수 없습니다.");
+      return this.vault.encryptBackup(archive, { recoveryProtected: true });
     }
     if (password === undefined || password === null || password === "")
       return archive;
@@ -842,6 +874,10 @@ export class Backups {
       archive = JSON.parse(input);
     } else archive = JSON.parse(boundedJson(input));
     if (archive?.kind === ENCRYPTED_KIND) archive = decrypt(archive, password);
+    if (archive?.kind === VAULT_BACKUP_KIND) {
+      if (!this.vault) throw Error("암호화 비밀 저장소를 사용할 수 없습니다.");
+      archive = this.vault.decryptBackup(archive, password);
+    }
     if (
       object(archive) &&
       [1, 2].includes(archive.version) &&

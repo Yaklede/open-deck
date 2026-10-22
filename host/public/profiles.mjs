@@ -1,3 +1,4 @@
+import { t, tf, locale as uiLocale, translateError } from "./i18n.mjs";
 // Profiles group existing pages; the initial migration retains every page and widget identity.
 export function normalizeProfiles(config) {
   const ids = new Set(config.pages.map((p) => p.id));
@@ -5,7 +6,7 @@ export function normalizeProfiles(config) {
     config.profiles = [
       {
         id: "default",
-        name: config.name || "기본 프로필",
+        name: config.name || t("기본 프로필"),
         pageIds: [...ids],
         defaultPageId: config.pages[0]?.id || "",
         focusApps: [],
@@ -16,7 +17,7 @@ export function normalizeProfiles(config) {
     !config.profiles.length ||
     config.profiles.length > 40
   )
-    throw Error("프로필은 1~40개입니다.");
+    throw Error(t("프로필은 1~40개입니다."));
   const seen = new Set(),
     assigned = new Set();
   for (const p of config.profiles) {
@@ -31,12 +32,12 @@ export function normalizeProfiles(config) {
       p.name.length > 80 ||
       !Array.isArray(p.pageIds)
     )
-      throw Error("프로필 정보를 확인하세요.");
+      throw Error(t("프로필 정보를 확인하세요."));
     seen.add(p.id);
     p.pageIds = p.pageIds.filter((id) => ids.has(id));
     for (const id of p.pageIds) {
       if (assigned.has(id))
-        throw Error("페이지가 여러 프로필에 중복되어 있습니다.");
+        throw Error(t("페이지가 여러 프로필에 중복되어 있습니다."));
       assigned.add(id);
     }
     if (!p.pageIds.includes(p.defaultPageId))
@@ -51,7 +52,7 @@ export function normalizeProfiles(config) {
           !/^([A-Za-z0-9_-]+\.)+[A-Za-z0-9_-]+$/.test(a),
       )
     )
-      throw Error("앱 연결에는 bundle ID가 필요합니다.");
+      throw Error(t("앱 연결에는 bundle ID가 필요합니다."));
   }
   if (!seen.has(config.defaultProfileId))
     config.defaultProfileId = config.profiles[0].id;
@@ -138,7 +139,7 @@ export function effectivePages(config, device = null) {
           }
         if (!found)
           throw Error(
-            "고정 위젯을 배치할 공간이 없습니다. 페이지를 나누거나 고정을 줄이세요.",
+            t("고정 위젯을 배치할 공간이 없습니다. 페이지를 나누거나 고정을 줄이세요."),
           );
       }
       placed.push(w);

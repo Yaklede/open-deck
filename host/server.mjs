@@ -14,19 +14,33 @@ import {
 import { pagesFor, profileFor, effectivePages } from "./public/profiles.mjs";
 import { Backups } from "./backups.mjs";
 import { EditorLock } from "./editor-lock.mjs";
-import { adbStatus, adbOperation, installCompanion } from "./system-tools.mjs";
+import { AccountManager } from "./account.mjs";
+import { SecretVault } from "./secret-vault.mjs";
+import {
+  adbStatus,
+  adbOperation,
+  installCompanion,
+  downloadPlatformTools,
+  downloadCompanionPackage,
+  installedCompanion,
+  installCompanionPackage,
+} from "./system-tools.mjs";
 import { MacMetrics } from "./mac-metrics.mjs";
 import { GrafanaMonitor, grafanaSource, grafanaSecretId } from "./grafana.mjs";
 import { Extensions, osPage } from "./extensions.mjs";
 import { Plugins } from "./plugins.mjs";
 import { saveAsset, readAsset } from "./assets.mjs";
-import { Connectors, setSecret } from "./connectors.mjs";
-import https from "node:https";
+import { Connectors, setSecret, readSecret } from "./connectors.mjs";
+import { CompanionUpdater } from "./companion-update.mjs";
+import { Migration } from "./migration.mjs";
+import { NetworkListeners } from "./network-listeners.mjs";
 import {
   loadIdentity,
   localAddresses,
   certificateInfo,
   installCertificate,
+  issueLocalCertificate,
+  exportAuthority,
 } from "./network.mjs";
 import fs from "node:fs";
 import path from "node:path";
@@ -87,6 +101,10 @@ export function createHost({
   const diagnostics = new Diagnostics(dir, () => settings);
   diagnostics.log("info", "host.started");
   const editorLock = new EditorLock(dir, () => settings);
+  const account = new AccountManager(dir);
+  const vault = new SecretVault({ dir });
+  const resolveSecret = async (id) =>
+    vault.hasSecret(id) ? vault.readSecret(id) : readSecret(id);
   let configRevision = 1;
   const adminKey = crypto.randomBytes(32).toString("hex");
   const devicesFile = path.join(dir, "devices.json");
@@ -95,16 +113,16 @@ export function createHost({
     : [];
   let pin = String(crypto.randomInt(100000, 1000000)),
     pinExpires = Date.now() + 600000;
-  let lanServer = null,
+  let networkListeners = null,
     identity = null,
     wifiError = "";
   let discoveryProcess = null;
   const network = () => ({
-    urls: lanServer?.listening
-      ? localAddresses().map(
-          (ip) => `https://${ip}:${lanServer.address().port}`,
-        )
-      : [],
+    urls: networkListeners?.endpoints(localAddresses()) || [],
+    tlsEnabled: settings.network.tlsEnabled,
+    tlsMode: settings.network.tlsEnabled
+      ? settings.network.tlsMode
+      : "Disabled",
     fingerprint: identity?.fingerprint || "",
     error: wifiError,
   });
@@ -130,7 +148,11 @@ export function createHost({
   const broadcast = () => {
     const common = { state: engine.state(), network: network() };
     for (const s of streams) {
-      if (!s.openDeckDeviceId && editorLock.status().locked) {
+      if (
+        !s.openDeckDeviceId &&
+        (editorLock.status().locked ||
+          !account.authenticate(s.openDeckSession, { touch: false }))
+      ) {
         s.end();
         streams.delete(s);
         continue;
@@ -167,6 +189,7 @@ export function createHost({
     },
   );
   connectors.getSettings = () => settings;
+  connectors.secret = resolveSecret;
   engine.connectors = connectors;
   const plugins = new Plugins(
     dir,
@@ -184,7 +207,10 @@ export function createHost({
     onChange: broadcast,
   });
   engine.extensions = extensions;
-  const grafana = new GrafanaMonitor(() => config, broadcast, grafanaOptions);
+  const grafana = new GrafanaMonitor(() => config, broadcast, {
+    secret: resolveSecret,
+    ...grafanaOptions,
+  });
   engine.grafana = grafana;
   if (metrics) grafana.tick();
   if (metrics) engine.systemMonitor = new MacMetrics(broadcast);
@@ -240,6 +266,7 @@ export function createHost({
   };
   const backups = new Backups({
     dir,
+    vault,
     getConfig: () => config,
     getSettings: () => settings,
     applyConfig,
@@ -256,6 +283,21 @@ export function createHost({
       engine.onPersist();
       broadcast();
     },
+  });
+  const migration = new Migration({
+    dir,
+    getConfig: () => config,
+    applyConfig,
+    backups,
+  });
+  const companionUpdater = new CompanionUpdater({
+    getSettings: () => settings,
+    listDevices: () => adbStatus(settings),
+    getPackage: () => downloadCompanionPackage(),
+    installedPackage: (serial) => installedCompanion(settings, serial),
+    installPackage: (serial, pkg) =>
+      installCompanionPackage(settings, serial, pkg),
+    onEvent: (level, event, details) => diagnostics.log(level, event, details),
   });
   if (metrics) {
     const marker = path.join(dir, "last-version.json");
@@ -319,7 +361,7 @@ export function createHost({
     nativeStatus: nativeStatus(dir),
     logs: diagnostics.entries(),
     connections: [...streams].map((s) => ({
-      transport: s.socket?.encrypted ? "wifi" : "usb",
+      transport: s.openDeckTransport,
       deviceId: s.openDeckDeviceId || "editor",
     })),
     backups: { count: backups.list().length },
@@ -339,7 +381,10 @@ export function createHost({
     for await (const b of req) {
       size += b.length;
       if (
-        size > (req.url === "/api/admin/backups" ? 96 * 1024 * 1024 : 3000000)
+        size >
+        (["/api/admin/backups", "/api/admin/migration"].includes(req.url)
+          ? 96 * 1024 * 1024
+          : 3000000)
       )
         throw Object.assign(Error("요청이 너무 큽니다."), { status: 413 });
       text += b;
@@ -361,6 +406,26 @@ export function createHost({
     if (!token) return null;
     const h = digest(token);
     return devices.find((d) => equal(d.hash, h));
+  };
+  const sessionToken = (req) =>
+    req.headers.cookie
+      ?.split(";")
+      .map((s) => s.trim())
+      .find((s) => s.startsWith("od_session="))
+      ?.slice(11);
+  const accountResponse = (res, result) => {
+    const { sessionToken: token, ...safe } = result;
+    if (token)
+      res.setHeader(
+        "Set-Cookie",
+        `od_session=${token}; HttpOnly; SameSite=Strict; Path=/; Max-Age=${Math.max(1, Math.floor((result.expiresAt - Date.now()) / 1000))}`,
+      );
+    else if (result.authenticated === false)
+      res.setHeader(
+        "Set-Cookie",
+        "od_session=; HttpOnly; SameSite=Strict; Path=/; Max-Age=0",
+      );
+    return send(res, 200, safe);
   };
   const handler =
     (lan = false) =>
@@ -441,6 +506,71 @@ export function createHost({
           });
         if (u.pathname.startsWith("/api/") && !authenticated)
           return send(res, 401, { error: "먼저 페어링하세요." });
+        if (admin && u.pathname === "/api/admin/account") {
+          const token = sessionToken(req);
+          if (req.method === "GET") {
+            const state = account.status(token);
+            return send(res, 200, {
+              ...state,
+              sessions: state.authenticated ? account.sessions(token) : [],
+            });
+          }
+          if (req.method !== "POST")
+            return send(res, 405, { error: "지원하지 않는 메서드입니다." });
+          const input = await body(req);
+          if (
+            !["login", "recover", "logout", "revoke-all"].includes(
+              input.operation,
+            ) &&
+            editorLock.status().locked
+          )
+            return send(res, 423, { error: "편집기 잠금을 먼저 해제하세요." });
+          let result;
+          switch (input.operation) {
+            case "setup":
+              result = account.setup(input);
+              editorLock.replaceVerifiedPassword(input.password);
+              break;
+            case "login":
+              result = account.login(input);
+              editorLock.replaceVerifiedPassword(input.password);
+              break;
+            case "recover":
+              result = account.recover(input);
+              editorLock.replaceVerifiedPassword(input.password);
+              break;
+            case "update":
+              result = account.update(token, input);
+              if (input.password !== undefined)
+                editorLock.replaceVerifiedPassword(input.password);
+              break;
+            case "logout":
+              result = account.revoke(token);
+              break;
+            case "revoke-session":
+              result = account.revoke(token, { id: input.id });
+              break;
+            case "revoke-all":
+              result = account.revoke(token, { all: true });
+              break;
+            case "recovery-prepare":
+              result = account.prepareRecovery(token, input.password);
+              break;
+            case "recovery-confirm":
+              result = account.confirmRecovery(token, input);
+              break;
+            case "recovery-lost":
+              result = account.markRecoveryLost(token, input.password);
+              break;
+            default:
+              throw Error("계정 작업을 확인하세요.");
+          }
+          if (result.authenticated === false && editorLock.status().configured)
+            editorLock.lock();
+          broadcast();
+          diagnostics.log("info", "account." + input.operation);
+          return accountResponse(res, result);
+        }
         if (
           admin &&
           u.pathname === "/api/admin/lock-status" &&
@@ -453,6 +583,11 @@ export function createHost({
           req.method === "POST"
         ) {
           const input = await body(req);
+          if (account.status().configured) {
+            account.require(sessionToken(req));
+            if (["configure", "disable"].includes(input.operation))
+              throw Error("관리자 계정 설정에서 암호를 변경하세요.");
+          }
           switch (input.operation) {
             case "configure": {
               const next = mergeSettings(settings, {
@@ -500,6 +635,11 @@ export function createHost({
           u.pathname.startsWith("/api/") &&
           !["/api/admin/resume", "/api/admin/focus"].includes(u.pathname)
         ) {
+          if (!account.authenticate(sessionToken(req)))
+            return send(res, 401, {
+              error: "관리자 로그인이 필요합니다.",
+              code: "ACCOUNT_LOGIN_REQUIRED",
+            });
           if (editorLock.status().locked)
             return send(res, 423, {
               error: "편집기가 잠겨 있습니다. 비밀번호로 잠금을 해제하세요.",
@@ -509,6 +649,60 @@ export function createHost({
             !["/api/admin/info", "/api/admin/diagnostics"].includes(u.pathname)
           )
             editorLock.touch();
+        }
+        if (u.pathname === "/api/admin/vault" && req.method === "GET")
+          return send(res, 200, {
+            ...vault.status(),
+            secrets: vault.status().unlocked ? vault.listSecrets() : [],
+          });
+        if (u.pathname === "/api/admin/vault" && req.method === "POST") {
+          const input = await body(req);
+          let result;
+          switch (input.operation) {
+            case "setup":
+              result = vault.setup(input.password);
+              break;
+            case "unlock":
+              result = vault.unlock(input.password);
+              break;
+            case "lock":
+              result = vault.lock();
+              break;
+            case "password":
+              result = vault.changePassword(
+                input.currentPassword,
+                input.password,
+              );
+              break;
+            case "recovery-prepare":
+              result = vault.prepareRecovery();
+              break;
+            case "recovery-confirm":
+              result = vault.confirmRecovery(input);
+              break;
+            case "recovery-lost":
+              result = vault.markRecoveryLost();
+              break;
+            case "recover":
+              result = vault.recover(input);
+              break;
+            case "encryption":
+              result = vault.setBackupEncryption(input.enabled);
+              break;
+            case "secret-set":
+              result = { secrets: vault.setSecret(input), ...vault.status() };
+              break;
+            case "secret-delete":
+              result = {
+                secrets: vault.removeSecret(input.id),
+                ...vault.status(),
+              };
+              break;
+            default:
+              throw Error("저장소 작업을 확인하세요.");
+          }
+          diagnostics.log("info", "vault." + input.operation);
+          return send(res, 200, result);
         }
         if (u.pathname === "/api/device/settings") {
           const d = device(req);
@@ -635,28 +829,66 @@ export function createHost({
             nativeStatus: nativeStatus(dir),
           });
         }
+        if (
+          req.method === "POST" &&
+          u.pathname === "/api/admin/update/prepare"
+        ) {
+          const backup = settings.backups.beforeUpdate
+            ? backups.create("before-update")
+            : null;
+          diagnostics.log("info", "update.prepared", { count: backup ? 1 : 0 });
+          return send(res, 200, { ok: true, backup });
+        }
         if (req.method === "GET" && u.pathname === "/api/admin/licenses")
           return send(res, 200, licenseNotices());
         if (req.method === "GET" && u.pathname === "/api/admin/certificate")
           return send(res, 200, certificateInfo(dir));
+        if (
+          req.method === "GET" &&
+          u.pathname === "/api/admin/certificate/authority"
+        )
+          return send(res, 200, exportAuthority(dir));
         if (req.method === "POST" && u.pathname === "/api/admin/certificate") {
           const b = await body(req);
-          installCertificate(dir, b.certificatePem, b.privateKeyPem);
+          if (
+            b.operation === "issue-local-ca" ||
+            b.operation === "regenerate-authority"
+          )
+            issueLocalCertificate(dir, {
+              rotateAuthority: b.operation === "regenerate-authority",
+            });
+          else installCertificate(dir, b.certificatePem, b.privateKeyPem);
           identity = loadIdentity(dir);
-          lanServer?.setSecureContext({
-            key: identity.key,
-            cert: identity.cert,
-            minVersion: "TLSv1.2",
-          });
+          networkListeners.updateIdentity();
           diagnostics.log("info", "certificate.updated");
           for (const stream of streams)
             if (stream.socket?.encrypted) stream.end();
           return send(res, 200, certificateInfo(dir));
         }
         if (req.method === "GET" && u.pathname === "/api/admin/usb")
-          return send(res, 200, await adbStatus(settings));
-        if (req.method === "POST" && u.pathname === "/api/admin/usb")
-          return send(res, 200, await adbOperation(settings, await body(req)));
+          return send(res, 200, {
+            ...(await adbStatus(settings)),
+            autoUpdate: companionUpdater.status(),
+          });
+        if (req.method === "POST" && u.pathname === "/api/admin/usb") {
+          const input = await body(req);
+          if (input.operation === "download") {
+            const installed = await downloadPlatformTools(dir);
+            settings = mergeSettings(settings, {
+              usb: { executablePath: installed.executablePath },
+            });
+            writeJson(path.join(dir, "preferences.json"), settings);
+            diagnostics.log("info", "usb.tools.installed");
+            return send(res, 200, installed);
+          }
+          return send(res, 200, await adbOperation(settings, input));
+        }
+        if (req.method === "POST" && u.pathname === "/api/admin/migration") {
+          const input = await body(req);
+          const result = await migration.run(input);
+          diagnostics.log("info", "migration." + input.operation);
+          return send(res, 200, result);
+        }
         if (req.method === "POST" && u.pathname === "/api/admin/companion")
           return send(
             res,
@@ -712,8 +944,12 @@ export function createHost({
               result = {
                 archive: backups.export(b.id, b.password, {
                   profileIds: b.profileIds,
+                  recoveryProtected: b.recoveryProtected,
                 }),
               };
+              break;
+            case "encrypt-existing":
+              result = backups.encryptExisting();
               break;
             case "import":
               result = { backup: backups.import(b.archive, b.password) };
@@ -736,7 +972,7 @@ export function createHost({
             network: network(),
             recovery: { ...recovery },
             connections: [...streams].map((s) => ({
-              transport: s.socket?.encrypted ? "wifi" : "usb",
+              transport: s.openDeckTransport,
               address: s.socket?.remoteAddress,
             })),
           });
@@ -872,7 +1108,8 @@ export function createHost({
           if (d) {
             d.lastSeenAt = new Date().toISOString();
             res.openDeckDeviceId = d.id;
-          }
+          } else res.openDeckSession = sessionToken(req);
+          res.openDeckTransport = lan ? "wifi" : "usb";
           streams.add(res);
           diagnostics.log("debug", "stream.connected", {
             transport: lan ? "wifi" : "usb",
@@ -978,7 +1215,7 @@ export function createHost({
         }
         if (
           req.method === "GET" &&
-          [
+          ([
             "/",
             "/app.js",
             "/app.css",
@@ -989,7 +1226,14 @@ export function createHost({
             "/editor-lock.mjs",
             "/profile-tools.mjs",
             "/profiles.mjs",
-          ].includes(u.pathname)
+            "/security-ui.mjs",
+            "/downloads.mjs",
+            "/migration-ui.mjs",
+            "/i18n.mjs",
+          ].includes(u.pathname) ||
+            /^\/locales\/(ar|pt-BR|cs|nl|en|fr|de|hi|id|it|ja|ko|pl|ru|zh|es|zh-TW|tr|uk)\.json$/.test(
+              u.pathname,
+            ))
         ) {
           if (!admin)
             return send(res, 401, {
@@ -1005,9 +1249,11 @@ export function createHost({
             "Content-Type",
             file.endsWith(".js") || file.endsWith(".mjs")
               ? "text/javascript"
-              : file.endsWith(".css")
-                ? "text/css"
-                : "text/html",
+              : file.endsWith(".json")
+                ? "application/json"
+                : file.endsWith(".css")
+                  ? "text/css"
+                  : "text/html",
           );
           res.end(fs.readFileSync(path.join(publicDir, file)));
           return;
@@ -1015,7 +1261,13 @@ export function createHost({
         send(res, 404, { error: "찾을 수 없습니다." });
       } catch (e) {
         diagnostics.log("warn", "request.failed", { status: e.status || 400 });
-        if (!res.headersSent) send(res, e.status || 400, { error: e.message });
+        if (!res.headersSent)
+          send(res, e.status || 400, {
+            error: e.message,
+            ...(e.code && /^[A-Z_]{1,50}$/.test(e.code)
+              ? { code: e.code }
+              : {}),
+          });
         else res.end();
       }
     };
@@ -1023,7 +1275,8 @@ export function createHost({
   const advertise = (enabled) => {
     discoveryProcess?.kill();
     discoveryProcess = null;
-    if (enabled && process.platform === "darwin" && lanServer?.listening) {
+    const listener = networkListeners?.primary;
+    if (enabled && process.platform === "darwin" && listener?.listening) {
       discoveryProcess = spawn(
         "/usr/bin/dns-sd",
         [
@@ -1031,9 +1284,9 @@ export function createHost({
           "Open Deck",
           "_opendeck._tcp",
           "local",
-          String(lanServer.address().port),
+          String(listener.address().port),
           "protocol=1",
-          "tls=1",
+          networkListeners.tls ? "tls=1" : "tls=0",
         ],
         { stdio: "ignore" },
       );
@@ -1042,53 +1295,27 @@ export function createHost({
       );
     }
   };
+  networkListeners = new NetworkListeners({
+    handler: handler(true),
+    identity: () => (identity = loadIdentity(dir)),
+    onChange: () => {
+      configRevision++;
+      broadcast();
+    },
+    onError: (e) => {
+      wifiError = e.code || "listen_failed";
+      diagnostics.log("error", "network.failed");
+    },
+  });
   let firstNetworkConfiguration = true;
   const configureNetwork = async (value) => {
     if (!wifi) return;
-    if (!value.wifiEnabled) {
-      advertise(false);
-      const old = lanServer;
-      lanServer = null;
-      old?.closeAllConnections();
-      old?.close();
-      return;
-    }
-    const targetPort =
-      firstNetworkConfiguration && wifiPort !== 8841
-        ? wifiPort
-        : value.wifiPort;
+    const firstPort =
+      firstNetworkConfiguration && wifiPort !== 8841 ? wifiPort : undefined;
     firstNetworkConfiguration = false;
-    if (
-      lanServer?.listening &&
-      (targetPort === 0 || lanServer.address().port === targetPort)
-    ) {
-      advertise(value.discoveryEnabled);
-      return;
-    }
-    identity = loadIdentity(dir);
-    const candidate = https.createServer(
-      { key: identity.key, cert: identity.cert, minVersion: "TLSv1.2" },
-      handler(true),
-    );
-    const previous = lanServer;
-    if (!previous) lanServer = candidate;
-    await new Promise((resolve, reject) => {
-      candidate.once("error", reject);
-      candidate.listen(targetPort, "0.0.0.0", resolve);
-    });
-    const old = previous;
-    lanServer = candidate;
+    await networkListeners.configure(value, firstPort);
     wifiError = "";
-    advertise(value.discoveryEnabled);
-    // Send the new endpoint while the old stream is still reachable.
-    configRevision++;
-    broadcast();
-    old?.close();
-    old?.closeAllConnections();
-    candidate.on("error", (e) => {
-      wifiError = e.code || "listen_failed";
-      diagnostics.log("error", "network.failed");
-    });
+    advertise(value.wifiEnabled && value.discoveryEnabled);
   };
   if (wifi)
     configureNetwork(settings.network).catch((e) => {
@@ -1105,6 +1332,15 @@ export function createHost({
       }, 60000)
     : null;
 
+  const companionTimer = metrics
+    ? setInterval(
+        () =>
+          companionUpdater
+            .tick()
+            .catch(() => diagnostics.log("warn", "companion.update.failed")),
+        60000,
+      )
+    : null;
   let lastTick = Date.now();
   const interval = metrics
     ? setInterval(() => {
@@ -1122,6 +1358,8 @@ export function createHost({
   server.on("close", () => {
     clearInterval(interval);
     clearInterval(backupTimer);
+    clearInterval(companionTimer);
+    void companionUpdater.close();
     discoveryProcess?.kill();
     clearInterval(schedule);
     connectors.close();
@@ -1129,12 +1367,13 @@ export function createHost({
     engine.systemMonitor?.close();
     grafana.close();
     plugins.close();
+    vault.lock();
     for (const s of streams) s.end();
   });
   return {
     server,
     get lanServer() {
-      return lanServer;
+      return networkListeners.primary;
     },
     network,
     engine,
@@ -1145,16 +1384,18 @@ export function createHost({
         for (const s of streams) s.end();
         streams.clear();
         plugins.close();
-        const listeners = [server, lanServer].filter(Boolean);
-        Promise.all(
-          listeners.map(
+        const listeners = [server];
+        Promise.all([
+          companionUpdater.close(),
+          networkListeners.close(),
+          ...listeners.map(
             (s) =>
               new Promise((done) => {
                 s.close(done);
                 s.closeAllConnections();
               }),
           ),
-        ).then(resolve);
+        ]).then(resolve);
       }),
   };
 }

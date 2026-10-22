@@ -1,3 +1,4 @@
+import { t, tf, locale as uiLocale, translateError } from "./i18n.mjs";
 // Pure profile/archive operations shared by the editor and verification tests.
 export function activeProfile(config, id) {
   return (
@@ -46,21 +47,21 @@ export function importProfile(
   uuid = () => crypto.randomUUID(),
 ) {
   const pages = clonePages(archive.pages || [], uuid);
-  if (!pages.length) throw Error("프로필에는 페이지가 하나 이상 필요합니다.");
+  if (!pages.length) throw Error(t("프로필에는 페이지가 하나 이상 필요합니다."));
   if (config.pages.length + pages.length > 40)
-    throw Error("페이지는 최대 40개입니다.");
+    throw Error(t("페이지는 최대 40개입니다."));
   // Preserve executable steps but never overwrite existing variables/integrations.
   for (const [key, value] of Object.entries(archive.variables || {})) {
     if (
       Object.hasOwn(config.variables, key) &&
       typeof config.variables[key] !== typeof value
     )
-      throw Error("변수 형식이 충돌합니다: " + key);
+      throw Error(t("변수 형식이 충돌합니다: ") + key);
   }
   for (const integration of archive.integrations || []) {
     const current = config.integrations.find((i) => i.id === integration.id);
     if (current && JSON.stringify(current) !== JSON.stringify(integration))
-      throw Error("연동 ID가 충돌합니다: " + integration.id);
+      throw Error(t("연동 ID가 충돌합니다: ") + integration.id);
   }
   const ids = new Map();
   (archive.pages || []).forEach((p, i) =>
@@ -77,7 +78,7 @@ export function importProfile(
   );
   const profile = {
     id: uuid(),
-    name: String(archive.name || "가져온 프로필").slice(0, 80),
+    name: String(archive.name || t("가져온 프로필")).slice(0, 80),
     pageIds: pages.map((p) => p.id),
     defaultPageId: pages[defaultIndex]?.id || pages[0].id,
     defaults: structuredClone(sourceProfile?.defaults || {}),

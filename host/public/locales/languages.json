@@ -1,0 +1,78 @@
+[
+  {
+    "code": "ar",
+    "name": "العربية"
+  },
+  {
+    "code": "pt-BR",
+    "name": "Português (Brasil)"
+  },
+  {
+    "code": "cs",
+    "name": "Čeština"
+  },
+  {
+    "code": "nl",
+    "name": "Nederlands"
+  },
+  {
+    "code": "en",
+    "name": "English"
+  },
+  {
+    "code": "fr",
+    "name": "Français"
+  },
+  {
+    "code": "de",
+    "name": "Deutsch"
+  },
+  {
+    "code": "hi",
+    "name": "हिन्दी"
+  },
+  {
+    "code": "id",
+    "name": "Bahasa Indonesia"
+  },
+  {
+    "code": "it",
+    "name": "Italiano"
+  },
+  {
+    "code": "ja",
+    "name": "日本語"
+  },
+  {
+    "code": "ko",
+    "name": "한국어"
+  },
+  {
+    "code": "pl",
+    "name": "Polski"
+  },
+  {
+    "code": "ru",
+    "name": "Русский"
+  },
+  {
+    "code": "zh",
+    "name": "简体中文"
+  },
+  {
+    "code": "es",
+    "name": "Español"
+  },
+  {
+    "code": "zh-TW",
+    "name": "繁體中文"
+  },
+  {
+    "code": "tr",
+    "name": "Türkçe"
+  },
+  {
+    "code": "uk",
+    "name": "Українська"
+  }
+]

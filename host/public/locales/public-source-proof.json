@@ -1,0 +1,9 @@
+{
+  "repository": "https://github.com/Yaklede/open-deck",
+  "visibility": "public",
+  "anonymousApiVerified": true,
+  "commit": "4b59a45a99864d3e8509f013a582336fa3c93d5b",
+  "sourceStrings": 1295,
+  "excludedNewOrSensitiveStrings": 75,
+  "method": "AST literal intersection with published Git commit; URLs, email addresses and business names excluded"
+}

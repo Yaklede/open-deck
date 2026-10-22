@@ -305,13 +305,13 @@ test("HTTP User-Agent setting reaches actual request and bounded release checker
     async () =>
       new Response(
         JSON.stringify({
-          tag_name: "v0.9.1",
-          html_url: "https://github.com/Yaklede/open-deck/releases/tag/v0.9.1",
+          tag_name: "v99.0.0",
+          html_url: "https://github.com/Yaklede/open-deck/releases/tag/v99.0.0",
           assets: [
             {
               name: "Open-Deck-Android.apk",
               browser_download_url:
-                "https://github.com/Yaklede/open-deck/releases/download/v0.9.1/Open-Deck-Android.apk",
+                "https://github.com/Yaklede/open-deck/releases/download/v99.0.0/Open-Deck-Android.apk",
               size: 123,
             },
             {
@@ -325,4 +325,27 @@ test("HTTP User-Agent setting reaches actual request and bounded release checker
   assert.equal(result.updateAvailable, true);
   assert.equal(result.version, APP_VERSION);
   assert.equal(result.assets.length, 1);
+});
+
+test("appearance accepts installed font families, alpha palettes and variable colors but rejects CSS injection", () => {
+  const input = {
+    appearance: {
+      fontFamily: "Apple SD Gothic Neo",
+      accentColor: "{{statusColor}}",
+      palette: ["#11223380", "#445566"],
+    },
+  };
+  const merged = mergeSettings(defaultSettings(), input);
+  assert.equal(merged.appearance.fontFamily, input.appearance.fontFamily);
+  assert.equal(merged.appearance.accentColor, "{{statusColor}}");
+  assert.deepEqual(merged.appearance.palette, input.appearance.palette);
+  for (const value of ["url(https://bad.invalid)", "{{missing.key}}", "#12345"])
+    assert.throws(() =>
+      mergeSettings(defaultSettings(), { appearance: { accentColor: value } }),
+    );
+  assert.throws(() =>
+    mergeSettings(defaultSettings(), {
+      appearance: { fontFamily: "Arial; background: red" },
+    }),
+  );
 });

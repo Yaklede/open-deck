@@ -1,8 +1,9 @@
+import { t, tf, locale as uiLocale, translateError } from "./i18n.mjs";
 export function monitorPage({
   id = crypto.randomUUID(),
   grafana = {
     url: "",
-    projects: [{ label: "프로젝트", value: "project" }],
+    projects: [{ label: t("프로젝트"), value: "project" }],
     defaultProject: "project",
   },
 } = {}) {
@@ -13,7 +14,7 @@ export function monitorPage({
   };
   return {
     id,
-    name: "모니터",
+    name: t("모니터"),
     columns: 12,
     rows: 7,
     theme: "graphite",
@@ -25,7 +26,7 @@ export function monitorPage({
         id: id + "-grafana-system",
         type: "grafana",
         metric: "system",
-        label: "서버 상태",
+        label: t("서버 상태"),
         x: 0,
         y: 0,
         w: 4,
@@ -38,7 +39,7 @@ export function monitorPage({
         id: id + "-grafana",
         type: "grafana",
         metric: "database",
-        label: "데이터베이스",
+        label: t("데이터베이스"),
         x: 4,
         y: 0,
         w: 8,
@@ -52,7 +53,7 @@ export function monitorPage({
         type: "system",
         metric: "overview",
         compact: true,
-        label: "내 Mac",
+        label: t("내 Mac"),
         x: 0,
         y: 6,
         w: 12,

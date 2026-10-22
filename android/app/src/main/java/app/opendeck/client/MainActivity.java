@@ -39,7 +39,7 @@ public class MainActivity extends Activity {
   private volatile boolean stopped = false, connected = false;
   private boolean foreground = false;
   private volatile HttpURLConnection eventConnection;
-  private volatile String token = "", base = "http://127.0.0.1:8840";
+  private volatile String token = "", base = ("http://127.0.0.1:" + BuildConfig.USB_PORT);
   private String pageId = "", requestedNavigationPage = "";
   private boolean navigationProfileRequested, deviceMetadataSent;
   private volatile String wifiPin = "", transport = "auto";
@@ -133,6 +133,7 @@ public class MainActivity extends Activity {
             .build();
     prefs = getSharedPreferences("open-deck", MODE_PRIVATE);
     loadClientSettings();
+    L10n.configure(this, settingString("language"));
     pageId =
         settingBool("rememberPage") ? prefs.getString("page", "") : settingString("startPageId");
     applyNotificationIntent(getIntent());
@@ -148,14 +149,14 @@ public class MainActivity extends Activity {
     NotificationManager notificationManager = getSystemService(NotificationManager.class);
     NotificationChannel channel =
         new NotificationChannel(
-            "jimin-os", "Jimin OS 일정과 업무", NotificationManager.IMPORTANCE_DEFAULT);
-    channel.setDescription("일정 시작, 할 일 마감, 새 업무 요청을 알려드려요.");
+            "jimin-os", L10n.text("Jimin OS 일정과 업무"), NotificationManager.IMPORTANCE_DEFAULT);
+    channel.setDescription(L10n.text("일정 시작, 할 일 마감, 새 업무 요청을 알려드려요."));
     channel.setLockscreenVisibility(Notification.VISIBILITY_PRIVATE);
     notificationManager.createNotificationChannel(channel);
     NotificationChannel monitorChannel =
         new NotificationChannel(
-            "monitor-alerts", "시스템·DB 임계치 알림", NotificationManager.IMPORTANCE_HIGH);
-    monitorChannel.setDescription("주의·위험 임계치 초과와 정상 복구를 알려드려요.");
+            "monitor-alerts", L10n.text("시스템·DB 임계치 알림"), NotificationManager.IMPORTANCE_HIGH);
+    monitorChannel.setDescription(L10n.text("주의·위험 임계치 초과와 정상 복구를 알려드려요."));
     monitorChannel.setLockscreenVisibility(Notification.VISIBILITY_PRIVATE);
     notificationManager.createNotificationChannel(monitorChannel);
     token = readToken();
@@ -246,16 +247,16 @@ public class MainActivity extends Activity {
 
   private String osSyncNotice() {
     JSONObject data = osData();
-    if (data == null) return "OS 연결 대기 · 자동 재연결 중";
+    if (data == null) return L10n.text("OS 연결 대기 · 자동 재연결 중");
     long at = data.optLong("updatedAt"), seconds = Math.max(0, (hostNow() - at) / 1000);
     String age =
         seconds < 60
-            ? seconds + "초 전"
-            : seconds < 3600 ? seconds / 60 + "분 전" : seconds / 3600 + "시간 전";
-    return (osFresh() ? "OS 최신" : "OS 이전 데이터 · 재연결 중")
+            ? seconds + L10n.text("초 전")
+            : seconds < 3600 ? seconds / 60 + L10n.text("분 전") : seconds / 3600 + L10n.text("시간 전");
+    return (osFresh() ? L10n.text("OS 최신") : L10n.text("OS 이전 데이터 · 재연결 중"))
         + " · "
         + osDate(at, "M/d HH:mm:ss")
-        + " 수집 · "
+        + L10n.text(" 수집 · ")
         + age;
   }
 
@@ -276,7 +277,10 @@ public class MainActivity extends Activity {
   private String osDate(long at, String pattern) {
     SimpleDateFormat formatter = osDateFormats.get(pattern);
     if (formatter == null) {
-      formatter = new SimpleDateFormat(pattern, Locale.KOREA);
+      formatter =
+          new SimpleDateFormat(
+              L10n.datePattern(pattern),
+              pattern.equals("yyyy-MM-dd") ? Locale.ROOT : L10n.locale());
       formatter.setTimeZone(TimeZone.getTimeZone("Asia/Seoul"));
       osDateFormats.put(pattern, formatter);
     }
@@ -346,7 +350,7 @@ public class MainActivity extends Activity {
     close.setTextSize(24);
     close.setTextColor(Color.parseColor("#e0e9fa"));
     close.setGravity(Gravity.CENTER);
-    close.setContentDescription("모니터 알림 닫기");
+    close.setContentDescription(L10n.text("모니터 알림 닫기"));
     row.addView(close, new LinearLayout.LayoutParams((int) dp(42), (int) dp(42)));
     PopupWindow popup =
         new PopupWindow(
@@ -494,7 +498,7 @@ public class MainActivity extends Activity {
       value /= 1024;
       i++;
     }
-    return String.format(Locale.KOREA, value >= 100 ? "%.0f %s" : "%.1f %s", value, units[i]);
+    return String.format(L10n.locale(), value >= 100 ? "%.0f %s" : "%.1f %s", value, units[i]);
   }
 
   private double metric(JSONObject data, String key) {
@@ -502,21 +506,25 @@ public class MainActivity extends Activity {
   }
 
   private String metricPercent(double value) {
-    return Double.isFinite(value) ? String.format(Locale.KOREA, "%.1f%%", value) : "—";
+    return Double.isFinite(value) ? String.format(L10n.locale(), "%.1f%%", value) : "—";
   }
 
   private String pressureText(String value) {
     return value.equals("normal")
-        ? "정상"
-        : value.equals("warning") ? "주의" : value.equals("critical") ? "높음" : "확인 중";
+        ? L10n.text("정상")
+        : value.equals("warning")
+            ? L10n.text("주의")
+            : value.equals("critical") ? L10n.text("높음") : L10n.text("확인 중");
   }
 
   private String thermalText(String value) {
     return value.equals("normal")
-        ? "정상"
+        ? L10n.text("정상")
         : value.equals("fair")
-            ? "약간 높음"
-            : value.equals("serious") ? "높음" : value.equals("critical") ? "매우 높음" : "확인 중";
+            ? L10n.text("약간 높음")
+            : value.equals("serious")
+                ? L10n.text("높음")
+                : value.equals("critical") ? L10n.text("매우 높음") : L10n.text("확인 중");
   }
 
   private List<String> systemWarnings(JSONObject data) {
@@ -527,15 +535,15 @@ public class MainActivity extends Activity {
     if (mem != null
         && (mem.optString("pressure").equals("warning")
             || mem.optString("pressure").equals("critical")))
-      warnings.add("메모리 압력 " + pressureText(mem.optString("pressure")));
+      warnings.add(L10n.text("메모리 압력 ") + pressureText(mem.optString("pressure")));
     double available = metric(disk, "availableBytes"), total = metric(disk, "totalBytes");
     if (Double.isFinite(available)
         && (available < 20d * 1024 * 1024 * 1024 || available / total < .05))
-      warnings.add("저장 공간 여유 " + metricBytes(available));
+      warnings.add(L10n.text("저장 공간 여유 ") + metricBytes(available));
     if (power != null
         && (power.optString("thermal").equals("serious")
             || power.optString("thermal").equals("critical")))
-      warnings.add("발열 부담 " + thermalText(power.optString("thermal")));
+      warnings.add(L10n.text("발열 부담 ") + thermalText(power.optString("thermal")));
     return warnings;
   }
 
@@ -548,19 +556,20 @@ public class MainActivity extends Activity {
         network = data.optJSONObject("network"),
         io = data.optJSONObject("io");
     if (kind.equals("overview")) {
-      body.append(data.optString("model", "내 Mac"))
+      body.append(data.optString("model", L10n.text("내 Mac")))
           .append(" · ")
           .append(data.optInt("logicalCores"))
-          .append("코어\n");
+          .append(L10n.text("코어\n"));
       List<String> alerts = systemWarnings(data);
-      body.append(alerts.isEmpty() ? "확인할 상태가 없어요." : String.join("\n", alerts)).append("\n\n");
+      body.append(alerts.isEmpty() ? L10n.text("확인할 상태가 없어요.") : String.join("\n", alerts))
+          .append("\n\n");
     }
     if (kind.equals("cpu") || kind.equals("overview")) {
-      body.append("전체 CPU  ").append(metricPercent(metric(cpu, "percent"))).append("\n");
+      body.append(L10n.text("전체 CPU  ")).append(metricPercent(metric(cpu, "percent"))).append("\n");
       JSONArray cores = cpu == null ? null : cpu.optJSONArray("cores");
       if (cores != null)
         for (int i = 0; i < cores.length(); i++)
-          body.append("코어 ")
+          body.append(L10n.text("코어 "))
               .append(i + 1)
               .append("  ")
               .append(metricPercent(cores.optDouble(i, Double.NaN)))
@@ -568,7 +577,7 @@ public class MainActivity extends Activity {
       body.append("\n");
     }
     if (kind.equals("memory") || kind.equals("overview")) {
-      body.append("메모리  ")
+      body.append(L10n.text("메모리  "))
           .append(metricGiB(metric(memory, "usedBytes")))
           .append(" / ")
           .append(metricGiB(metric(memory, "totalBytes")))
@@ -578,42 +587,45 @@ public class MainActivity extends Activity {
                   metric(memory, "totalBytes") > 0
                       ? 100 * metric(memory, "usedBytes") / metric(memory, "totalBytes")
                       : Double.NaN))
-          .append("\n압력  ")
+          .append(L10n.text("\n압력  "))
           .append(pressureText(memory == null ? "" : memory.optString("pressure")))
-          .append("\n앱  ")
+          .append(L10n.text("\n앱  "))
           .append(metricBytes(metric(memory, "appBytes")))
-          .append("\n시스템 고정  ")
+          .append(L10n.text("\n시스템 고정  "))
           .append(metricBytes(metric(memory, "wiredBytes")))
-          .append("\n압축  ")
+          .append(L10n.text("\n압축  "))
           .append(metricBytes(metric(memory, "compressedBytes")))
-          .append("\n스왑  ")
+          .append(L10n.text("\n스왑  "))
           .append(metricBytes(metric(memory, "swapBytes")))
           .append("\n\n");
     }
     if (kind.equals("disk") || kind.equals("overview")) {
-      body.append("내장 저장 공간  ")
+      body.append(L10n.text("내장 저장 공간  "))
           .append(metricBytes(metric(disk, "totalBytes")))
-          .append("\n사용 가능  ")
+          .append(L10n.text("\n사용 가능  "))
           .append(metricBytes(metric(disk, "availableBytes")))
-          .append("\n읽기  ")
+          .append(L10n.text("\n읽기  "))
           .append(metricBytes(metric(io, "readBytesPerSecond")))
-          .append("/s\n쓰기  ")
+          .append(L10n.text("/s\n쓰기  "))
           .append(metricBytes(metric(io, "writeBytesPerSecond")))
-          .append("/s\nAPFS 공유 공간 기준 · I/O는 전체 저장 장치 합계\n\n");
+          .append(L10n.text("/s\nAPFS 공유 공간 기준 · I/O는 전체 저장 장치 합계\n\n"));
     }
     if (kind.equals("network") || kind.equals("overview")) {
-      body.append("네트워크 수신  ")
+      body.append(L10n.text("네트워크 수신  "))
           .append(metricBytes(metric(network, "rxBytesPerSecond")))
-          .append("/s\n송신  ")
+          .append(L10n.text("/s\n송신  "))
           .append(metricBytes(metric(network, "txBytesPerSecond")))
-          .append("/s\n활성 유선·Wi-Fi 인터페이스 합계 (VPN 중복 제외)\n\n");
+          .append(L10n.text("/s\n활성 유선·Wi-Fi 인터페이스 합계 (VPN 중복 제외)\n\n"));
     }
     if (kind.equals("power") || kind.equals("overview")) {
-      body.append("배터리  ")
+      body.append(L10n.text("배터리  "))
           .append(metricPercent(metric(power, "batteryPercent")))
-          .append("\n전원  ")
-          .append(power != null && power.optBoolean("pluggedIn") ? "전원 연결됨" : "배터리 사용 중")
-          .append("\n발열 부담  ")
+          .append(L10n.text("\n전원  "))
+          .append(
+              power != null && power.optBoolean("pluggedIn")
+                  ? L10n.text("전원 연결됨")
+                  : L10n.text("배터리 사용 중"))
+          .append(L10n.text("\n발열 부담  "))
           .append(thermalText(power == null ? "" : power.optString("thermal")))
           .append("\n");
     }
@@ -624,9 +636,9 @@ public class MainActivity extends Activity {
     JSONObject data = macSystem();
     if (data == null) {
       osDialog()
-          .setTitle("맥 상태 연결 대기")
-          .setMessage("맥의 최신 상태를 기다리고 있어요.")
-          .setPositiveButton("닫기", null)
+          .setTitle(L10n.text("맥 상태 연결 대기"))
+          .setMessage(L10n.text("맥의 최신 상태를 기다리고 있어요."))
+          .setPositiveButton(L10n.text("닫기"), null)
           .show();
       return;
     }
@@ -646,14 +658,16 @@ public class MainActivity extends Activity {
     ScrollView scroll = new ScrollView(this);
     scroll.addView(text);
     osDialog()
-        .setTitle(widget.optString("label", "맥 상태"))
+        .setTitle(widget.optString("label", L10n.text("맥 상태")))
         .setView(scroll)
-        .setPositiveButton("닫기", null)
+        .setPositiveButton(L10n.text("닫기"), null)
         .show();
   }
 
   private void systemTabs(JSONObject widget) {
-    String[] names = {"CPU", "메모리", "저장 공간", "전원·발열", "네트워크"};
+    String[] names = {
+      "CPU", L10n.text("메모리"), L10n.text("저장 공간"), L10n.text("전원·발열"), L10n.text("네트워크")
+    };
     String[] kinds = {"cpu", "memory", "disk", "power", "network"};
     int[] selected = {0};
     LinearLayout layout = new LinearLayout(this);
@@ -692,7 +706,7 @@ public class MainActivity extends Activity {
           JSONObject latest = macSystem();
           text.setText(
               latest == null
-                  ? "맥 연결과 최신 상태를 기다리고 있어요."
+                  ? L10n.text("맥 연결과 최신 상태를 기다리고 있어요.")
                   : systemDetailText(latest, kinds[selected[0]]));
           graph.invalidate();
           for (int i = 0; i < buttons.length; i++) {
@@ -719,7 +733,7 @@ public class MainActivity extends Activity {
       b.setTextSize(12);
       b.setMinWidth(0);
       b.setMinimumWidth(0);
-      b.setContentDescription(names[i] + " 상세 탭");
+      b.setContentDescription(names[i] + L10n.text(" 상세 탭"));
       LinearLayout.LayoutParams params = new LinearLayout.LayoutParams((int) dp(99), (int) dp(43));
       params.setMargins((int) dp(2), 0, (int) dp(2), 0);
       tabs.addView(b, params);
@@ -732,11 +746,11 @@ public class MainActivity extends Activity {
     }
     AlertDialog dialog =
         osDialog()
-            .setTitle(widget.optString("label", "내 Mac") + " · 상세")
+            .setTitle(widget.optString("label", L10n.text("내 Mac")) + L10n.text(" · 상세"))
             .setView(layout)
-            .setPositiveButton("닫기", null)
+            .setPositiveButton(L10n.text("닫기"), null)
             .setNeutralButton(
-                "앱별 사용량",
+                L10n.text("앱별 사용량"),
                 (d, x) -> {
                   JSONObject latest = macSystem();
                   if (latest != null) systemProcesses(latest, false);
@@ -767,13 +781,14 @@ public class MainActivity extends Activity {
       this.selected = selected;
       this.kinds = kinds;
       setImportantForAccessibility(View.IMPORTANT_FOR_ACCESSIBILITY_YES);
-      setContentDescription("맥 상태 실시간 추이 그래프");
+      setContentDescription(L10n.text("맥 상태 실시간 추이 그래프"));
     }
 
     void text(Canvas c, String value, float x, float y, float size, int color, Paint.Align align) {
       p.setStyle(Paint.Style.FILL);
       p.setColor(color);
       p.setTypeface(font);
+      p.setTextLocale(L10n.locale());
       p.setTextSize(dp(size));
       p.setTextAlign(align);
       c.drawText(value, x, y, p);
@@ -807,34 +822,34 @@ public class MainActivity extends Activity {
       String kind = kinds[selected[0]],
           first = "cpu",
           second = null,
-          title = "CPU 추이",
-          legend = "전체 CPU";
+          title = L10n.text("CPU 추이"),
+          legend = L10n.text("전체 CPU");
       boolean percent = true;
       int accent = Color.parseColor("#86b6ef"),
           other = Color.parseColor("#83cbb9"),
           muted = Color.parseColor("#9bafbd");
       if (kind.equals("memory")) {
         first = "memory";
-        title = "메모리 사용률";
-        legend = "물리 메모리 대비";
+        title = L10n.text("메모리 사용률");
+        legend = L10n.text("물리 메모리 대비");
         accent = Color.parseColor("#b6a6ec");
       } else if (kind.equals("disk")) {
         first = "read";
         second = "write";
-        title = "디스크 I/O 추이";
-        legend = "읽기";
+        title = L10n.text("디스크 I/O 추이");
+        legend = L10n.text("읽기");
         percent = false;
         other = Color.parseColor("#efbd73");
       } else if (kind.equals("network")) {
         first = "rx";
         second = "tx";
-        title = "네트워크 추이";
-        legend = "수신";
+        title = L10n.text("네트워크 추이");
+        legend = L10n.text("수신");
         percent = false;
       } else if (kind.equals("power")) {
         first = "battery";
-        title = "배터리 추이";
-        legend = "배터리 잔량";
+        title = L10n.text("배터리 추이");
+        legend = L10n.text("배터리 잔량");
         accent = Color.parseColor("#83cbb9");
       }
       p.setStyle(Paint.Style.FILL);
@@ -845,7 +860,7 @@ public class MainActivity extends Activity {
       if (second != null) {
         text(
             c,
-            kind.equals("disk") ? "쓰기" : "송신",
+            kind.equals("disk") ? L10n.text("쓰기") : L10n.text("송신"),
             getWidth() - dp(16),
             dp(49),
             10,
@@ -871,7 +886,7 @@ public class MainActivity extends Activity {
         double value = max * (2 - i) / 2;
         text(
             c,
-            percent ? String.format(Locale.KOREA, "%.0f%%", value) : metricBytes(value) + "/s",
+            percent ? String.format(L10n.locale(), "%.0f%%", value) : metricBytes(value) + "/s",
             plot.left - dp(8),
             y + dp(3),
             8,
@@ -879,13 +894,21 @@ public class MainActivity extends Activity {
             Paint.Align.RIGHT);
       }
       if (a == null || a.length() < 2)
-        text(c, "추이 수집 중", plot.centerX(), plot.centerY(), 12, muted, Paint.Align.CENTER);
+        text(
+            c, L10n.text("추이 수집 중"), plot.centerX(), plot.centerY(), 12, muted, Paint.Align.CENTER);
       else {
         curve(c, a, max, accent);
         curve(c, b, max, other);
       }
-      text(c, "이전", plot.left, getHeight() - dp(17), 9, muted, Paint.Align.LEFT);
-      text(c, "지금 · 2초 갱신", plot.right, getHeight() - dp(17), 9, muted, Paint.Align.RIGHT);
+      text(c, L10n.text("이전"), plot.left, getHeight() - dp(17), 9, muted, Paint.Align.LEFT);
+      text(
+          c,
+          L10n.text("지금 · 2초 갱신"),
+          plot.right,
+          getHeight() - dp(17),
+          9,
+          muted,
+          Paint.Align.RIGHT);
     }
   }
 
@@ -897,7 +920,7 @@ public class MainActivity extends Activity {
       super(new int[] {0}, new String[] {"cpu"});
       this.widget = widget;
       chartMetric = widget.optString("metric").equals("system") ? "system" : "cpu";
-      setContentDescription("Grafana 최근 1시간 추이 그래프");
+      setContentDescription(L10n.text("Grafana 최근 1시간 추이 그래프"));
     }
 
     @Override
@@ -913,18 +936,20 @@ public class MainActivity extends Activity {
       text(
           c,
           system
-              ? "시스템 CPU 추이"
+              ? L10n.text("시스템 CPU 추이")
               : chartMetric.equals("cpu")
-                  ? "DB CPU 추이"
+                  ? L10n.text("DB CPU 추이")
                   : chartMetric.equals("memory")
-                      ? "DB 메모리 추이"
-                      : chartMetric.equals("qps") ? "QPS · 쿼리/초" : "TPS · 커밋/초",
+                      ? L10n.text("DB 메모리 추이")
+                      : chartMetric.equals("qps")
+                          ? L10n.text("QPS · 쿼리/초")
+                          : L10n.text("TPS · 커밋/초"),
           dp(16),
           dp(29),
           14,
           Color.parseColor("#d9f4fa"),
           Paint.Align.LEFT);
-      text(c, "최근 1시간", dp(16), dp(50), 10, muted, Paint.Align.LEFT);
+      text(c, L10n.text("최근 1시간"), dp(16), dp(50), 10, muted, Paint.Align.LEFT);
       JSONObject data = grafanaData(widget),
           metric = data == null ? null : data.optJSONObject(chartMetric);
       JSONArray points = metric == null ? null : metric.optJSONArray("points");
@@ -940,7 +965,7 @@ public class MainActivity extends Activity {
         c.drawLine(plot.left, y, plot.right, y, p);
         text(
             c,
-            String.format(Locale.KOREA, percent ? "%.0f%%" : "%.1f", max * (2 - i) / 2),
+            String.format(L10n.locale(), percent ? "%.0f%%" : "%.1f", max * (2 - i) / 2),
             plot.left - dp(6),
             y + dp(3),
             9,
@@ -948,10 +973,17 @@ public class MainActivity extends Activity {
             Paint.Align.RIGHT);
       }
       if (points == null || points.length() < 2)
-        text(c, "수집 데이터 없음", plot.centerX(), plot.centerY(), 12, muted, Paint.Align.CENTER);
+        text(
+            c,
+            L10n.text("수집 데이터 없음"),
+            plot.centerX(),
+            plot.centerY(),
+            12,
+            muted,
+            Paint.Align.CENTER);
       else if (deck != null) deck.grafanaTrend(c, points, plot, accent, percent);
-      text(c, "이전", plot.left, getHeight() - dp(16), 9, muted, Paint.Align.LEFT);
-      text(c, "최근", plot.right, getHeight() - dp(16), 9, muted, Paint.Align.RIGHT);
+      text(c, L10n.text("이전"), plot.left, getHeight() - dp(16), 9, muted, Paint.Align.LEFT);
+      text(c, L10n.text("최근"), plot.right, getHeight() - dp(16), 9, muted, Paint.Align.RIGHT);
     }
   }
 
@@ -960,7 +992,8 @@ public class MainActivity extends Activity {
     JSONArray rows =
         processes == null ? null : processes.optJSONArray(memoryOrder ? "memory" : "cpu");
     StringBuilder body =
-        new StringBuilder("CPU 100%는 1코어 사용량이에요. 약 6초 간격으로 비교하며 메모리는 앱의 물리적 사용량을 보여줘요.\n\n");
+        new StringBuilder(
+            L10n.text("CPU 100%는 1코어 사용량이에요. 약 6초 간격으로 비교하며 메모리는 앱의 물리적 사용량을 보여줘요.\n\n"));
     if (rows != null)
       for (int i = 0; i < rows.length(); i++) {
         JSONObject row = rows.optJSONObject(i);
@@ -970,21 +1003,22 @@ public class MainActivity extends Activity {
             .append(row.optInt("pid"))
             .append(")\nCPU ")
             .append(metricPercent(metric(row, "cpuPercent")))
-            .append(" · 메모리 ")
+            .append(L10n.text(" · 메모리 "))
             .append(metricBytes(metric(row, "memoryBytes")))
             .append("\n\n");
       }
-    if (rows == null || rows.length() == 0) body.append("사용량을 비교하고 있어요. 잠시 후 다시 확인해 주세요.");
+    if (rows == null || rows.length() == 0)
+      body.append(L10n.text("사용량을 비교하고 있어요. 잠시 후 다시 확인해 주세요."));
     osDialog()
-        .setTitle(memoryOrder ? "메모리를 많이 쓰는 앱" : "CPU를 많이 쓰는 앱")
+        .setTitle(memoryOrder ? L10n.text("메모리를 많이 쓰는 앱") : L10n.text("CPU를 많이 쓰는 앱"))
         .setMessage(body.toString())
         .setPositiveButton(
-            memoryOrder ? "CPU 순으로" : "메모리 순으로",
+            memoryOrder ? L10n.text("CPU 순으로") : L10n.text("메모리 순으로"),
             (d, x) -> {
               JSONObject latest = macSystem();
               if (latest != null) systemProcesses(latest, !memoryOrder);
             })
-        .setNegativeButton("닫기", null)
+        .setNegativeButton(L10n.text("닫기"), null)
         .show();
   }
 
@@ -1014,7 +1048,7 @@ public class MainActivity extends Activity {
           .equals(grafanaProject(widget).optString("value"))) selected = i;
     }
     osDialog()
-        .setTitle("Grafana 프로젝트")
+        .setTitle(L10n.text("Grafana 프로젝트"))
         .setSingleChoiceItems(
             labels,
             selected,
@@ -1029,7 +1063,7 @@ public class MainActivity extends Activity {
               deck.updateState();
               d.dismiss();
             })
-        .setNegativeButton("닫기", null)
+        .setNegativeButton(L10n.text("닫기"), null)
         .show();
   }
 
@@ -1094,11 +1128,11 @@ public class MainActivity extends Activity {
   }
 
   private String sourceAge(long at) {
-    if (at <= 0) return "시각 없음";
+    if (at <= 0) return L10n.text("시각 없음");
     long seconds = Math.max(0, (hostNow() - at) / 1000);
     return seconds < 60
-        ? seconds + "초 전"
-        : seconds < 3600 ? seconds / 60 + "분 전" : seconds / 3600 + "시간 전";
+        ? seconds + L10n.text("초 전")
+        : seconds < 3600 ? seconds / 60 + L10n.text("분 전") : seconds / 3600 + L10n.text("시간 전");
   }
 
   private String sourceStamp(JSONObject data, String key) {
@@ -1106,14 +1140,16 @@ public class MainActivity extends Activity {
     long at = meta == null ? 0 : meta.optLong("sampleAt");
     if (at <= 0) {
       long last = meta == null ? 0 : meta.optLong("lastSampleAt");
-      return last > 0 ? "마지막 수집 " + osDate(last, "HH:mm:ss") + " · " + sourceAge(last) : "수집 시각 없음";
+      return last > 0
+          ? L10n.text("마지막 수집 ") + osDate(last, "HH:mm:ss") + " · " + sourceAge(last)
+          : L10n.text("수집 시각 없음");
     }
-    return "수집 " + osDate(at, "HH:mm:ss") + " · " + sourceAge(at);
+    return L10n.text("수집 ") + osDate(at, "HH:mm:ss") + " · " + sourceAge(at);
   }
 
   private String freshnessNotice(JSONObject widget, JSONObject data) {
-    if (!streamFresh()) return "연결 끊김";
-    if (!queryFresh(data)) return "조회 중단";
+    if (!streamFresh()) return L10n.text("연결 끊김");
+    if (!queryFresh(data)) return L10n.text("조회 중단");
     String[] keys =
         widget.optString("metric").equals("system")
             ? new String[] {"system", "collection"}
@@ -1121,19 +1157,21 @@ public class MainActivity extends Activity {
     boolean delayed = false, missing = false, any = false;
     for (String key : keys) {
       int status = sourceState(data, key);
-      if (status == DataFreshness.STALE) return "오래된 데이터";
+      if (status == DataFreshness.STALE) return L10n.text("오래된 데이터");
       if (status == DataFreshness.DELAYED) delayed = true;
       JSONObject meta = sourceMeta(data, key);
       if (meta != null && meta.optInt("missingSeries") > 0) missing = true;
       if (status == DataFreshness.MISSING) missing = true;
       else any = true;
     }
-    return delayed ? "수집 지연" : missing ? (any ? "일부 수집 없음" : "수집 없음") : null;
+    return delayed
+        ? L10n.text("수집 지연")
+        : missing ? (any ? L10n.text("일부 수집 없음") : L10n.text("수집 없음")) : null;
   }
 
   private String metricGiB(double value) {
     return Double.isFinite(value) && value >= 0
-        ? String.format(Locale.KOREA, "%.1f GiB", value / 1073741824d)
+        ? String.format(L10n.locale(), "%.1f GiB", value / 1073741824d)
         : "—";
   }
 
@@ -1211,7 +1249,7 @@ public class MainActivity extends Activity {
         || sourceState(data, key) == DataFreshness.MISSING) value = Double.NaN;
     return percent
         ? metricPercent(value)
-        : Double.isFinite(value) ? String.format(Locale.KOREA, "%,.2f", value) : "—";
+        : Double.isFinite(value) ? String.format(L10n.locale(), "%,.2f", value) : "—";
   }
 
   private TextView grafanaStat(LinearLayout row, String label, String hint) {
@@ -1260,18 +1298,25 @@ public class MainActivity extends Activity {
     TextView[] values = new TextView[system ? 3 : 6];
     values[0] =
         grafanaStat(
-            firstRow, system ? "시스템 CPU" : "DB CPU", system ? "서비스 보고값 중 최대" : "노드 최대 · 할당 한도 대비");
+            firstRow,
+            system ? L10n.text("시스템 CPU") : "DB CPU",
+            system ? L10n.text("서비스 보고값 중 최대") : L10n.text("노드 최대 · 할당 한도 대비"));
     values[1] =
-        grafanaStat(firstRow, system ? "수집 정상" : "TPS", system ? "정상 대상 / 전체 대상" : "커밋/초 · 5분 평균");
+        grafanaStat(
+            firstRow,
+            system ? L10n.text("수집 정상") : "TPS",
+            system ? L10n.text("정상 대상 / 전체 대상") : L10n.text("커밋/초 · 5분 평균"));
     values[2] =
         grafanaStat(
-            firstRow, system ? "보고 서비스" : "QPS", system ? "CPU 보고 job 수" : "쿼리/초 · 전체 노드 합계");
+            firstRow,
+            system ? L10n.text("보고 서비스") : "QPS",
+            system ? L10n.text("CPU 보고 job 수") : L10n.text("쿼리/초 · 전체 노드 합계"));
     if (!system) {
       LinearLayout secondRow = new LinearLayout(this);
       layout.addView(secondRow);
-      values[3] = grafanaStat(secondRow, "연결 수", "전체 노드의 현재 연결 합계");
-      values[4] = grafanaStat(secondRow, "DB 메모리", "노드 최대 · 할당 한도 대비");
-      values[5] = grafanaStat(secondRow, "DB 상태", "준비 상태 · 수집 대상 확인");
+      values[3] = grafanaStat(secondRow, L10n.text("연결 수"), L10n.text("전체 노드의 현재 연결 합계"));
+      values[4] = grafanaStat(secondRow, L10n.text("DB 메모리"), L10n.text("노드 최대 · 할당 한도 대비"));
+      values[5] = grafanaStat(secondRow, L10n.text("DB 상태"), L10n.text("준비 상태 · 수집 대상 확인"));
     }
     LinearLayout lower = new LinearLayout(this);
     LinearLayout.LayoutParams lowerParams =
@@ -1293,7 +1338,7 @@ public class MainActivity extends Activity {
     if (!system) {
       LinearLayout chartTabs = new LinearLayout(this);
       String[] keys = {"tps", "qps", "cpu", "memory"};
-      String[] labels = {"TPS", "QPS", "CPU", "메모리"};
+      String[] labels = {"TPS", "QPS", "CPU", L10n.text("메모리")};
       Button[] buttons = new Button[keys.length];
       for (int i = 0; i < keys.length; i++) {
         final int index = i;
@@ -1310,7 +1355,7 @@ public class MainActivity extends Activity {
         tabBackground.setColor(Color.parseColor("#36505e"));
         tabBackground.setCornerRadius(dp(8));
         button.setBackground(tabBackground);
-        button.setContentDescription("Grafana " + labels[i] + " 그래프");
+        button.setContentDescription("Grafana " + labels[i] + L10n.text(" 그래프"));
         LinearLayout.LayoutParams tabParams = new LinearLayout.LayoutParams(0, (int) dp(32), 1f);
         tabParams.setMargins((int) dp(2), 0, (int) dp(2), (int) dp(5));
         chartTabs.addView(button, tabParams);
@@ -1343,8 +1388,8 @@ public class MainActivity extends Activity {
           if (!ready) {
             updated.setText(
                 data == null
-                    ? "맥에서 Grafana 연결을 확인해 주세요."
-                    : data.optString("message", "지표를 조회하고 있어요."));
+                    ? L10n.text("맥에서 Grafana 연결을 확인해 주세요.")
+                    : data.optString("message", L10n.text("지표를 조회하고 있어요.")));
             graph.invalidate();
             return;
           }
@@ -1360,7 +1405,9 @@ public class MainActivity extends Activity {
                     : collection.optInt("healthy") + " / " + collection.optInt("total"));
             JSONArray services = cpu == null ? null : cpu.optJSONArray("nodes");
             values[2].setText(
-                services == null || services.length() == 0 ? "—" : services.length() + "개");
+                services == null || services.length() == 0
+                    ? "—"
+                    : services.length() + L10n.text("개"));
           } else {
             values[1].setText(grafanaNumber(data, "tps", false));
             values[2].setText(grafanaNumber(data, "qps", false));
@@ -1372,19 +1419,20 @@ public class MainActivity extends Activity {
             double connections = metric(database, "connections");
             values[3].setText(
                 Double.isFinite(connections)
-                    ? String.format(Locale.KOREA, "%,.0f", connections)
+                    ? String.format(L10n.locale(), "%,.0f", connections)
                     : "—");
             values[4].setText(grafanaNumber(data, "memory", true));
             ((TextView) values[4].getTag())
                 .setText(
-                    metricGiB(metric(data.optJSONObject("memory"), "usedBytes")) + " 사용 · 노드 최대");
+                    metricGiB(metric(data.optJSONObject("memory"), "usedBytes"))
+                        + L10n.text(" 사용 · 노드 최대"));
             values[5].setText(
                 database == null || database.isNull("ready")
-                    ? "확인 불가"
-                    : database.optBoolean("ready") ? "정상" : "확인 필요");
+                    ? L10n.text("확인 불가")
+                    : database.optBoolean("ready") ? L10n.text("정상") : L10n.text("확인 필요"));
           }
           TextView nodeTitle = new TextView(this);
-          nodeTitle.setText(system ? "서비스별 시스템 CPU" : "노드별 DB CPU · MEM");
+          nodeTitle.setText(system ? L10n.text("서비스별 시스템 CPU") : L10n.text("노드별 DB CPU · MEM"));
           nodeTitle.setTextSize(12);
           nodeTitle.setIncludeFontPadding(false);
           nodes.addView(nodeTitle);
@@ -1424,7 +1472,7 @@ public class MainActivity extends Activity {
                         + " · "
                         + metricGiB(
                             visibleGrafanaValue(widget, "memory", metric(row, "memoryUsedBytes")))
-                        + " 사용");
+                        + L10n.text(" 사용"));
                 memory.setTextSize(14);
                 memory.setIncludeFontPadding(false);
                 nodes.addView(memory);
@@ -1438,23 +1486,25 @@ public class MainActivity extends Activity {
               sourceStamp(data, system ? "system" : "cpu")
                   + " · "
                   + (freshnessNotice(widget, data) == null
-                      ? "정상 수집"
+                      ? L10n.text("정상 수집")
                       : freshnessNotice(widget, data))
-                  + "\n조회 "
+                  + L10n.text("\n조회 ")
                   + osDate(data.optLong("capturedAt"), "HH:mm:ss")
-                  + " · 30초 갱신 · 최근 1시간 추이"
-                  + (system ? " · 수집 성공 기준" : " · TPS는 Galera 로컬 커밋, QPS는 Questions 기준"));
+                  + L10n.text(" · 30초 갱신 · 최근 1시간 추이")
+                  + (system
+                      ? L10n.text(" · 수집 성공 기준")
+                      : L10n.text(" · TPS는 Galera 로컬 커밋, QPS는 Questions 기준")));
           graph.invalidate();
         };
     AlertDialog dialog =
         osDialog()
             .setTitle(
-                grafanaProject(widget).optString("label", "프로젝트")
+                grafanaProject(widget).optString("label", L10n.text("프로젝트"))
                     + " · "
-                    + widget.optString("label", system ? "시스템 상태" : "DB 상태"))
+                    + widget.optString("label", system ? L10n.text("시스템 상태") : L10n.text("DB 상태")))
             .setView(layout)
-            .setPositiveButton("프로젝트 변경", (d, x) -> grafanaChoose(widget))
-            .setNegativeButton("닫기", null)
+            .setPositiveButton(L10n.text("프로젝트 변경"), (d, x) -> grafanaChoose(widget))
+            .setNegativeButton(L10n.text("닫기"), null)
             .show();
     Runnable refresh =
         new Runnable() {
@@ -1500,7 +1550,7 @@ public class MainActivity extends Activity {
   }
 
   private AlertDialog.Builder osDialog() {
-    return new AlertDialog.Builder(this) {
+    return new AlertDialog.Builder(L10n.context(this)) {
       @Override
       public AlertDialog show() {
         AlertDialog dialog = super.show();
@@ -1558,17 +1608,17 @@ public class MainActivity extends Activity {
               .append("\n\n");
         }
       osDialog()
-          .setTitle("Jimin OS 알림")
-          .setMessage(text.length() == 0 ? "새 알림이 없어요." : text.toString())
-          .setPositiveButton("닫기", null)
+          .setTitle(L10n.text("Jimin OS 알림"))
+          .setMessage(text.length() == 0 ? L10n.text("새 알림이 없어요.") : text.toString())
+          .setPositiveButton(L10n.text("닫기"), null)
           .show();
       return;
     }
     if (osData() == null) {
       osDialog()
-          .setTitle("Jimin OS 연결 대기")
-          .setMessage("맥에서 Jimin OS 앱을 열고 로그인 상태를 확인해 주세요.")
-          .setPositiveButton("확인", null)
+          .setTitle(L10n.text("Jimin OS 연결 대기"))
+          .setMessage(L10n.text("맥에서 Jimin OS 앱을 열고 로그인 상태를 확인해 주세요."))
+          .setPositiveButton(L10n.text("확인"), null)
           .show();
       return;
     }
@@ -1599,20 +1649,22 @@ public class MainActivity extends Activity {
         continue;
       items.add(task);
       labels.add(
-          "할 일 · "
-              + (due == 0 ? "마감 없음" : osDate(due, "M/d HH:mm"))
+          L10n.text("할 일 · ")
+              + (due == 0 ? L10n.text("마감 없음") : osDate(due, "M/d HH:mm"))
               + "  "
               + task.optString("title"));
     }
     AlertDialog.Builder dialog =
         osDialog()
             .setTitle(
-                (tasksOnly ? "할 일" : day == null ? "다가오는 일정" : day + " 일정")
-                    + (osFresh() ? "" : " · 이전 데이터"))
-            .setNegativeButton("닫기", null);
+                (tasksOnly
+                        ? L10n.text("할 일")
+                        : day == null ? L10n.text("다가오는 일정") : day + L10n.text(" 일정"))
+                    + (osFresh() ? "" : L10n.text(" · 이전 데이터")))
+            .setNegativeButton(L10n.text("닫기"), null);
     if (!tasksOnly && osCan("scheduleCreate"))
-      dialog.setPositiveButton("일정 추가", (a, b) -> osCreateSchedule(widget, day));
-    if (items.isEmpty()) dialog.setMessage("등록된 일정이 없어요.");
+      dialog.setPositiveButton(L10n.text("일정 추가"), (a, b) -> osCreateSchedule(widget, day));
+    if (items.isEmpty()) dialog.setMessage(L10n.text("등록된 일정이 없어요."));
     else
       dialog.setItems(
           labels.toArray(new String[0]),
@@ -1628,21 +1680,21 @@ public class MainActivity extends Activity {
                                 ? osDate(instant(e.optString("startsAt")), "M월 d일 EEEE HH:mm")
                                     + " – "
                                     + osDate(instant(e.optString("endsAt")), "M/d HH:mm")
-                                : "마감 · "
+                                : L10n.text("마감 · ")
                                     + (instant(e.optString("dueAt")) == 0
-                                        ? "없음"
+                                        ? L10n.text("없음")
                                         : osDate(
                                             instant(e.optString("dueAt")), "M월 d일 EEEE HH:mm"))))
                     .setNeutralButton(
-                        "맥에서 열기",
+                        L10n.text("맥에서 열기"),
                         (a, b) ->
                             osAction(
                                 widget,
                                 e.has("startsAt") ? "open-schedule" : "open-task",
                                 e.optString("id")))
-                    .setNegativeButton("닫기", null);
+                    .setNegativeButton(L10n.text("닫기"), null);
             if (!e.has("startsAt") && osCan("taskComplete") && e.optInt("version") > 0)
-              detail.setPositiveButton("완료하기", (a, b) -> osCompleteTask(widget, e));
+              detail.setPositiveButton(L10n.text("완료하기"), (a, b) -> osCompleteTask(widget, e));
             detail.show();
           });
     dialog.show();
@@ -1710,10 +1762,10 @@ public class MainActivity extends Activity {
 
   private void osPickTime(Calendar date, Button button) {
     new DatePickerDialog(
-            this,
+            L10n.context(this),
             (picker, year, month, day) -> {
               new TimePickerDialog(
-                      this,
+                      L10n.context(this),
                       (clock, hour, minute) -> {
                         date.set(year, month, day, hour, minute, 0);
                         date.set(Calendar.MILLISECOND, 0);
@@ -1740,15 +1792,16 @@ public class MainActivity extends Activity {
           form,
           input.optString("operation").equals("create-schedule")
               ? input.optString("title")
-              : "할 일 완료 요청");
-      TextView status = osText(form, "이전 요청의 처리 결과를 확인해 주세요. 다시 시도해도 같은 요청으로 확인해 중복 저장을 막아요.");
+              : L10n.text("할 일 완료 요청"));
+      TextView status =
+          osText(form, L10n.text("이전 요청의 처리 결과를 확인해 주세요. 다시 시도해도 같은 요청으로 확인해 중복 저장을 막아요."));
       AlertDialog dialog =
           osDialog()
-              .setTitle("처리 결과 확인")
+              .setTitle(L10n.text("처리 결과 확인"))
               .setView(osScroll(form))
-              .setPositiveButton("상태 확인", null)
-              .setNeutralButton("같은 요청 재시도", null)
-              .setNegativeButton("닫기", null)
+              .setPositiveButton(L10n.text("상태 확인"), null)
+              .setNeutralButton(L10n.text("같은 요청 재시도"), null)
+              .setNegativeButton(L10n.text("닫기"), null)
               .show();
       OSWrite write = new OSWrite(dialog, status, input);
       dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener(v -> write.check());
@@ -1765,12 +1818,12 @@ public class MainActivity extends Activity {
     if (osResumePending()) return;
     if (!osCan("scheduleCreate")) {
       osDialog()
-          .setTitle("일정 추가 연결 대기")
+          .setTitle(L10n.text("일정 추가 연결 대기"))
           .setMessage(
               osData() != null
-                  ? "이전 데이터를 보여주고 있어요. 자동으로 다시 연결한 뒤 일정을 추가할 수 있어요.\n\n" + osSyncNotice()
-                  : "Jimin OS에 다시 연결하고 있어요. 맥에서 앱과 로그인을 확인해 주세요.")
-          .setPositiveButton("확인", null)
+                  ? L10n.text("이전 데이터를 보여주고 있어요. 자동으로 다시 연결한 뒤 일정을 추가할 수 있어요.\n\n") + osSyncNotice()
+                  : L10n.text("Jimin OS에 다시 연결하고 있어요. 맥에서 앱과 로그인을 확인해 주세요."))
+          .setPositiveButton(L10n.text("확인"), null)
           .show();
       return;
     }
@@ -1788,27 +1841,27 @@ public class MainActivity extends Activity {
     Calendar end = (Calendar) start.clone();
     end.add(Calendar.HOUR_OF_DAY, 1);
     LinearLayout form = osForm();
-    osText(form, "Jimin OS 캘린더에 저장해요. 시간은 한국 표준시예요.");
-    EditText title = osField(form, "일정 제목", 160, false);
-    osText(form, "시작");
+    osText(form, L10n.text("Jimin OS 캘린더에 저장해요. 시간은 한국 표준시예요."));
+    EditText title = osField(form, L10n.text("일정 제목"), 160, false);
+    osText(form, L10n.text("시작"));
     Button from = new Button(this);
     from.setText(osDate(start.getTimeInMillis(), "M월 d일 EEEE HH:mm"));
     form.addView(from);
     from.setOnClickListener(v -> osPickTime(start, from));
-    osText(form, "종료");
+    osText(form, L10n.text("종료"));
     Button to = new Button(this);
     to.setText(osDate(end.getTimeInMillis(), "M월 d일 EEEE HH:mm"));
     form.addView(to);
     to.setOnClickListener(v -> osPickTime(end, to));
-    EditText notes = osField(form, "메모 (선택)", 2000, true);
+    EditText notes = osField(form, L10n.text("메모 (선택)"), 2000, true);
     TextView status = osText(form, "");
     AlertDialog dialog =
         osDialog()
-            .setTitle("일정 추가")
+            .setTitle(L10n.text("일정 추가"))
             .setView(osScroll(form))
-            .setPositiveButton("저장", null)
-            .setNeutralButton("같은 요청 재시도", null)
-            .setNegativeButton("닫기", null)
+            .setPositiveButton(L10n.text("저장"), null)
+            .setNeutralButton(L10n.text("같은 요청 재시도"), null)
+            .setNegativeButton(L10n.text("닫기"), null)
             .show();
     dialog.getButton(AlertDialog.BUTTON_NEUTRAL).setVisibility(View.GONE);
     dialog
@@ -1816,11 +1869,11 @@ public class MainActivity extends Activity {
         .setOnClickListener(
             v -> {
               if (title.getText().toString().trim().isEmpty()) {
-                title.setError("제목을 입력해 주세요.");
+                title.setError(L10n.text("제목을 입력해 주세요."));
                 return;
               }
               if (end.getTimeInMillis() <= start.getTimeInMillis()) {
-                status.setText("종료 시간을 시작 시간 뒤로 설정해 주세요.");
+                status.setText(L10n.text("종료 시간을 시작 시간 뒤로 설정해 주세요."));
                 return;
               }
               try {
@@ -1853,16 +1906,18 @@ public class MainActivity extends Activity {
     LinearLayout form = osForm();
     osText(form, task.optString("title"));
     osText(
-        form, "완료하면 Jimin OS와 연결된 업무에도 반영돼요. 답글을 쓰면 일감에 저장하고, Google Chat에서 받은 일감은 원래 대화에도 전달해요.");
-    EditText note = osField(form, "완료 답글 (선택)", 2000, true);
+        form,
+        L10n.text(
+            "완료하면 Jimin OS와 연결된 업무에도 반영돼요. 답글을 쓰면 일감에 저장하고, Google Chat에서 받은 일감은 원래 대화에도 전달해요."));
+    EditText note = osField(form, L10n.text("완료 답글 (선택)"), 2000, true);
     TextView status = osText(form, "");
     AlertDialog dialog =
         osDialog()
-            .setTitle("할 일 완료")
+            .setTitle(L10n.text("할 일 완료"))
             .setView(osScroll(form))
-            .setPositiveButton("완료하기", null)
-            .setNeutralButton("같은 요청 재시도", null)
-            .setNegativeButton("닫기", null)
+            .setPositiveButton(L10n.text("완료하기"), null)
+            .setNeutralButton(L10n.text("같은 요청 재시도"), null)
+            .setNegativeButton(L10n.text("닫기"), null)
             .show();
     dialog.getButton(AlertDialog.BUTTON_NEUTRAL).setVisibility(View.GONE);
     dialog
@@ -1937,8 +1992,8 @@ public class MainActivity extends Activity {
     void run(boolean post) {
       if (busy || stopped) return;
       busy = true;
-      controls(false, "처리 확인 중…", false);
-      status.setText(post ? "Jimin OS에 저장하고 있어요…" : "저장 결과를 확인하고 있어요…");
+      controls(false, L10n.text("처리 확인 중…"), false);
+      status.setText(post ? L10n.text("Jimin OS에 저장하고 있어요…") : L10n.text("저장 결과를 확인하고 있어요…"));
       try {
         commands.execute(
             () -> {
@@ -1959,15 +2014,15 @@ public class MainActivity extends Activity {
                 ui.post(
                     () -> {
                       busy = false;
-                      status.setText("결과를 아직 확인하지 못했어요. 상태를 확인하거나 같은 요청을 다시 시도해 주세요.");
-                      controls(true, "상태 확인", true);
+                      status.setText(L10n.text("결과를 아직 확인하지 못했어요. 상태를 확인하거나 같은 요청을 다시 시도해 주세요."));
+                      controls(true, L10n.text("상태 확인"), true);
                     });
               }
             });
       } catch (RejectedExecutionException e) {
         busy = false;
-        status.setText("다른 요청이 진행 중이에요. 잠시 후 상태를 확인해 주세요.");
-        controls(true, "상태 확인", true);
+        status.setText(L10n.text("다른 요청이 진행 중이에요. 잠시 후 상태를 확인해 주세요."));
+        controls(true, L10n.text("상태 확인"), true);
       }
     }
 
@@ -1979,8 +2034,10 @@ public class MainActivity extends Activity {
         Toast.makeText(
                 MainActivity.this,
                 input.optString("operation").equals("create-schedule")
-                    ? "일정을 저장했어요."
-                    : receipt.optBoolean("alreadyCompleted") ? "이미 완료된 할 일이에요." : "할 일을 완료했어요.",
+                    ? L10n.text("일정을 저장했어요.")
+                    : receipt.optBoolean("alreadyCompleted")
+                        ? L10n.text("이미 완료된 할 일이에요.")
+                        : L10n.text("할 일을 완료했어요."),
                 Toast.LENGTH_SHORT)
             .show();
       } else if (value.equals("failed")) {
@@ -1988,15 +2045,15 @@ public class MainActivity extends Activity {
         String code = receipt.optString("error");
         status.setText(
             code.equals("CONFLICT")
-                ? "다른 곳에서 변경된 할 일이에요. 닫고 최신 목록에서 다시 확인해 주세요."
+                ? L10n.text("다른 곳에서 변경된 할 일이에요. 닫고 최신 목록에서 다시 확인해 주세요.")
                 : code.equals("AUTH_REQUIRED")
-                    ? "맥의 Jimin OS에서 로그인을 확인해 주세요."
-                    : "저장하지 못했어요. 닫고 내용을 확인한 뒤 다시 시도해 주세요.");
-        controls(true, "닫기", false);
+                    ? L10n.text("맥의 Jimin OS에서 로그인을 확인해 주세요.")
+                    : L10n.text("저장하지 못했어요. 닫고 내용을 확인한 뒤 다시 시도해 주세요."));
+        controls(true, L10n.text("닫기"), false);
         dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener(v -> dialog.dismiss());
       } else if (value.equals("running")) {
-        status.setText("Jimin OS에서 처리 중이에요. 이 창을 닫아도 다음 요청 때 결과를 확인할 수 있어요.");
-        controls(true, "상태 확인", false);
+        status.setText(L10n.text("Jimin OS에서 처리 중이에요. 이 창을 닫아도 다음 요청 때 결과를 확인할 수 있어요."));
+        controls(true, L10n.text("상태 확인"), false);
         if (++polls < 30 && dialog.isShowing())
           ui.postDelayed(
               () -> {
@@ -2004,8 +2061,8 @@ public class MainActivity extends Activity {
               },
               1000);
       } else {
-        status.setText("저장 여부를 확인해야 해요. 같은 요청을 다시 시도하면 중복 여부를 먼저 확인해요.");
-        controls(true, "상태 확인", true);
+        status.setText(L10n.text("저장 여부를 확인해야 해요. 같은 요청을 다시 시도하면 중복 여부를 먼저 확인해요."));
+        controls(true, L10n.text("상태 확인"), true);
       }
     }
   }
@@ -2087,7 +2144,7 @@ public class MainActivity extends Activity {
 
   private void pairScreen() {
     deck = null;
-    base = "http://127.0.0.1:8840";
+    base = ("http://127.0.0.1:" + BuildConfig.USB_PORT);
     LinearLayout wrap = new LinearLayout(this);
     wrap.setOrientation(LinearLayout.VERTICAL);
     wrap.setPadding((int) dp(40), (int) dp(35), (int) dp(40), (int) dp(30));
@@ -2103,18 +2160,20 @@ public class MainActivity extends Activity {
     card.setBackground(bg);
     TextView mark = text("◈  OPEN DECK", 15, color("#a5b5ff"));
     card.addView(mark);
-    TextView title = text("내 책상과 연결하기", 28, Color.WHITE);
+    TextView title = text(L10n.text("내 책상과 연결하기"), 28, Color.WHITE);
     title.setPadding(0, (int) dp(25), 0, (int) dp(12));
     card.addView(title);
     TextView help =
         text(
-            "최초 등록은 USB로 맥에 연결하고 Open Deck 앱을 실행하세요.\n6자리 코드로 등록하면 같은 Wi-Fi에서 무선으로 사용할 수 있습니다.",
+            L10n.text(
+                "최초 등록은 USB로 맥에 연결하고 Open Deck 앱을 실행하세요.\n"
+                    + "6자리 코드로 등록하면 같은 Wi-Fi에서 무선으로 사용할 수 있습니다."),
             14,
             color("#9caec9"));
     help.setLineSpacing(dp(5), 1);
     card.addView(help);
     EditText code = new EditText(this);
-    code.setHint("6자리 페어링 코드");
+    code.setHint(L10n.text("6자리 페어링 코드"));
     code.setTextColor(Color.WHITE);
     code.setHintTextColor(color("#7689a8"));
     code.setTextSize(24);
@@ -2126,17 +2185,17 @@ public class MainActivity extends Activity {
     TextView error = text("", 13, color("#ffa5a5"));
     card.addView(error);
     Button connect = new Button(this);
-    connect.setText("연결하기");
+    connect.setText(L10n.text("연결하기"));
     card.addView(connect, new LinearLayout.LayoutParams(-1, (int) dp(52)));
     connect.setOnClickListener(
         v -> {
           String pin = code.getText().toString().trim();
           if (!pin.matches("[0-9]{6}")) {
-            error.setText("6자리 코드를 입력하세요.");
+            error.setText(L10n.text("6자리 코드를 입력하세요."));
             return;
           }
           connect.setEnabled(false);
-          error.setText("연결 중…");
+          error.setText(L10n.text("연결 중…"));
           commands.execute(
               () -> {
                 try {
@@ -2156,16 +2215,17 @@ public class MainActivity extends Activity {
                   ui.post(
                       () -> {
                         connect.setEnabled(true);
-                        error.setText("연결하지 못했습니다. USB와 맥 앱, 페어링 코드를 확인하세요.\n" + e.getMessage());
+                        error.setText(
+                            L10n.text("연결하지 못했습니다. USB와 맥 앱, 페어링 코드를 확인하세요.\n") + e.getMessage());
                       });
                 }
               });
         });
-    TextView note = text("계정 없이 · 구독 없이 · 내 기기에서만", 12, color("#7185a7"));
+    TextView note = text(L10n.text("계정 없이 · 구독 없이 · 내 기기에서만"), 12, color("#7185a7"));
     note.setPadding(0, (int) dp(22), 0, 0);
     card.addView(note);
     Button settingsEntry = new Button(this);
-    settingsEntry.setText("앱 설정");
+    settingsEntry.setText(L10n.text("앱 설정"));
     settingsEntry.setOnClickListener(v -> settings());
     card.addView(settingsEntry);
     wrap.addView(
@@ -2194,7 +2254,8 @@ public class MainActivity extends Activity {
 
   private JSONObject requestWithToken(
       String route, String method, JSONObject body, String pairedToken) throws Exception {
-    HttpURLConnection c = PinnedConnection.open(base + route, wifiPin);
+    HttpURLConnection c =
+        PinnedConnection.open(base + route, wifiPin, settingBool("allowInsecureWifi"));
     c.setConnectTimeout(2200);
     c.setReadTimeout(12000);
     c.setRequestMethod(method);
@@ -2211,7 +2272,8 @@ public class MainActivity extends Activity {
       InputStream in = status < 400 ? c.getInputStream() : c.getErrorStream();
       String response = in == null ? "{}" : readBody(in);
       JSONObject data = new JSONObject(response);
-      if (status >= 400) throw new IOException(data.optString("error", "HTTP " + status));
+      if (status >= 400)
+        throw new IOException(L10n.error(data.optString("error", "HTTP " + status)));
       return data;
     } finally {
       c.disconnect();
@@ -2223,7 +2285,7 @@ public class MainActivity extends Activity {
     byte[] buffer = new byte[4096];
     int n;
     while ((n = in.read(buffer)) != -1) {
-      if (out.size() + n > 524288) throw new IOException("응답이 너무 큽니다.");
+      if (out.size() + n > 524288) throw new IOException(L10n.text("응답이 너무 큽니다."));
       out.write(buffer, 0, n);
     }
     return out.toString("UTF-8");
@@ -2242,7 +2304,7 @@ public class MainActivity extends Activity {
       boolean switchToWifi = false;
       HttpURLConnection c = null;
       try {
-        c = PinnedConnection.open(base + "/api/events", wifiPin);
+        c = PinnedConnection.open(base + "/api/events", wifiPin, settingBool("allowInsecureWifi"));
         eventConnection = c;
         c.setConnectTimeout(2500);
         c.setReadTimeout(6000);
@@ -2318,7 +2380,8 @@ public class MainActivity extends Activity {
           }
         }
       } catch (Exception e) {
-        connectionError = e.getMessage() == null ? "연결할 수 없습니다." : e.getMessage();
+        connectionError =
+            e.getMessage() == null ? L10n.text("연결할 수 없습니다.") : L10n.error(e.getMessage());
         recordConnection("retry", e.getClass().getSimpleName());
         if (!stopped) {
           connected = false;
@@ -2359,7 +2422,9 @@ public class MainActivity extends Activity {
     for (int i = 0; i < Math.min(2, wifiUrls.size()); i++) {
       HttpURLConnection probe = null;
       try {
-        probe = PinnedConnection.open(wifiUrls.get(i) + "/health", wifiPin);
+        probe =
+            PinnedConnection.open(
+                wifiUrls.get(i) + "/health", wifiPin, settingBool("allowInsecureWifi"));
         probe.setConnectTimeout(700);
         probe.setReadTimeout(700);
         if (probe.getResponseCode() == 200) return true;
@@ -2373,8 +2438,11 @@ public class MainActivity extends Activity {
 
   private List<String> endpoints() {
     List<String> urls = new ArrayList<>();
-    if (!"usb".equals(transport) && !wifiPin.isEmpty()) urls.addAll(wifiUrls);
-    if (!"wifi".equals(transport) || urls.isEmpty()) urls.add("http://127.0.0.1:8840");
+    if (!"usb".equals(transport) && !wifiPin.isEmpty()) {
+      for (String url : wifiUrls) if (validWifiUrl(url)) urls.add(url);
+      urls.sort((a, b) -> Boolean.compare(!a.startsWith("https:"), !b.startsWith("https:")));
+    }
+    if (!"wifi".equals(transport) || urls.isEmpty()) urls.add(("http://127.0.0.1:" + BuildConfig.USB_PORT));
     return urls;
   }
 
@@ -2403,7 +2471,7 @@ public class MainActivity extends Activity {
   }
 
   private boolean validWifiUrl(String value) {
-    return ClientSettingsPolicy.validWifiUrl(value);
+    return ClientSettingsPolicy.validWifiUrl(value, settingBool("allowInsecureWifi"));
   }
 
   private void reconnect(String mode) {
@@ -2417,36 +2485,44 @@ public class MainActivity extends Activity {
 
   private void connectionSettings() {
     String mode =
-        "wifi".equals(transport) ? "Wi-Fi" : "usb".equals(transport) ? "USB" : "자동 (Wi-Fi 우선)";
-    new AlertDialog.Builder(this)
-        .setTitle("연결: " + mode)
+        "wifi".equals(transport)
+            ? "Wi-Fi"
+            : "usb".equals(transport) ? "USB" : L10n.text("자동 (Wi-Fi 우선)");
+    new AlertDialog.Builder(L10n.context(this))
+        .setTitle(L10n.text("연결: ") + mode)
         .setItems(
             new String[] {
-              "자동: Wi-Fi 우선 · USB 대체", "Wi-Fi로만 연결", "USB로만 연결", "맥 Wi-Fi 주소 관리", "현재 연결 정보"
+              L10n.text("자동: Wi-Fi 우선 · USB 대체"),
+              L10n.text("Wi-Fi로만 연결"),
+              L10n.text("USB로만 연결"),
+              L10n.text("맥 Wi-Fi 주소 관리"),
+              L10n.text("현재 연결 정보")
             },
             (d, index) -> {
               if (index < 3) {
                 if (index == 1 && wifiPin.isEmpty()) {
-                  Toast.makeText(this, "USB로 한 번 연결해 Wi-Fi 인증서를 등록하세요.", Toast.LENGTH_LONG).show();
+                  Toast.makeText(
+                          this, L10n.text("USB로 한 번 연결해 Wi-Fi 인증서를 등록하세요."), Toast.LENGTH_LONG)
+                      .show();
                   return;
                 }
                 reconnect(new String[] {"auto", "wifi", "usb"}[index]);
               } else if (index == 3) {
                 wifiAddressSettings();
               } else {
-                new AlertDialog.Builder(this)
-                    .setTitle("연결 정보")
+                new AlertDialog.Builder(L10n.context(this))
+                    .setTitle(L10n.text("연결 정보"))
                     .setMessage(
-                        (connected ? "연결됨: " : "재연결 중: ")
+                        (connected ? L10n.text("연결됨: ") : L10n.text("재연결 중: "))
                             + base
-                            + "\n\n인증서: "
-                            + (wifiPin.isEmpty() ? "미등록 · USB로 먼저 연결하세요" : wifiPin)
+                            + L10n.text("\n\n인증서: ")
+                            + (wifiPin.isEmpty() ? L10n.text("미등록 · USB로 먼저 연결하세요") : wifiPin)
                             + (connectionError.isEmpty() ? "" : "\n\n" + connectionError))
-                    .setPositiveButton("확인", null)
+                    .setPositiveButton(L10n.text("확인"), null)
                     .show();
               }
             })
-        .setNegativeButton("닫기", null)
+        .setNegativeButton(L10n.text("닫기"), null)
         .show();
   }
 
@@ -2462,10 +2538,10 @@ public class MainActivity extends Activity {
 
   private void discoverHosts() {
     if (wifiPin.isEmpty()) {
-      new AlertDialog.Builder(this)
-          .setTitle("최초 등록이 필요합니다")
-          .setMessage("USB로 한 번 등록한 뒤 같은 맥의 Wi-Fi 주소를 자동으로 찾을 수 있습니다.")
-          .setPositiveButton("확인", null)
+      new AlertDialog.Builder(L10n.context(this))
+          .setTitle(L10n.text("최초 등록이 필요합니다"))
+          .setMessage(L10n.text("USB로 한 번 등록한 뒤 같은 맥의 Wi-Fi 주소를 자동으로 찾을 수 있습니다."))
+          .setPositiveButton(L10n.text("확인"), null)
           .show();
       return;
     }
@@ -2474,18 +2550,18 @@ public class MainActivity extends Activity {
     rows.setOrientation(LinearLayout.VERTICAL);
     rows.setPadding((int) dp(20), (int) dp(12), (int) dp(20), (int) dp(12));
     TextView status = new TextView(this);
-    status.setText("같은 Wi-Fi에서 등록한 맥을 찾고 있습니다…");
+    status.setText(L10n.text("같은 Wi-Fi에서 등록한 맥을 찾고 있습니다…"));
     rows.addView(status);
     AlertDialog dialog =
-        new AlertDialog.Builder(this)
-            .setTitle("Wi-Fi 호스트 검색")
+        new AlertDialog.Builder(L10n.context(this))
+            .setTitle(L10n.text("Wi-Fi 호스트 검색"))
             .setView(rows)
-            .setNegativeButton("닫기", null)
+            .setNegativeButton(L10n.text("닫기"), null)
             .create();
     Set<String> found = ConcurrentHashMap.newKeySet();
     discoveryManager = getSystemService(android.net.nsd.NsdManager.class);
     if (discoveryManager == null) {
-      Toast.makeText(this, "이 기기에서 호스트 검색을 사용할 수 없습니다.", Toast.LENGTH_LONG).show();
+      Toast.makeText(this, L10n.text("이 기기에서 호스트 검색을 사용할 수 없습니다."), Toast.LENGTH_LONG).show();
       return;
     }
     android.net.nsd.NsdManager.DiscoveryListener listener =
@@ -2495,7 +2571,7 @@ public class MainActivity extends Activity {
           public void onDiscoveryStopped(String type) {}
 
           public void onStartDiscoveryFailed(String type, int error) {
-            ui.post(() -> status.setText("검색을 시작하지 못했습니다. 주소를 직접 추가할 수 있습니다."));
+            ui.post(() -> status.setText(L10n.text("검색을 시작하지 못했습니다. 주소를 직접 추가할 수 있습니다.")));
           }
 
           public void onStopDiscoveryFailed(String type, int error) {}
@@ -2511,8 +2587,16 @@ public class MainActivity extends Activity {
 
                   public void onServiceResolved(android.net.nsd.NsdServiceInfo info) {
                     if (info.getHost() == null) return;
+                    byte[] tlsAttribute = info.getAttributes().get("tls");
+                    boolean plaintext =
+                        tlsAttribute != null
+                            && new String(tlsAttribute, StandardCharsets.UTF_8).equals("0");
+                    if (plaintext && !settingBool("allowInsecureWifi")) return;
                     String address =
-                        "https://" + info.getHost().getHostAddress() + ":" + info.getPort();
+                        (plaintext ? "http://" : "https://")
+                            + info.getHost().getHostAddress()
+                            + ":"
+                            + info.getPort();
                     if (!validWifiUrl(address)
                         || !found.add(address)
                         || settingRequests.isShutdown()) return;
@@ -2520,14 +2604,19 @@ public class MainActivity extends Activity {
                         () -> {
                           HttpURLConnection connection = null;
                           try {
-                            connection = PinnedConnection.open(address + "/health", wifiPin);
+                            connection =
+                                PinnedConnection.open(
+                                    address + "/health", wifiPin, settingBool("allowInsecureWifi"));
                             connection.setConnectTimeout(1500);
                             connection.setReadTimeout(1500);
                             if (connection.getResponseCode() != 200) return;
                             ui.post(
                                 () -> {
                                   if (!dialog.isShowing()) return;
-                                  status.setText("저장된 인증서가 일치하는 맥을 찾았습니다.");
+                                  status.setText(
+                                      plaintext
+                                          ? L10n.text("암호화하지 않는 LAN 호스트를 찾았습니다. 연결 전에 주소를 확인하세요.")
+                                          : L10n.text("저장된 인증서가 일치하는 맥을 찾았습니다."));
                                   Button item = new Button(MainActivity.this);
                                   item.setAllCaps(false);
                                   item.setText(info.getServiceName() + "\n" + address);
@@ -2543,7 +2632,7 @@ public class MainActivity extends Activity {
                                         dialog.dismiss();
                                         Toast.makeText(
                                                 MainActivity.this,
-                                                "맥 주소를 저장했습니다.",
+                                                L10n.text("맥 주소를 저장했습니다."),
                                                 Toast.LENGTH_SHORT)
                                             .show();
                                       });
@@ -2567,35 +2656,38 @@ public class MainActivity extends Activity {
       discoveryManager.discoverServices(
           "_opendeck._tcp.", android.net.nsd.NsdManager.PROTOCOL_DNS_SD, listener);
     } catch (Exception e) {
-      status.setText("검색을 시작하지 못했습니다. 주소를 직접 추가할 수 있습니다.");
+      status.setText(L10n.text("검색을 시작하지 못했습니다. 주소를 직접 추가할 수 있습니다."));
     }
     ui.postDelayed(
         () -> {
           if (dialog.isShowing() && discoveryListener == listener) {
             stopHostDiscovery();
             if (rows.getChildCount() == 1)
-              status.setText("등록한 맥을 찾지 못했습니다. 같은 Wi-Fi인지 확인하거나 주소를 직접 추가하세요.");
+              status.setText(L10n.text("등록한 맥을 찾지 못했습니다. 같은 Wi-Fi인지 확인하거나 주소를 직접 추가하세요."));
           }
         },
         10000);
   }
 
   private void wifiAddressSettings() {
-    ClientSettingsPanel p = panel("맥 Wi-Fi 주소", "등록한 주소를 순서대로 시도합니다. 기존 인증서가 일치하는 맥에만 연결합니다.");
+    ClientSettingsPanel p =
+        panel(L10n.text("맥 Wi-Fi 주소"), L10n.text("등록한 주소를 순서대로 시도합니다. 기존 인증서가 일치하는 맥에만 연결합니다."));
     List<String> addresses = new ArrayList<>(wifiUrls);
     for (String address : addresses)
       p.action(
           address,
-          "탭하여 수정하거나 제거",
+          L10n.text("탭하여 수정하거나 제거"),
           () -> {
-            new AlertDialog.Builder(this)
+            new AlertDialog.Builder(L10n.context(this))
                 .setTitle(address)
                 .setItems(
-                    new String[] {"주소 수정", "주소 제거"},
+                    new String[] {L10n.text("주소 수정"), L10n.text("주소 제거")},
                     (d, index) -> {
                       if (index == 0) editWifiAddress(address);
                       else if (wifiUrls.size() <= 1)
-                        Toast.makeText(this, "Wi-Fi 주소는 하나 이상 유지해야 합니다.", Toast.LENGTH_LONG).show();
+                        Toast.makeText(
+                                this, L10n.text("Wi-Fi 주소는 하나 이상 유지해야 합니다."), Toast.LENGTH_LONG)
+                            .show();
                       else {
                         List<String> next = new ArrayList<>(wifiUrls);
                         next.remove(address);
@@ -2603,26 +2695,29 @@ public class MainActivity extends Activity {
                         wifiAddressSettings();
                       }
                     })
-                .setNegativeButton("취소", null)
+                .setNegativeButton(L10n.text("취소"), null)
                 .show();
           });
-    p.action("주소 추가", "맥 편집기에 표시된 HTTPS 주소를 입력합니다.", () -> editWifiAddress(null));
+    p.action(
+        L10n.text("주소 추가"), L10n.text("맥 편집기에 표시된 HTTPS 주소를 입력합니다."), () -> editWifiAddress(null));
     p.show();
   }
 
   private void editWifiAddress(String previous) {
-    ClientSettingsPanel p = panel("Wi-Fi 주소", "");
+    ClientSettingsPanel p = panel(L10n.text("Wi-Fi 주소"), "");
     p.input(
-        "맥 Wi-Fi 주소",
+        L10n.text("맥 Wi-Fi 주소"),
         previous == null ? "https://192.168.0.1:8841" : previous,
-        "사설 IP의 HTTPS 주소와 포트를 입력하세요. 최초 인증서 등록에는 USB가 필요합니다.",
+        settingBool("allowInsecureWifi")
+            ? L10n.text("사설 IP와 포트를 입력하세요. HTTPS를 우선 사용하며 HTTP 연결은 암호화되지 않습니다.")
+            : L10n.text("사설 IP의 HTTPS 주소와 포트를 입력하세요. 최초 인증서 등록에는 USB가 필요합니다."),
         value -> {
           if (!validWifiUrl(value))
-            throw new IllegalArgumentException("예: https://192.168.0.10:8841");
+            throw new IllegalArgumentException(L10n.text("예: https://192.168.0.10:8841"));
           List<String> next = new ArrayList<>(wifiUrls);
           if (previous != null) next.remove(previous);
           if (!next.contains(value)) next.add(value);
-          if (next.size() > 8) throw new IllegalArgumentException("주소는 최대 8개입니다.");
+          if (next.size() > 8) throw new IllegalArgumentException(L10n.text("주소는 최대 8개입니다."));
           saveWifiAddresses(next);
         });
   }
@@ -2781,7 +2876,9 @@ public class MainActivity extends Activity {
           () -> {
             HttpURLConnection c = null;
             try {
-              c = PinnedConnection.open(base + "/api/assets/" + id, wifiPin);
+              c =
+                  PinnedConnection.open(
+                      base + "/api/assets/" + id, wifiPin, settingBool("allowInsecureWifi"));
               c.setConnectTimeout(2500);
               c.setReadTimeout(5000);
               c.setRequestProperty("Authorization", "Bearer " + token);
@@ -2833,13 +2930,13 @@ public class MainActivity extends Activity {
     if (all == null) all = new JSONArray();
     final JSONArray items = all;
     String[] labels = new String[items.length() + 1];
-    labels[0] = "＋ 할 일 추가";
+    labels[0] = L10n.text("＋ 할 일 추가");
     for (int i = 0; i < items.length(); i++) {
       JSONObject item = items.optJSONObject(i);
       labels[i + 1] = (item.optBoolean("done") ? "✓ " : "○ ") + item.optString("text");
     }
-    new AlertDialog.Builder(this)
-        .setTitle(w.optString("label", "할 일"))
+    new AlertDialog.Builder(L10n.context(this))
+        .setTitle(w.optString("label", L10n.text("할 일")))
         .setItems(
             labels,
             (d, index) -> {
@@ -2850,12 +2947,12 @@ public class MainActivity extends Activity {
                     new android.text.InputFilter[] {
                       new android.text.InputFilter.LengthFilter(160)
                     });
-                new AlertDialog.Builder(this)
-                    .setTitle("새 할 일")
+                new AlertDialog.Builder(L10n.context(this))
+                    .setTitle(L10n.text("새 할 일"))
                     .setView(input)
-                    .setNegativeButton("취소", null)
+                    .setNegativeButton(L10n.text("취소"), null)
                     .setPositiveButton(
-                        "추가",
+                        L10n.text("추가"),
                         (x, y) -> {
                           try {
                             action(
@@ -2870,10 +2967,13 @@ public class MainActivity extends Activity {
                     .show();
               } else {
                 JSONObject item = items.optJSONObject(index - 1);
-                new AlertDialog.Builder(this)
+                new AlertDialog.Builder(L10n.context(this))
                     .setTitle(item.optString("text"))
                     .setItems(
-                        new String[] {item.optBoolean("done") ? "다시 진행" : "완료로 표시", "삭제"},
+                        new String[] {
+                          item.optBoolean("done") ? L10n.text("다시 진행") : L10n.text("완료로 표시"),
+                          L10n.text("삭제")
+                        },
                         (x, y) -> {
                           try {
                             action(
@@ -2888,7 +2988,7 @@ public class MainActivity extends Activity {
                     .show();
               }
             })
-        .setNegativeButton("닫기", null)
+        .setNegativeButton(L10n.text("닫기"), null)
         .show();
   }
 
@@ -2937,7 +3037,7 @@ public class MainActivity extends Activity {
 
   private void action(JSONObject body) {
     if (!connected) {
-      Toast.makeText(this, "맥 연결을 기다리는 중입니다.", Toast.LENGTH_SHORT).show();
+      Toast.makeText(this, L10n.text("맥 연결을 기다리는 중입니다."), Toast.LENGTH_SHORT).show();
       return;
     }
     String id = body.optString("id", "volume");
@@ -2957,7 +3057,7 @@ public class MainActivity extends Activity {
           });
     } catch (RejectedExecutionException e) {
       pending.remove(id);
-      Toast.makeText(this, "다른 동작이 진행 중입니다. 잠시 후 다시 눌러 주세요.", Toast.LENGTH_SHORT).show();
+      Toast.makeText(this, L10n.text("다른 동작이 진행 중입니다. 잠시 후 다시 눌러 주세요."), Toast.LENGTH_SHORT).show();
     }
   }
 
@@ -3088,6 +3188,7 @@ public class MainActivity extends Activity {
     if (Objects.equals(clientSettings.get(key), validated)) return;
     clientSettings.put(key, validated);
     pendingSettings.put(key, validated);
+    if (key.equals("allowInsecureWifi")) reconnect(transport);
     if (key.equals("profileId")) {
       clientSettings.put("startPageId", "");
       pendingSettings.put("startPageId", "");
@@ -3203,6 +3304,15 @@ public class MainActivity extends Activity {
 
   private void applyClientSettings() {
     if (prefs == null) return;
+    boolean localeChanged = L10n.configure(this, settingString("language"));
+    if (localeChanged) {
+      if (ClientSettingsPanel.dismissForLocaleChange()) ui.post(this::displaySettings);
+      osDateFormats.clear();
+      if (deck != null) {
+        deck.dateFormat.applyPattern(L10n.datePattern("M월 d일 EEEE"));
+        deck.dateFormat.setDateFormatSymbols(new java.text.DateFormatSymbols(L10n.locale()));
+      }
+    }
     if (settingBool("awake")) getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
     else getWindow().clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
     String orientation = settingString("orientation");
@@ -3343,15 +3453,15 @@ public class MainActivity extends Activity {
         + Build.MANUFACTURER
         + " "
         + Build.MODEL
-        + "\n연결: "
-        + (streamFresh() ? "연결됨" : "재연결 중")
+        + L10n.text("\n연결: ")
+        + (streamFresh() ? L10n.text("연결됨") : L10n.text("재연결 중"))
         + " · "
         + transport
-        + "\nWi-Fi 인증서: "
-        + (wifiPin.isEmpty() ? "미등록" : "등록됨")
-        + "\n설정 동기화: "
-        + (pendingSettings.isEmpty() ? "완료" : "연결 후 재시도 예정")
-        + "\n설정 버전: "
+        + L10n.text("\nWi-Fi 인증서: ")
+        + (wifiPin.isEmpty() ? L10n.text("미등록") : L10n.text("등록됨"))
+        + L10n.text("\n설정 동기화: ")
+        + (pendingSettings.isEmpty() ? L10n.text("완료") : L10n.text("연결 후 재시도 예정"))
+        + L10n.text("\n설정 버전: ")
         + settingsRevision
         + "\n\n"
         + String.join("\n", connectionLog);
@@ -3381,98 +3491,154 @@ public class MainActivity extends Activity {
 
   private void settings() {
     wakeDisplay();
-    ClientSettingsPanel p = panel("Open Deck · 설정", "이 태블릿의 설정은 자동 저장됩니다. 맥의 기기 설정과도 연결됩니다.");
-    p.action("화면 · 밝기", "테마, 회전, 글자 크기와 렌더링", this::displaySettings);
-    p.action("터치 · 페이지 이동", "진동, 효과음, 제스처와 메뉴 표시", this::inputSettings);
-    p.action("화면 보호", "유휴 밝기, 시계와 첫 터치 동작", this::idleSettings);
-    p.action("프로필 · 시작 페이지", "사용할 프로필과 앱을 열 때 표시할 페이지", this::startupSettings);
-    p.action("연결 · 기기 이름", "Wi-Fi / USB, 재연결과 기기 이름", this::deviceSettings);
-    p.action("알림", "OS 일정, 시스템·DB 경고와 배너", this::notificationSettings);
-    p.action("정보 · 진단 · 초기화", "버전 " + appVersion() + " · 연결 기록", this::diagnosticSettings);
-    p.note("설정 버튼을 숨겨도 화면 오른쪽 위 모서리를 1초간 누르면 다시 열립니다.");
+    ClientSettingsPanel p =
+        panel(L10n.text("Open Deck · 설정"), L10n.text("이 태블릿의 설정은 자동 저장됩니다. 맥의 기기 설정과도 연결됩니다."));
+    p.action(L10n.text("화면 · 밝기"), L10n.text("테마, 회전, 글자 크기와 렌더링"), this::displaySettings);
+    p.action(L10n.text("터치 · 페이지 이동"), L10n.text("진동, 효과음, 제스처와 메뉴 표시"), this::inputSettings);
+    p.action(L10n.text("화면 보호"), L10n.text("유휴 밝기, 시계와 첫 터치 동작"), this::idleSettings);
+    p.action(
+        L10n.text("프로필 · 시작 페이지"), L10n.text("사용할 프로필과 앱을 열 때 표시할 페이지"), this::startupSettings);
+    p.action(L10n.text("연결 · 기기 이름"), L10n.text("Wi-Fi / USB, 재연결과 기기 이름"), this::deviceSettings);
+    p.action(L10n.text("알림"), L10n.text("OS 일정, 시스템·DB 경고와 배너"), this::notificationSettings);
+    p.action(
+        L10n.text("정보 · 진단 · 초기화"),
+        L10n.text("버전 ") + appVersion() + L10n.text(" · 연결 기록"),
+        this::diagnosticSettings);
+    p.note(L10n.text("설정 버튼을 숨겨도 화면 오른쪽 위 모서리를 1초간 누르면 다시 열립니다."));
     p.show();
   }
 
   private void displaySettings() {
-    ClientSettingsPanel p = panel("화면 · 밝기", "덱의 페이지 색상과 배치는 맥 편집기에서 설정합니다.");
-    p.choices("theme", "설정 화면 테마", choices("기기 설정 따르기", "system", "밝게", "light", "어둡게", "dark"));
+    ClientSettingsPanel p = panel(L10n.text("화면 · 밝기"), L10n.text("덱의 페이지 색상과 배치는 맥 편집기에서 설정합니다."));
+    Map<String, Object> languageChoices = new LinkedHashMap<>();
+    for (Map.Entry<String, String> language : LocalePolicy.languages().entrySet())
+      languageChoices.put(
+          language.getKey().equals("system") ? L10n.text("기기 설정 따르기") : language.getValue(),
+          language.getKey());
+    p.choices("language", L10n.text("언어"), languageChoices);
     p.choices(
-        "orientation", "화면 회전", choices("자동", "auto", "가로 고정", "landscape", "세로 고정", "portrait"));
-    p.toggle("fullscreen", "전체 화면", "Android 상태 표시줄과 탐색 막대를 숨깁니다.");
-    p.toggle("awake", "화면 켜짐 유지", "Open Deck이 열려 있는 동안 자동 꺼짐을 막습니다.");
+        "theme",
+        L10n.text("설정 화면 테마"),
+        choices(
+            L10n.text("기기 설정 따르기"), "system", L10n.text("밝게"), "light", L10n.text("어둡게"), "dark"));
+    p.choices(
+        "orientation",
+        L10n.text("화면 회전"),
+        choices(
+            L10n.text("자동"),
+            "auto",
+            L10n.text("가로 고정"),
+            "landscape",
+            L10n.text("세로 고정"),
+            "portrait"));
+    p.toggle("fullscreen", L10n.text("전체 화면"), L10n.text("Android 상태 표시줄과 탐색 막대를 숨깁니다."));
+    p.toggle("awake", L10n.text("화면 켜짐 유지"), L10n.text("Open Deck이 열려 있는 동안 자동 꺼짐을 막습니다."));
     p.choices(
         "brightness",
-        "앱 밝기",
-        choices("기기 설정 따르기", -1, "10%", 10, "25%", 25, "50%", 50, "75%", 75, "100%", 100));
-    p.slider("textScale", "덱 글자 크기", 80, 160, 10, "%");
-    p.choices("timeFormat", "시계 표시", choices("24시간", "24h", "12시간", "12h"));
+        L10n.text("앱 밝기"),
+        choices(
+            L10n.text("기기 설정 따르기"), -1, "10%", 10, "25%", 25, "50%", 50, "75%", 75, "100%", 100));
+    p.slider("textScale", L10n.text("덱 글자 크기"), 80, 160, 10, "%");
     p.choices(
-        "iconResolution", "아이콘 해상도", choices("자동", 0, "128 px", 128, "256 px", 256, "512 px", 512));
+        "timeFormat",
+        L10n.text("시계 표시"),
+        choices(L10n.text("24시간"), "24h", L10n.text("12시간"), "12h"));
     p.choices(
-        "renderMode", "렌더링", choices("표준 · 디자인 유지", "standard", "간단 · 그라데이션과 효과 줄임", "simple"));
+        "iconResolution",
+        L10n.text("아이콘 해상도"),
+        choices(L10n.text("자동"), 0, "128 px", 128, "256 px", 256, "512 px", 512));
+    p.choices(
+        "renderMode",
+        L10n.text("렌더링"),
+        choices(L10n.text("표준 · 디자인 유지"), "standard", L10n.text("간단 · 그라데이션과 효과 줄임"), "simple"));
     p.show();
   }
 
   private void inputSettings() {
-    ClientSettingsPanel p = panel("터치 · 페이지 이동", "버튼을 숨겨도 오른쪽 위 모서리 길게 누르기로 설정에 접근할 수 있습니다.");
-    p.toggle("haptics", "터치 진동", "Android 터치 진동 설정을 따릅니다.");
-    p.toggle("fixedVibration", "고정 길이 진동", "짧은 진동이 잘 느껴지지 않는 기기에 사용합니다.");
-    p.slider("vibrationMs", "진동 길이", 20, 200, 10, " ms");
-    p.toggle("sound", "터치 효과음", "버튼 실행 시 기기의 클릭 효과음을 냅니다.");
-    p.toggle("swipeEnabled", "좌우 제스처", "손가락으로 페이지를 이동합니다.");
-    p.toggle("reducedMotion", "동작 효과 줄이기", "페이지 전환과 버튼 누름 애니메이션을 줄입니다.");
-    p.toggle("showHeader", "상단 연결 정보", "앱 제목과 연결 상태를 표시합니다.");
-    p.toggle("showNavigation", "하단 페이지 버튼", "각 페이지로 이동하는 버튼을 표시합니다.");
-    p.toggle("settingsButtonHidden", "설정 버튼 숨기기", "오른쪽 위 모서리를 1초간 누르면 설정을 엽니다.");
+    ClientSettingsPanel p =
+        panel(L10n.text("터치 · 페이지 이동"), L10n.text("버튼을 숨겨도 오른쪽 위 모서리 길게 누르기로 설정에 접근할 수 있습니다."));
+    p.toggle("haptics", L10n.text("터치 진동"), L10n.text("Android 터치 진동 설정을 따릅니다."));
+    p.toggle("fixedVibration", L10n.text("고정 길이 진동"), L10n.text("짧은 진동이 잘 느껴지지 않는 기기에 사용합니다."));
+    p.slider("vibrationMs", L10n.text("진동 길이"), 20, 200, 10, " ms");
+    p.toggle("sound", L10n.text("터치 효과음"), L10n.text("버튼 실행 시 기기의 클릭 효과음을 냅니다."));
+    p.toggle("swipeEnabled", L10n.text("좌우 제스처"), L10n.text("손가락으로 페이지를 이동합니다."));
+    p.toggle("reducedMotion", L10n.text("동작 효과 줄이기"), L10n.text("페이지 전환과 버튼 누름 애니메이션을 줄입니다."));
+    p.toggle("showHeader", L10n.text("상단 연결 정보"), L10n.text("앱 제목과 연결 상태를 표시합니다."));
+    p.toggle("showNavigation", L10n.text("하단 페이지 버튼"), L10n.text("각 페이지로 이동하는 버튼을 표시합니다."));
+    p.toggle(
+        "settingsButtonHidden", L10n.text("설정 버튼 숨기기"), L10n.text("오른쪽 위 모서리를 1초간 누르면 설정을 엽니다."));
     p.show();
   }
 
   private void idleSettings() {
-    ClientSettingsPanel p = panel("화면 보호", "설정한 시간 동안 사용하지 않으면 앱 밝기를 낮춥니다. 앱을 벗어나면 기기 밝기로 돌아갑니다.");
+    ClientSettingsPanel p =
+        panel(
+            L10n.text("화면 보호"), L10n.text("설정한 시간 동안 사용하지 않으면 앱 밝기를 낮춥니다. 앱을 벗어나면 기기 밝기로 돌아갑니다."));
     p.choices(
         "screenSaverMinutes",
-        "사용하지 않을 때",
+        L10n.text("사용하지 않을 때"),
         choices(
-            "끄기", 0, "1분 후", 1, "2분 후", 2, "5분 후", 5, "10분 후", 10, "15분 후", 15, "30분 후", 30,
-            "1시간 후", 60));
-    p.choices("screenSaverMode", "화면 보호 방식", choices("덱 밝기 낮추기", "dim", "시계 화면", "clock"));
-    p.slider("dimPercent", "화면 보호 밝기", 5, 50, 5, "%");
-    p.toggle("firstTouchWakes", "첫 터치는 화면만 깨우기", "화면을 깨울 때 버튼이 잘못 실행되지 않게 합니다. 시계 화면은 항상 적용됩니다.");
-    p.action("지금 미리보기", "아무 곳이나 터치하면 돌아갑니다.", () -> setIdleDimmed(true));
+            L10n.text("끄기"),
+            0,
+            L10n.text("1분 후"),
+            1,
+            L10n.text("2분 후"),
+            2,
+            L10n.text("5분 후"),
+            5,
+            L10n.text("10분 후"),
+            10,
+            L10n.text("15분 후"),
+            15,
+            L10n.text("30분 후"),
+            30,
+            L10n.text("1시간 후"),
+            60));
+    p.choices(
+        "screenSaverMode",
+        L10n.text("화면 보호 방식"),
+        choices(L10n.text("덱 밝기 낮추기"), "dim", L10n.text("시계 화면"), "clock"));
+    p.slider("dimPercent", L10n.text("화면 보호 밝기"), 5, 50, 5, "%");
+    p.toggle(
+        "firstTouchWakes",
+        L10n.text("첫 터치는 화면만 깨우기"),
+        L10n.text("화면을 깨울 때 버튼이 잘못 실행되지 않게 합니다. 시계 화면은 항상 적용됩니다."));
+    p.action(L10n.text("지금 미리보기"), L10n.text("아무 곳이나 터치하면 돌아갑니다."), () -> setIdleDimmed(true));
     p.show();
   }
 
   private void startupSettings() {
-    ClientSettingsPanel p = panel("프로필 · 시작 페이지", "프로필은 맥에서 만들고 이 태블릿에서 선택할 수 있습니다.");
+    ClientSettingsPanel p =
+        panel(L10n.text("프로필 · 시작 페이지"), L10n.text("프로필은 맥에서 만들고 이 태블릿에서 선택할 수 있습니다."));
     JSONArray profiles = config.optJSONArray("profiles");
-    Map<String, Object> profileChoices = choices("맥 기본 프로필 따르기", "");
+    Map<String, Object> profileChoices = choices(L10n.text("맥 기본 프로필 따르기"), "");
     if (profiles != null)
       for (int i = 0; i < profiles.length(); i++) {
         JSONObject profile = profiles.optJSONObject(i);
         if (profile != null) profileChoices.put(profile.optString("name"), profile.optString("id"));
       }
-    String profileName = "맥 기본 프로필 따르기";
+    String profileName = L10n.text("맥 기본 프로필 따르기");
     for (Map.Entry<String, Object> entry : profileChoices.entrySet())
       if (entry.getValue().equals(settingString("profileId"))) profileName = entry.getKey();
-    p.action("사용할 프로필", profileName, this::chooseProfile);
-    p.toggle("rememberPage", "마지막 페이지 기억", "앱을 다시 열 때 마지막으로 사용한 페이지를 보여줍니다.");
+    p.action(L10n.text("사용할 프로필"), profileName, this::chooseProfile);
+    p.toggle("rememberPage", L10n.text("마지막 페이지 기억"), L10n.text("앱을 다시 열 때 마지막으로 사용한 페이지를 보여줍니다."));
     JSONArray pages = config.optJSONArray("pages");
-    Map<String, Object> pageChoices = choices("프로필 첫 페이지", "");
+    Map<String, Object> pageChoices = choices(L10n.text("프로필 첫 페이지"), "");
     if (pages != null)
       for (int i = 0; i < pages.length(); i++) {
         JSONObject page = pages.optJSONObject(i);
         pageChoices.put(page.optString("name"), page.optString("id"));
       }
-    p.choices("startPageId", "시작 페이지", pageChoices);
-    p.action("페이지 이동", "숨긴 하단 버튼 대신 여기서 이동할 수 있습니다.", this::choosePage);
-    if (!connected) p.note("현재 연결이 끊겨 있어 프로필 변경은 다시 연결되면 적용됩니다.");
+    p.choices("startPageId", L10n.text("시작 페이지"), pageChoices);
+    p.action(L10n.text("페이지 이동"), L10n.text("숨긴 하단 버튼 대신 여기서 이동할 수 있습니다."), this::choosePage);
+    if (!connected) p.note(L10n.text("현재 연결이 끊겨 있어 프로필 변경은 다시 연결되면 적용됩니다."));
     p.show();
   }
 
   private void chooseProfile() {
     JSONArray profiles = config.optJSONArray("profiles");
     List<String> names = new ArrayList<>(), ids = new ArrayList<>();
-    names.add("맥 기본 프로필 따르기");
+    names.add(L10n.text("맥 기본 프로필 따르기"));
     ids.add("");
     if (profiles != null)
       for (int i = 0; i < profiles.length(); i++) {
@@ -3482,8 +3648,8 @@ public class MainActivity extends Activity {
           ids.add(profile.optString("id"));
         }
       }
-    new AlertDialog.Builder(this)
-        .setTitle("사용할 프로필")
+    new AlertDialog.Builder(L10n.context(this))
+        .setTitle(L10n.text("사용할 프로필"))
         .setSingleChoiceItems(
             names.toArray(new String[0]),
             Math.max(0, ids.indexOf(settingString("profileId"))),
@@ -3491,7 +3657,7 @@ public class MainActivity extends Activity {
               saveClientSetting("profileId", ids.get(index));
               dialog.dismiss();
             })
-        .setNegativeButton("취소", null)
+        .setNegativeButton(L10n.text("취소"), null)
         .show();
   }
 
@@ -3500,36 +3666,45 @@ public class MainActivity extends Activity {
     if (pages == null) return;
     String[] names = new String[pages.length()];
     for (int i = 0; i < pages.length(); i++) names[i] = pages.optJSONObject(i).optString("name");
-    new AlertDialog.Builder(this)
-        .setTitle("페이지 이동")
+    new AlertDialog.Builder(L10n.context(this))
+        .setTitle(L10n.text("페이지 이동"))
         .setItems(names, (d, index) -> navigate(pages.optJSONObject(index).optString("id")))
-        .setNegativeButton("닫기", null)
+        .setNegativeButton(L10n.text("닫기"), null)
         .show();
   }
 
   private void deviceSettings() {
-    ClientSettingsPanel p = panel("연결 · 기기 이름", "Wi-Fi는 최초 USB 등록 때 확인한 인증서로 암호화 연결합니다.");
+    ClientSettingsPanel p =
+        panel(L10n.text("연결 · 기기 이름"), L10n.text("Wi-Fi는 최초 USB 등록 때 확인한 인증서로 암호화 연결합니다."));
     p.action(
-        "연결 방식 · 주소",
-        "현재 "
+        L10n.text("연결 방식 · 주소"),
+        L10n.text("현재 ")
             + (transport.equals("wifi")
-                ? "Wi-Fi만 사용"
-                : transport.equals("usb") ? "USB만 사용" : "자동 선택"),
+                ? L10n.text("Wi-Fi만 사용")
+                : transport.equals("usb") ? L10n.text("USB만 사용") : L10n.text("자동 선택")),
         this::connectionSettings);
-    p.action("지금 다시 연결", "설정과 마지막 데이터는 그대로 유지합니다.", () -> reconnect(transport));
+    p.toggle(
+        "allowInsecureWifi",
+        L10n.text("암호화하지 않는 Wi-Fi 허용"),
+        L10n.text(
+            "기본값은 꺼짐입니다. 이 옵션을 켜면 사설 LAN의 HTTP 주소에 연결할 수 있으며 페어링 토큰과 데이터가 암호화되지 않습니다. 신뢰하는 네트워크에서만"
+                + " 사용하세요."));
     p.action(
-        "기기 이름",
+        L10n.text("지금 다시 연결"), L10n.text("설정과 마지막 데이터는 그대로 유지합니다."), () -> reconnect(transport));
+    p.action(
+        L10n.text("기기 이름"),
         deviceName,
         () -> {
-          ClientSettingsPanel input = panel("기기 이름", "");
+          ClientSettingsPanel input = panel(L10n.text("기기 이름"), "");
           input.input(
-              "기기 이름",
+              L10n.text("기기 이름"),
               deviceName,
-              "맥의 기기 목록에 표시할 이름입니다.",
+              L10n.text("맥의 기기 목록에 표시할 이름입니다."),
               name -> {
                 if (name.isEmpty() || name.length() > 80)
-                  throw new IllegalArgumentException("1~80자로 입력하세요.");
-                if (!connected) throw new IllegalArgumentException("맥에 연결된 후 이름을 변경하세요.");
+                  throw new IllegalArgumentException(L10n.text("1~80자로 입력하세요."));
+                if (!connected)
+                  throw new IllegalArgumentException(L10n.text("맥에 연결된 후 이름을 변경하세요."));
                 settingRequests.execute(
                     () -> {
                       try {
@@ -3548,22 +3723,23 @@ public class MainActivity extends Activity {
                       } catch (Exception e) {
                         ui.post(
                             () ->
-                                Toast.makeText(this, "기기 이름을 저장하지 못했습니다.", Toast.LENGTH_LONG)
+                                Toast.makeText(
+                                        this, L10n.text("기기 이름을 저장하지 못했습니다."), Toast.LENGTH_LONG)
                                     .show());
                       }
                     });
               });
         });
     p.action(
-        "페어링 해제",
-        "이 맥의 저장된 인증을 제거하고 다시 등록합니다.",
+        L10n.text("페어링 해제"),
+        L10n.text("이 맥의 저장된 인증을 제거하고 다시 등록합니다."),
         () ->
-            new AlertDialog.Builder(this)
-                .setTitle("페어링을 해제할까요?")
-                .setMessage("이 태블릿에서 맥 인증을 제거합니다. 맥의 덱과 버튼은 삭제되지 않습니다.")
-                .setNegativeButton("취소", null)
+            new AlertDialog.Builder(L10n.context(this))
+                .setTitle(L10n.text("페어링을 해제할까요?"))
+                .setMessage(L10n.text("이 태블릿에서 맥 인증을 제거합니다. 맥의 덱과 버튼은 삭제되지 않습니다."))
+                .setNegativeButton(L10n.text("취소"), null)
                 .setPositiveButton(
-                    "해제",
+                    L10n.text("해제"),
                     (d, which) -> {
                       token = "";
                       wifiPin = "";
@@ -3578,13 +3754,14 @@ public class MainActivity extends Activity {
   }
 
   private void notificationSettings() {
-    ClientSettingsPanel p = panel("알림", "이 태블릿에서 받을 알림을 선택합니다. 맥의 수집과 임계치 설정은 유지됩니다.");
-    p.toggle("osNotifications", "Jimin OS 알림", "일정 시작, 할 일 마감과 업무 요청");
-    p.toggle("monitorNotifications", "시스템 · DB 경고", "Grafana 임계치 초과와 정상 복구");
-    p.toggle("notificationBanner", "앱 안에서 경고 배너", "덱 위에 모니터 경고를 잠시 표시합니다.");
+    ClientSettingsPanel p =
+        panel(L10n.text("알림"), L10n.text("이 태블릿에서 받을 알림을 선택합니다. 맥의 수집과 임계치 설정은 유지됩니다."));
+    p.toggle("osNotifications", L10n.text("Jimin OS 알림"), L10n.text("일정 시작, 할 일 마감과 업무 요청"));
+    p.toggle("monitorNotifications", L10n.text("시스템 · DB 경고"), L10n.text("Grafana 임계치 초과와 정상 복구"));
+    p.toggle("notificationBanner", L10n.text("앱 안에서 경고 배너"), L10n.text("덱 위에 모니터 경고를 잠시 표시합니다."));
     p.action(
-        "Android 알림 권한",
-        "기기 설정에서 알림과 소리를 관리합니다.",
+        L10n.text("Android 알림 권한"),
+        L10n.text("기기 설정에서 알림과 소리를 관리합니다."),
         () ->
             startActivity(
                 new Intent(android.provider.Settings.ACTION_APP_NOTIFICATION_SETTINGS)
@@ -3595,34 +3772,34 @@ public class MainActivity extends Activity {
   private void diagnosticSettings() {
     ClientSettingsPanel p =
         panel(
-            "정보 · 진단 · 초기화",
+            L10n.text("정보 · 진단 · 초기화"),
             "Open Deck "
                 + appVersion()
-                + " · MIT · 무료\nAndroid "
+                + L10n.text(" · MIT · 무료\nAndroid ")
                 + Build.VERSION.RELEASE
                 + " · "
                 + Build.MODEL);
     p.action(
-        "연결 진단 보기",
-        pendingSettings.isEmpty() ? "기기 설정 동기화 완료" : "일부 설정은 연결 후 다시 저장합니다.",
+        L10n.text("연결 진단 보기"),
+        pendingSettings.isEmpty() ? L10n.text("기기 설정 동기화 완료") : L10n.text("일부 설정은 연결 후 다시 저장합니다."),
         () ->
-            new AlertDialog.Builder(this)
-                .setTitle("연결 진단")
+            new AlertDialog.Builder(L10n.context(this))
+                .setTitle(L10n.text("연결 진단"))
                 .setMessage(diagnostics())
-                .setPositiveButton("닫기", null)
+                .setPositiveButton(L10n.text("닫기"), null)
                 .setNeutralButton(
-                    "공유",
+                    L10n.text("공유"),
                     (d, which) ->
                         startActivity(
                             Intent.createChooser(
                                 new Intent(Intent.ACTION_SEND)
                                     .setType("text/plain")
                                     .putExtra(Intent.EXTRA_TEXT, diagnostics()),
-                                "진단 공유")))
+                                L10n.text("진단 공유"))))
                 .show());
     p.action(
-        "최신 버전 · 설치 파일",
-        "GitHub Releases에서 업데이트를 확인합니다.",
+        L10n.text("최신 버전 · 설치 파일"),
+        L10n.text("GitHub Releases에서 업데이트를 확인합니다."),
         () ->
             startActivity(
                 new Intent(
@@ -3630,15 +3807,15 @@ public class MainActivity extends Activity {
                     android.net.Uri.parse(
                         "https://github.com/Yaklede/open-deck/releases/latest"))));
     p.action(
-        "설정 초기화",
-        "화면·입력·알림 설정을 기본값으로 되돌립니다. 페어링과 프로필은 유지합니다.",
+        L10n.text("설정 초기화"),
+        L10n.text("화면·입력·알림 설정을 기본값으로 되돌립니다. 페어링과 프로필은 유지합니다."),
         () ->
-            new AlertDialog.Builder(this)
-                .setTitle("태블릿 설정을 초기화할까요?")
-                .setMessage("연결 인증, 현재 프로필과 맥의 덱은 유지됩니다.")
-                .setNegativeButton("취소", null)
+            new AlertDialog.Builder(L10n.context(this))
+                .setTitle(L10n.text("태블릿 설정을 초기화할까요?"))
+                .setMessage(L10n.text("연결 인증, 현재 프로필과 맥의 덱은 유지됩니다."))
+                .setNegativeButton(L10n.text("취소"), null)
                 .setPositiveButton(
-                    "초기화",
+                    L10n.text("초기화"),
                     (d, which) -> {
                       Map<String, Object> defaults = ClientSettingsPolicy.defaults();
                       defaults.remove("profileId");
@@ -3651,7 +3828,9 @@ public class MainActivity extends Activity {
                       flushDeviceSettings();
                     })
                 .show());
-    p.note("진단에는 비밀번호·인증 토큰·할 일과 일정 내용이 포함되지 않습니다.\n소스와 라이선스: github.com/Yaklede/open-deck");
+    p.note(
+        L10n.text(
+            "진단에는 비밀번호·인증 토큰·할 일과 일정 내용이 포함되지 않습니다.\n소스와 라이선스: github.com/Yaklede/open-deck"));
     p.show();
   }
 
@@ -3661,7 +3840,8 @@ public class MainActivity extends Activity {
     final RectF arcBounds = new RectF();
     final SimpleDateFormat timeFormat = new SimpleDateFormat("HH:mm", Locale.getDefault());
     final Date screenSaverDate = new Date();
-    final SimpleDateFormat dateFormat = new SimpleDateFormat("M월 d일 EEEE", Locale.KOREA);
+    final SimpleDateFormat dateFormat =
+        new SimpleDateFormat(L10n.datePattern("M월 d일 EEEE"), L10n.locale());
     final ArrayList<Tile> tiles = new ArrayList<>();
     final Map<String, Tile> cachedTiles = new HashMap<>();
     final Map<String, JSONObject> activeWidgets = new HashMap<>();
@@ -3684,7 +3864,7 @@ public class MainActivity extends Activity {
       setWillNotDraw(false);
       setClipChildren(true);
       setBackgroundColor(color("#0c1320"));
-      setContentDescription("Open Deck 태블릿 컨트롤 패널 · 길게 눌러 설정");
+      setContentDescription(L10n.text("Open Deck 태블릿 컨트롤 패널 · 길게 눌러 설정"));
       setOnLongClickListener(
           view -> {
             settings();
@@ -3696,6 +3876,7 @@ public class MainActivity extends Activity {
       paint.setColor(col);
       paint.setStyle(Paint.Style.FILL);
       paint.setTypeface(font);
+      paint.setTextLocale(L10n.locale());
       paint.setTextSize(dp(size) * settingInt("textScale") / 100f);
       paint.setTextAlign(align);
       c.drawText(value, x, y, paint);
@@ -4198,7 +4379,7 @@ public class MainActivity extends Activity {
             Paint.Align.CENTER);
         label(
             c,
-            "화면을 터치하면 돌아갑니다",
+            L10n.text("화면을 터치하면 돌아갑니다"),
             getWidth() / 2f,
             getHeight() / 2f + dp(45),
             14,
@@ -4275,7 +4456,7 @@ public class MainActivity extends Activity {
                     ? tile.widget.optString("label", "Grafana")
                         + ", "
                         + freshnessNotice(tile.widget, data)
-                        + ", 마지막 "
+                        + L10n.text(", 마지막 ")
                         + sourceStamp(data, server ? "system" : "cpu")
                     : tile.widget.optString("label", "Grafana")
                         + " · "
@@ -4300,9 +4481,9 @@ public class MainActivity extends Activity {
                         + sourceStamp(data, server ? "system" : "cpu")
                         + ", "
                         + (freshnessNotice(tile.widget, data) == null
-                            ? "정상 수집"
+                            ? L10n.text("정상 수집")
                             : freshnessNotice(tile.widget, data))
-                        + ", 길게 눌러 프로젝트 변경");
+                        + L10n.text(", 길게 눌러 프로젝트 변경"));
           }
           if (tile.widget.optString("provider").equals("jimin-os"))
             tile.setContentDescription(tile.widget.optString("label") + ", " + osSyncNotice());
@@ -4470,9 +4651,13 @@ public class MainActivity extends Activity {
         label(
             c,
             streamFresh()
-                ? (base.startsWith("https:") ? "Wi-Fi · 암호화 연결됨" : "USB · 연결됨")
+                ? (base.startsWith("https:")
+                        ? L10n.text("Wi-Fi · 암호화 연결됨")
+                        : base.startsWith("http://127.0.0.1:")
+                            ? L10n.text("USB · 연결됨")
+                            : L10n.text("Wi-Fi · 암호화 안 됨"))
                     + (pageId.equals("jimin-os-page") ? "  · " + osSyncNotice() : "")
-                : "맥에 다시 연결하는 중…"
+                : L10n.text("맥에 다시 연결하는 중…")
                     + (pageId.equals("jimin-os-page") && osData() != null
                         ? " · " + osSyncNotice()
                         : ""),
@@ -4490,7 +4675,7 @@ public class MainActivity extends Activity {
       if (tiles.isEmpty())
         label(
             c,
-            "맥에서 Open Deck을 실행하고 연결을 확인하세요.",
+            L10n.text("맥에서 Open Deck을 실행하고 연결을 확인하세요."),
             getWidth() / 2f,
             getHeight() / 2f,
             16,
@@ -4642,7 +4827,7 @@ public class MainActivity extends Activity {
       String kind = widget.optString("metric", "overview");
       systemLabel(
           c,
-          template(widget.optString("label", "맥 상태")),
+          template(widget.optString("label", L10n.text("맥 상태"))),
           r,
           top + dp(27),
           widget.optJSONObject("style") == null
@@ -4651,8 +4836,8 @@ public class MainActivity extends Activity {
           accent);
       JSONObject data = macSystem();
       if (data == null) {
-        systemLabel(c, "실시간 상태 대기", r, top + dp(72), 20, text);
-        systemLabel(c, "맥 연결과 최신 앱을 확인해 주세요", r, top + dp(100), 11, muted);
+        systemLabel(c, L10n.text("실시간 상태 대기"), r, top + dp(72), 20, text);
+        systemLabel(c, L10n.text("맥 연결과 최신 앱을 확인해 주세요"), r, top + dp(100), 11, muted);
         return;
       }
       JSONObject cpu = data.optJSONObject("cpu"),
@@ -4670,7 +4855,8 @@ public class MainActivity extends Activity {
               r.bottom - dp(16));
       if (kind.equals("cpu")) {
         systemLabel(c, metricPercent(metric(cpu, "percent")), r, top + dp(67), 25, text);
-        systemLabel(c, data.optInt("logicalCores") + "코어 · 전체 사용률", r, top + dp(91), 11, muted);
+        systemLabel(
+            c, data.optInt("logicalCores") + L10n.text("코어 · 전체 사용률"), r, top + dp(91), 11, muted);
         systemSpark(c, history == null ? null : history.optJSONArray("cpu"), chart, accent, true);
       } else if (kind.equals("memory")) {
         double used = metric(mem, "usedBytes"), total = metric(mem, "totalBytes");
@@ -4685,16 +4871,16 @@ public class MainActivity extends Activity {
                         : pressure.equals("critical") ? "#ef9696" : "#9caec0");
         systemLabel(
             c,
-            "전체 " + metricBytes(total) + " · 압력 " + pressureText(pressure),
+            L10n.text("전체 ") + metricBytes(total) + L10n.text(" · 압력 ") + pressureText(pressure),
             r,
             top + dp(87),
             10,
             stateColor);
         systemLabel(
             c,
-            "압축 "
+            L10n.text("압축 ")
                 + metricBytes(metric(mem, "compressedBytes"))
-                + " · 스왑 "
+                + L10n.text(" · 스왑 ")
                 + metricBytes(metric(mem, "swapBytes")),
             r,
             top + dp(106),
@@ -4708,28 +4894,31 @@ public class MainActivity extends Activity {
             Double.isFinite(free) && (free < 20d * 1024 * 1024 * 1024 || free / total < .05);
         systemLabel(
             c,
-            metricBytes(free) + " 여유",
+            metricBytes(free) + L10n.text(" 여유"),
             r,
             top + dp(65),
             22,
             color(low ? "#ef9696" : themeValue("text")));
         systemLabel(
             c,
-            "전체 " + metricBytes(total) + " · " + (low ? "저장 공간 확인 필요" : "사용 가능"),
+            L10n.text("전체 ")
+                + metricBytes(total)
+                + " · "
+                + (low ? L10n.text("저장 공간 확인 필요") : L10n.text("사용 가능")),
             r,
             top + dp(89),
             10,
             muted);
         systemLabel(
             c,
-            "읽기 " + metricBytes(metric(io, "readBytesPerSecond")) + "/s",
+            L10n.text("읽기 ") + metricBytes(metric(io, "readBytesPerSecond")) + "/s",
             r,
             r.bottom - dp(43),
             10,
             muted);
         systemLabel(
             c,
-            "쓰기 " + metricBytes(metric(io, "writeBytesPerSecond")) + "/s",
+            L10n.text("쓰기 ") + metricBytes(metric(io, "writeBytesPerSecond")) + "/s",
             r,
             r.bottom - dp(24),
             10,
@@ -4738,28 +4927,34 @@ public class MainActivity extends Activity {
         double battery = metric(power, "batteryPercent");
         systemLabel(
             c,
-            Double.isFinite(battery) ? String.format(Locale.KOREA, "%.0f%%", battery) : "배터리 없음",
+            Double.isFinite(battery)
+                ? String.format(L10n.locale(), "%.0f%%", battery)
+                : L10n.text("배터리 없음"),
             r,
             top + dp(65),
             24,
             text);
         systemLabel(
             c,
-            power != null && power.optBoolean("pluggedIn") ? "전원 연결됨" : "배터리 사용 중",
+            power != null && power.optBoolean("pluggedIn")
+                ? L10n.text("전원 연결됨")
+                : L10n.text("배터리 사용 중"),
             r,
             top + dp(90),
             11,
             muted);
         systemLabel(
             c,
-            "발열 부담 " + thermalText(power == null ? "" : power.optString("thermal")),
+            L10n.text("발열 부담 ") + thermalText(power == null ? "" : power.optString("thermal")),
             r,
             r.bottom - dp(42),
             12,
             accent);
         systemLabel(
             c,
-            power != null && power.optBoolean("lowPower") ? "저전력 모드 켜짐" : "저전력 모드 꺼짐",
+            power != null && power.optBoolean("lowPower")
+                ? L10n.text("저전력 모드 켜짐")
+                : L10n.text("저전력 모드 꺼짐"),
             r,
             r.bottom - dp(22),
             10,
@@ -4784,7 +4979,7 @@ public class MainActivity extends Activity {
         JSONObject processes = data.optJSONObject("processes");
         JSONArray rows = processes == null ? null : processes.optJSONArray("cpu");
         if (rows == null || rows.length() == 0)
-          systemLabel(c, "앱 사용량 비교 중…", r, top + dp(72), 17, muted);
+          systemLabel(c, L10n.text("앱 사용량 비교 중…"), r, top + dp(72), 17, muted);
         else
           for (int i = 0; i < Math.min(3, rows.length()); i++) {
             JSONObject row = rows.optJSONObject(i);
@@ -4806,19 +5001,24 @@ public class MainActivity extends Activity {
                 Paint.Align.RIGHT);
             systemLabel(c, metricBytes(metric(row, "memoryBytes")), r, y + dp(17), 10, muted);
           }
-        systemLabel(c, "100% = 1코어 · 탭하여 메모리 순 보기", r, r.bottom - dp(16), 9, muted);
+        systemLabel(c, L10n.text("100% = 1코어 · 탭하여 메모리 순 보기"), r, r.bottom - dp(16), 9, muted);
       } else {
         List<String> alerts = systemWarnings(data);
         systemLabel(
             c,
-            alerts.isEmpty() ? "맥 상태 정상" : "확인할 상태 " + alerts.size() + "개",
+            alerts.isEmpty()
+                ? L10n.text("맥 상태 정상")
+                : L10n.text("확인할 상태 ") + alerts.size() + L10n.text("개"),
             r,
             top + dp(63),
             22,
             color(alerts.isEmpty() ? "#83cbb9" : "#efbd73"));
         systemLabel(
             c,
-            data.optString("model", "내 Mac") + " · " + data.optInt("logicalCores") + "코어",
+            data.optString("model", L10n.text("내 Mac"))
+                + " · "
+                + data.optInt("logicalCores")
+                + L10n.text("코어"),
             r,
             top + dp(90),
             11,
@@ -4828,7 +5028,11 @@ public class MainActivity extends Activity {
         long uptime = data.optLong("uptimeSeconds");
         systemLabel(
             c,
-            "가동 " + (uptime / 3600) + "시간 " + ((uptime % 3600) / 60) + "분 · 2초 갱신",
+            L10n.text("가동 ")
+                + (uptime / 3600)
+                + L10n.text("시간 ")
+                + ((uptime % 3600) / 60)
+                + L10n.text("분 · 2초 갱신"),
             r,
             r.bottom - dp(19),
             10,
@@ -4876,11 +5080,17 @@ public class MainActivity extends Activity {
       RectF title = new RectF(r.left, r.top, split, r.bottom),
           readings = new RectF(split, r.top, middle, r.bottom),
           issues = new RectF(middle, r.top, r.right, r.bottom);
-      systemLabel(c, template(widget.optString("label", "내 Mac")), title, r.top + dp(28), 14, ink);
-      systemLabel(c, "상세 보기 ›", title, r.top + dp(51), 11, muted);
+      systemLabel(
+          c,
+          template(widget.optString("label", L10n.text("내 Mac"))),
+          title,
+          r.top + dp(28),
+          14,
+          ink);
+      systemLabel(c, L10n.text("상세 보기 ›"), title, r.top + dp(51), 11, muted);
       JSONObject data = macSystem();
       if (data == null) {
-        systemLabel(c, "맥 상태 연결 대기", readings, r.top + dp(36), 16, muted);
+        systemLabel(c, L10n.text("맥 상태 연결 대기"), readings, r.top + dp(36), 16, muted);
         return;
       }
       JSONObject cpu = data.optJSONObject("cpu"), mem = data.optJSONObject("memory");
@@ -4907,7 +5117,9 @@ public class MainActivity extends Activity {
         String level = monitorLevel(widget, key);
         if (level.equals("critical") || level.equals("warning"))
           warnings.add(
-              (key.equals("cpu") ? "CPU" : "MEM") + " " + (level.equals("critical") ? "위험" : "주의"));
+              (key.equals("cpu") ? "CPU" : "MEM")
+                  + " "
+                  + (level.equals("critical") ? L10n.text("위험") : L10n.text("주의")));
       }
       warnings.addAll(systemWarnings(data));
       String level =
@@ -4915,11 +5127,11 @@ public class MainActivity extends Activity {
       int warningColor = level.equals("critical") ? monitorColor(level) : color("#efbd73");
       String summary =
           warnings.isEmpty()
-              ? "추가로 확인할 문제 없음"
+              ? L10n.text("추가로 확인할 문제 없음")
               : String.join(" · ", warnings.subList(0, Math.min(2, warnings.size())));
       systemLabel(
           c, summary, issues, r.top + dp(30), 13, warnings.isEmpty() ? muted : warningColor);
-      systemLabel(c, "저장 공간 · 전원 · 네트워크는 상세에서", issues, r.top + dp(53), 11, muted);
+      systemLabel(c, L10n.text("저장 공간 · 전원 · 네트워크는 상세에서"), issues, r.top + dp(53), 11, muted);
     }
 
     void monitorBadge(Canvas c, RectF r, String level, String normal) {
@@ -4931,10 +5143,13 @@ public class MainActivity extends Activity {
           override != null
               ? override
               : level.equals("critical")
-                  ? "위험"
-                  : level.equals("warning") ? "주의" : level.equals("normal") ? normal : "확인 중";
+                  ? L10n.text("위험")
+                  : level.equals("warning")
+                      ? L10n.text("주의")
+                      : level.equals("normal") ? normal : L10n.text("확인 중");
       int ink = level.equals("normal") ? color("#93b7a7") : monitorColor(level);
       paint.setTypeface(font);
+      paint.setTextLocale(L10n.locale());
       paint.setTextSize(dp(11));
       float width = paint.measureText(text) + dp(29),
           right = r.right - dp(20),
@@ -4982,6 +5197,7 @@ public class MainActivity extends Activity {
 
     void monitorNumber(Canvas c, String value, RectF rect, float y, float size, int ink) {
       paint.setTypeface(font);
+      paint.setTextLocale(L10n.locale());
       paint.setTextSize(dp(size) * settingInt("textScale") / 100f);
       float width = paint.measureText(value), available = rect.width() - dp(40);
       float fitted = width > available ? size * available / width : size;
@@ -5038,6 +5254,7 @@ public class MainActivity extends Activity {
       paint.setStyle(Paint.Style.FILL);
       String number = metricPercent(value);
       paint.setTypeface(font);
+      paint.setTextLocale(L10n.locale());
       paint.setTextSize(dp(numberSize) * settingInt("textScale") / 100f);
       float fitted =
           Math.min(numberSize, numberSize * radius * 1.7f / Math.max(1, paint.measureText(number)));
@@ -5085,7 +5302,7 @@ public class MainActivity extends Activity {
         line(c, plot.left, y, plot.right, y, color("#33404b"), dp(.6f));
         label(
             c,
-            String.format(Locale.KOREA, "%.0f", max * (2 - i) / 2),
+            String.format(L10n.locale(), "%.0f", max * (2 - i) / 2),
             plot.left - dp(7),
             y + dp(3),
             9,
@@ -5167,7 +5384,9 @@ public class MainActivity extends Activity {
       String notice = freshnessNotice(widget, data);
       if (notice != null && !level.equals("critical"))
         level =
-            notice.equals("연결 끊김") || notice.equals("조회 중단") || notice.equals("오래된 데이터")
+            notice.equals(L10n.text("연결 끊김"))
+                    || notice.equals(L10n.text("조회 중단"))
+                    || notice.equals(L10n.text("오래된 데이터"))
                 ? "critical"
                 : "warning";
       if (level.equals("critical") || level.equals("warning")) {
@@ -5184,16 +5403,16 @@ public class MainActivity extends Activity {
       RectF heading = new RectF(r.left, r.top, r.right - dp(90), r.bottom);
       monitorText(
           c,
-          template(widget.optString("label", server ? "서버 상태" : "데이터베이스")),
+          template(widget.optString("label", server ? L10n.text("서버 상태") : L10n.text("데이터베이스"))),
           heading,
           r.top + dp(34),
           style == null ? 16 : style.optInt("textSize", 16),
           text);
-      monitorBadge(c, r, level, "정상", notice);
+      monitorBadge(c, r, level, L10n.text("정상"), notice);
       if (!queryFresh(data)) {
         monitorText(
             c,
-            notice == null ? "지표 연결 확인" : notice,
+            notice == null ? L10n.text("지표 연결 확인") : notice,
             r,
             r.top + dp(116),
             24,
@@ -5201,17 +5420,17 @@ public class MainActivity extends Activity {
         monitorText(
             c,
             !streamFresh()
-                ? "맥에서 다시 연결되면 자동으로 갱신됩니다"
+                ? L10n.text("맥에서 다시 연결되면 자동으로 갱신됩니다")
                 : data == null
-                    ? "최신 데이터를 기다리고 있어요"
-                    : data.optString("message", "지표 조회가 오래됐어요 · 다시 연결 중"),
+                    ? L10n.text("최신 데이터를 기다리고 있어요")
+                    : data.optString("message", L10n.text("지표 조회가 오래됐어요 · 다시 연결 중")),
             r,
             r.top + dp(148),
             12,
             muted);
         monitorText(
             c,
-            "마지막 " + sourceStamp(data, server ? "system" : "cpu"),
+            L10n.text("마지막 ") + sourceStamp(data, server ? "system" : "cpu"),
             r,
             r.top + dp(181),
             12,
@@ -5221,7 +5440,7 @@ public class MainActivity extends Activity {
             collection = data.optJSONObject("collection");
         double value = metric(cpu, "value");
         float base = style == null ? 56 : style.optInt("valueSize", 56);
-        monitorText(c, "시스템 CPU · 서비스 보고값 중 최대", r, r.top + dp(68), 12, muted);
+        monitorText(c, L10n.text("시스템 CPU · 서비스 보고값 중 최대"), r, r.top + dp(68), 12, muted);
         monitorGauge(
             c,
             widget,
@@ -5245,21 +5464,21 @@ public class MainActivity extends Activity {
         monitorText(
             c,
             total > 0
-                ? "수집 "
+                ? L10n.text("수집 ")
                     + healthy
                     + " / "
                     + total
-                    + "  ·  서비스 "
+                    + L10n.text("  ·  서비스 ")
                     + (services == null ? 0 : services.length())
-                    + "개"
-                : "수집 대상 없음",
+                    + L10n.text("개")
+                : L10n.text("수집 대상 없음"),
             r,
             r.top + dp(293),
             12,
             monitorLevel(widget, "collection").equals("critical")
                 ? monitorColor("critical")
                 : muted);
-        monitorText(c, "CPU 추이 · %", r, r.top + dp(329), 11, muted);
+        monitorText(c, L10n.text("CPU 추이 · %"), r, r.top + dp(329), 11, muted);
         RectF plot =
             new RectF(r.left + dp(43), r.top + dp(347), r.right - dp(20), r.bottom - dp(84));
         long to = data.optLong("capturedAt");
@@ -5297,14 +5516,14 @@ public class MainActivity extends Activity {
             grafanaReadingColor(widget, "memory", metric(data.optJSONObject("memory"), "value")));
         float width = (r.width() - dp(24)) / Math.max(1, shown);
         double chartMax = 100;
-        if (shown == 0) monitorText(c, "DB 노드 지표 수집 없음", r, r.top + dp(170), 21, muted);
+        if (shown == 0) monitorText(c, L10n.text("DB 노드 지표 수집 없음"), r, r.top + dp(170), 21, muted);
         for (int i = 0; i < shown; i++) {
           JSONObject node = nodes.optJSONObject(i);
           if (node == null) continue;
           RectF cell =
               new RectF(
                   r.left + dp(12) + i * width, r.top, r.left + dp(12) + (i + 1) * width, r.bottom);
-          String name = node.optString("name", "노드");
+          String name = node.optString("name", L10n.text("노드"));
           int seriesInk = nodeSeriesColor(name);
           double cpuValue = metric(node, "cpuPercent"), memoryValue = metric(node, "memoryPercent");
           paint.setColor(seriesInk);
@@ -5371,7 +5590,10 @@ public class MainActivity extends Activity {
         }
         monitorText(
             c,
-            "노드별 CPU 추이 · %" + (count > shown ? " · 외 " + (count - shown) + "개는 상세 보기" : ""),
+            L10n.text("노드별 CPU 추이 · %")
+                + (count > shown
+                    ? L10n.text(" · 외 ") + (count - shown) + L10n.text("개는 상세 보기")
+                    : ""),
             r,
             r.top + dp(324),
             11,
@@ -5400,7 +5622,7 @@ public class MainActivity extends Activity {
             widget,
             data,
             "tps",
-            "전체 TPS · 커밋/초",
+            L10n.text("전체 TPS · 커밋/초"),
             tpsCell,
             r.bottom - dp(110),
             r.bottom - dp(76),
@@ -5410,17 +5632,17 @@ public class MainActivity extends Activity {
             widget,
             data,
             "qps",
-            "전체 QPS · 쿼리/초",
+            L10n.text("전체 QPS · 쿼리/초"),
             qpsCell,
             r.bottom - dp(110),
             r.bottom - dp(76),
             base * .53f);
-        monitorText(c, "DB 연결 수", connectionsCell, r.bottom - dp(110), 11, muted);
+        monitorText(c, L10n.text("DB 연결 수"), connectionsCell, r.bottom - dp(110), 11, muted);
         double connections =
             visibleGrafanaValue(widget, "connections", metric(database, "connections"));
         monitorNumber(
             c,
-            Double.isFinite(connections) ? String.format(Locale.KOREA, "%,.0f", connections) : "—",
+            Double.isFinite(connections) ? String.format(L10n.locale(), "%,.0f", connections) : "—",
             connectionsCell,
             r.bottom - dp(76),
             base * .53f,
@@ -5438,7 +5660,9 @@ public class MainActivity extends Activity {
           dp(1));
       monitorText(
           c,
-          server ? "CPU 상세 보기 ›" : grafanaProject(widget).optString("label", "프로젝트 선택") + "   ▾",
+          server
+              ? L10n.text("CPU 상세 보기 ›")
+              : grafanaProject(widget).optString("label", L10n.text("프로젝트 선택")) + "   ▾",
           r,
           r.bottom - dp(21),
           13,
@@ -5616,7 +5840,7 @@ public class MainActivity extends Activity {
         label(c, w.optString("label"), cx, cy + dp(23), 11, color("#a6b6d0"), Paint.Align.CENTER);
         label(
             c,
-            "탭: 시작·일시정지   길게: 초기화",
+            L10n.text("탭: 시작·일시정지   길게: 초기화"),
             cx,
             r.bottom - dp(13),
             8,
@@ -5691,7 +5915,7 @@ public class MainActivity extends Activity {
         for (int i = 0; i < 7; i++)
           label(
               c,
-              new String[] {"일", "월", "화", "수", "목", "금", "토"}[i],
+              new java.text.DateFormatSymbols(L10n.locale()).getShortWeekdays()[i + 1],
               r.left + cw * (i + 1),
               r.top + dp(48),
               10,
@@ -5733,7 +5957,7 @@ public class MainActivity extends Activity {
         if (provider)
           label(
               c,
-              osData() == null ? "Jimin OS 연결 대기" : "날짜를 눌러 일정과 할 일을 확인해요",
+              osData() == null ? L10n.text("Jimin OS 연결 대기") : L10n.text("날짜를 눌러 일정과 할 일을 확인해요"),
               cx,
               r.bottom - dp(13),
               10,
@@ -5793,7 +6017,7 @@ public class MainActivity extends Activity {
         }
         label(
             c,
-            count == 0 ? "탭해서 할 일 추가" : "탭해서 목록 편집",
+            count == 0 ? L10n.text("탭해서 할 일 추가") : L10n.text("탭해서 목록 편집"),
             cx,
             r.bottom - dp(17),
             10,
@@ -5827,6 +6051,7 @@ public class MainActivity extends Activity {
 
     String ellipsize(String text, float width, float size) {
       paint.setTypeface(font);
+      paint.setTextLocale(L10n.locale());
       paint.setTextSize(dp(size) * settingInt("textScale") / 100f);
       if (paint.measureText(text) <= width) return text;
       int end = text.length();
@@ -5910,7 +6135,13 @@ public class MainActivity extends Activity {
       monitorText(c, widget.optString("label"), r, r.top + dp(32), 16, ink);
       if (!osFresh() && !type.equals("notification-feed"))
         label(
-            c, "이전 데이터", r.right - dp(20), r.top + dp(32), 10, color("#efbd73"), Paint.Align.RIGHT);
+            c,
+            L10n.text("이전 데이터"),
+            r.right - dp(20),
+            r.top + dp(32),
+            10,
+            color("#efbd73"),
+            Paint.Align.RIGHT);
       if (type.equals("notification-feed")) {
         JSONArray feed = osNotificationFeed();
         int count = 0;
@@ -5922,11 +6153,11 @@ public class MainActivity extends Activity {
           monitorText(c, osDate(row.optLong("createdAt"), "M/d HH:mm"), r, y + dp(20), 10, muted);
           count++;
         }
-        if (count == 0) monitorText(c, "새 알림이 없어요", r, r.top + dp(83), 12, muted);
+        if (count == 0) monitorText(c, L10n.text("새 알림이 없어요"), r, r.top + dp(83), 12, muted);
         return;
       }
       if (osData() == null) {
-        monitorText(c, "Jimin OS 연결 대기", r, r.top + dp(82), 13, muted);
+        monitorText(c, L10n.text("Jimin OS 연결 대기"), r, r.top + dp(82), 13, muted);
         return;
       }
       if (type.equals("inbox")) {
@@ -5935,20 +6166,25 @@ public class MainActivity extends Activity {
             updates = counts == null ? -1 : counts.optInt("updates");
         monitorNumber(
             c,
-            requests < 0 ? "—" : requests + "건",
+            requests < 0 ? "—" : requests + L10n.text("건"),
             r,
             r.top + dp(91),
             requests > 0 ? 30 : 24,
             requests > 0 ? color("#efbd73") : ink);
         monitorText(
-            c, "새 요청 · 업데이트 " + (updates < 0 ? "—" : updates), r, r.top + dp(118), 11, muted);
+            c,
+            L10n.text("새 요청 · 업데이트 ") + (updates < 0 ? "—" : updates),
+            r,
+            r.top + dp(118),
+            11,
+            muted);
         JSONArray rows = osRows("inbox");
         if (rows.length() > 0)
           monitorText(c, rows.optJSONObject(0).optString("title"), r, r.top + dp(153), 12, ink);
-        monitorText(c, "업무 요청 확인 ›", r, r.bottom - dp(19), 11, muted);
+        monitorText(c, L10n.text("업무 요청 확인 ›"), r, r.bottom - dp(19), 11, muted);
         return;
       }
-      monitorText(c, "예정 일정", r, r.top + dp(65), 11, muted);
+      monitorText(c, L10n.text("예정 일정"), r, r.top + dp(65), 11, muted);
       JSONArray events = osRows("events");
       String today = osDate(hostNow(), "yyyy-MM-dd");
       int shown = 0;
@@ -5969,7 +6205,7 @@ public class MainActivity extends Activity {
         monitorText(c, event.optString("title"), title, y, 14, ink);
         shown++;
       }
-      if (shown == 0) monitorText(c, "예정된 일정이 없어요", r, r.top + dp(101), 13, muted);
+      if (shown == 0) monitorText(c, L10n.text("예정된 일정이 없어요"), r, r.top + dp(101), 13, muted);
       line(
           c,
           r.left + dp(20),
@@ -5979,7 +6215,8 @@ public class MainActivity extends Activity {
           color("#303d4b"),
           dp(1));
       JSONArray tasks = osRows("tasks");
-      monitorText(c, "할 일 · " + tasks.length() + "개", r, r.top + dp(253), 11, muted);
+      monitorText(
+          c, L10n.text("할 일 · ") + tasks.length() + L10n.text("개"), r, r.top + dp(253), 11, muted);
       int count = 0;
       for (int i = 0; i < tasks.length() && count < 2; i++) {
         JSONObject task = tasks.optJSONObject(i);
@@ -5990,15 +6227,17 @@ public class MainActivity extends Activity {
         monitorText(c, task.optString("title"), r, y, 14, ink);
         monitorText(
             c,
-            due == 0 ? "마감 없음" : (late ? "마감 지남 · " : "") + osDate(due, "M/d HH:mm"),
+            due == 0
+                ? L10n.text("마감 없음")
+                : (late ? L10n.text("마감 지남 · ") : "") + osDate(due, "M/d HH:mm"),
             r,
             y + dp(19),
             10,
             late ? color("#efbd73") : muted);
         count++;
       }
-      if (count == 0) monitorText(c, "남은 할 일이 없어요", r, r.top + dp(289), 13, muted);
-      monitorText(c, "일정과 할 일 확인 ›", r, r.bottom - dp(17), 11, muted);
+      if (count == 0) monitorText(c, L10n.text("남은 할 일이 없어요"), r, r.top + dp(289), 13, muted);
+      monitorText(c, L10n.text("일정과 할 일 확인 ›"), r, r.bottom - dp(17), 11, muted);
     }
 
     void osCalendarTap(JSONObject w, RectF r, float x, float y) {
@@ -6307,11 +6546,11 @@ public class MainActivity extends Activity {
                     String[] names = new String[ps.length()];
                     for (int j = 0; j < ps.length(); j++)
                       names[j] = ps.optJSONObject(j).optString("name");
-                    new AlertDialog.Builder(MainActivity.this)
-                        .setTitle("페이지 이동")
+                    new AlertDialog.Builder(L10n.context(MainActivity.this))
+                        .setTitle(L10n.text("페이지 이동"))
                         .setItems(
                             names, (d, index) -> navigate(ps.optJSONObject(index).optString("id")))
-                        .setNegativeButton("닫기", null)
+                        .setNegativeButton(L10n.text("닫기"), null)
                         .show();
                   } else navigate(ps.getJSONObject(i).getString("id"));
                 }

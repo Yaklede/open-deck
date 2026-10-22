@@ -55,6 +55,10 @@ export class EditorLock {
   }
   configure(password, currentPassword) {
     if (this.secret) this.verify(currentPassword);
+    this.replaceVerifiedPassword(password);
+  }
+  // Call only after AccountManager has authenticated the account operation.
+  replaceVerifiedPassword(password) {
     if (
       typeof password !== "string" ||
       password.length < 8 ||
