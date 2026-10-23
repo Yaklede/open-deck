@@ -1,0 +1,534 @@
+{
+  "schemaVersion": 1,
+  "sourceCommit": "452b0cfbaa0f22dc93fd23306c08f501f326ae9c",
+  "appVersion": "0.10.2",
+  "androidVersionCode": 18,
+  "verifiedAt": "2026-10-23T08:13:16.741126+00:00",
+  "scenario": "Android-configured settings observed in native physical-tablet and open Mac controls; both apps then stopped, Android restarted while Mac was offline, then Mac restarted.",
+  "scope": {
+    "deviceClass": "physical Android tablet",
+    "nonSecuritySettings": 29,
+    "deviceName": 1,
+    "settingsAndNameChangedFromScenarioA": 30,
+    "phases": 5,
+    "comparisons": 150,
+    "passed": 150,
+    "mismatches": 0
+  },
+  "result": "pass",
+  "checks": [
+    {
+      "setting": "showHeader",
+      "expected": true,
+      "changedFromScenarioA": true,
+      "macLive": "pass",
+      "androidLive": "pass",
+      "androidOfflineAfterRestart": "pass",
+      "hostAfterRestart": "pass",
+      "macAfterRestart": "pass",
+      "androidObservations": {
+        "live": 3,
+        "offlineAfterRestart": 3
+      }
+    },
+    {
+      "setting": "showNavigation",
+      "expected": true,
+      "changedFromScenarioA": true,
+      "macLive": "pass",
+      "androidLive": "pass",
+      "androidOfflineAfterRestart": "pass",
+      "hostAfterRestart": "pass",
+      "macAfterRestart": "pass",
+      "androidObservations": {
+        "live": 2,
+        "offlineAfterRestart": 2
+      }
+    },
+    {
+      "setting": "settingsButtonHidden",
+      "expected": false,
+      "changedFromScenarioA": true,
+      "macLive": "pass",
+      "androidLive": "pass",
+      "androidOfflineAfterRestart": "pass",
+      "hostAfterRestart": "pass",
+      "macAfterRestart": "pass",
+      "androidObservations": {
+        "live": 2,
+        "offlineAfterRestart": 2
+      }
+    },
+    {
+      "setting": "textScale",
+      "expected": 123,
+      "changedFromScenarioA": true,
+      "macLive": "pass",
+      "androidLive": "pass",
+      "androidOfflineAfterRestart": "pass",
+      "hostAfterRestart": "pass",
+      "macAfterRestart": "pass",
+      "androidObservations": {
+        "live": 3,
+        "offlineAfterRestart": 3
+      }
+    },
+    {
+      "setting": "screenSaverMode",
+      "expected": "dim",
+      "changedFromScenarioA": true,
+      "macLive": "pass",
+      "androidLive": "pass",
+      "androidOfflineAfterRestart": "pass",
+      "hostAfterRestart": "pass",
+      "macAfterRestart": "pass",
+      "androidObservations": {
+        "live": 1,
+        "offlineAfterRestart": 1
+      }
+    },
+    {
+      "setting": "haptics",
+      "expected": true,
+      "changedFromScenarioA": true,
+      "macLive": "pass",
+      "androidLive": "pass",
+      "androidOfflineAfterRestart": "pass",
+      "hostAfterRestart": "pass",
+      "macAfterRestart": "pass",
+      "androidObservations": {
+        "live": 1,
+        "offlineAfterRestart": 1
+      }
+    },
+    {
+      "setting": "awake",
+      "expected": true,
+      "changedFromScenarioA": true,
+      "macLive": "pass",
+      "androidLive": "pass",
+      "androidOfflineAfterRestart": "pass",
+      "hostAfterRestart": "pass",
+      "macAfterRestart": "pass",
+      "androidObservations": {
+        "live": 3,
+        "offlineAfterRestart": 3
+      }
+    },
+    {
+      "setting": "fullscreen",
+      "expected": true,
+      "changedFromScenarioA": true,
+      "macLive": "pass",
+      "androidLive": "pass",
+      "androidOfflineAfterRestart": "pass",
+      "hostAfterRestart": "pass",
+      "macAfterRestart": "pass",
+      "androidObservations": {
+        "live": 3,
+        "offlineAfterRestart": 3
+      }
+    },
+    {
+      "setting": "rememberPage",
+      "expected": true,
+      "changedFromScenarioA": true,
+      "macLive": "pass",
+      "androidLive": "pass",
+      "androidOfflineAfterRestart": "pass",
+      "hostAfterRestart": "pass",
+      "macAfterRestart": "pass",
+      "androidObservations": {
+        "live": 1,
+        "offlineAfterRestart": 1
+      }
+    },
+    {
+      "setting": "sound",
+      "expected": false,
+      "changedFromScenarioA": true,
+      "macLive": "pass",
+      "androidLive": "pass",
+      "androidOfflineAfterRestart": "pass",
+      "hostAfterRestart": "pass",
+      "macAfterRestart": "pass",
+      "androidObservations": {
+        "live": 3,
+        "offlineAfterRestart": 3
+      }
+    },
+    {
+      "setting": "swipeEnabled",
+      "expected": true,
+      "changedFromScenarioA": true,
+      "macLive": "pass",
+      "androidLive": "pass",
+      "androidOfflineAfterRestart": "pass",
+      "hostAfterRestart": "pass",
+      "macAfterRestart": "pass",
+      "androidObservations": {
+        "live": 3,
+        "offlineAfterRestart": 3
+      }
+    },
+    {
+      "setting": "reducedMotion",
+      "expected": false,
+      "changedFromScenarioA": true,
+      "macLive": "pass",
+      "androidLive": "pass",
+      "androidOfflineAfterRestart": "pass",
+      "hostAfterRestart": "pass",
+      "macAfterRestart": "pass",
+      "androidObservations": {
+        "live": 3,
+        "offlineAfterRestart": 3
+      }
+    },
+    {
+      "setting": "fixedVibration",
+      "expected": false,
+      "changedFromScenarioA": true,
+      "macLive": "pass",
+      "androidLive": "pass",
+      "androidOfflineAfterRestart": "pass",
+      "hostAfterRestart": "pass",
+      "macAfterRestart": "pass",
+      "androidObservations": {
+        "live": 1,
+        "offlineAfterRestart": 1
+      }
+    },
+    {
+      "setting": "firstTouchWakes",
+      "expected": true,
+      "changedFromScenarioA": true,
+      "macLive": "pass",
+      "androidLive": "pass",
+      "androidOfflineAfterRestart": "pass",
+      "hostAfterRestart": "pass",
+      "macAfterRestart": "pass",
+      "androidObservations": {
+        "live": 1,
+        "offlineAfterRestart": 1
+      }
+    },
+    {
+      "setting": "osNotifications",
+      "expected": true,
+      "changedFromScenarioA": true,
+      "macLive": "pass",
+      "androidLive": "pass",
+      "androidOfflineAfterRestart": "pass",
+      "hostAfterRestart": "pass",
+      "macAfterRestart": "pass",
+      "androidObservations": {
+        "live": 1,
+        "offlineAfterRestart": 1
+      }
+    },
+    {
+      "setting": "monitorNotifications",
+      "expected": true,
+      "changedFromScenarioA": true,
+      "macLive": "pass",
+      "androidLive": "pass",
+      "androidOfflineAfterRestart": "pass",
+      "hostAfterRestart": "pass",
+      "macAfterRestart": "pass",
+      "androidObservations": {
+        "live": 1,
+        "offlineAfterRestart": 1
+      }
+    },
+    {
+      "setting": "notificationBanner",
+      "expected": true,
+      "changedFromScenarioA": true,
+      "macLive": "pass",
+      "androidLive": "pass",
+      "androidOfflineAfterRestart": "pass",
+      "hostAfterRestart": "pass",
+      "macAfterRestart": "pass",
+      "androidObservations": {
+        "live": 1,
+        "offlineAfterRestart": 1
+      }
+    },
+    {
+      "setting": "brightness",
+      "expected": 65,
+      "changedFromScenarioA": true,
+      "macLive": "pass",
+      "androidLive": "pass",
+      "androidOfflineAfterRestart": "pass",
+      "hostAfterRestart": "pass",
+      "macAfterRestart": "pass",
+      "androidObservations": {
+        "live": 3,
+        "offlineAfterRestart": 3
+      }
+    },
+    {
+      "setting": "vibrationMs",
+      "expected": 127,
+      "changedFromScenarioA": true,
+      "macLive": "pass",
+      "androidLive": "pass",
+      "androidOfflineAfterRestart": "pass",
+      "hostAfterRestart": "pass",
+      "macAfterRestart": "pass",
+      "androidObservations": {
+        "live": 3,
+        "offlineAfterRestart": 3
+      }
+    },
+    {
+      "setting": "dimPercent",
+      "expected": 29,
+      "changedFromScenarioA": true,
+      "macLive": "pass",
+      "androidLive": "pass",
+      "androidOfflineAfterRestart": "pass",
+      "hostAfterRestart": "pass",
+      "macAfterRestart": "pass",
+      "androidObservations": {
+        "live": 1,
+        "offlineAfterRestart": 1
+      }
+    },
+    {
+      "setting": "screenSaverMinutes",
+      "expected": 11,
+      "changedFromScenarioA": true,
+      "macLive": "pass",
+      "androidLive": "pass",
+      "androidOfflineAfterRestart": "pass",
+      "hostAfterRestart": "pass",
+      "macAfterRestart": "pass",
+      "androidObservations": {
+        "live": 1,
+        "offlineAfterRestart": 1
+      }
+    },
+    {
+      "setting": "theme",
+      "expected": "light",
+      "changedFromScenarioA": true,
+      "macLive": "pass",
+      "androidLive": "pass",
+      "androidOfflineAfterRestart": "pass",
+      "hostAfterRestart": "pass",
+      "macAfterRestart": "pass",
+      "androidObservations": {
+        "live": 1,
+        "offlineAfterRestart": 1
+      }
+    },
+    {
+      "setting": "renderMode",
+      "expected": "standard",
+      "changedFromScenarioA": true,
+      "macLive": "pass",
+      "androidLive": "pass",
+      "androidOfflineAfterRestart": "pass",
+      "hostAfterRestart": "pass",
+      "macAfterRestart": "pass",
+      "androidObservations": {
+        "live": 2,
+        "offlineAfterRestart": 2
+      }
+    },
+    {
+      "setting": "iconResolution",
+      "expected": 512,
+      "changedFromScenarioA": true,
+      "macLive": "pass",
+      "androidLive": "pass",
+      "androidOfflineAfterRestart": "pass",
+      "hostAfterRestart": "pass",
+      "macAfterRestart": "pass",
+      "androidObservations": {
+        "live": 2,
+        "offlineAfterRestart": 2
+      }
+    },
+    {
+      "setting": "timeFormat",
+      "expected": "24h",
+      "changedFromScenarioA": true,
+      "macLive": "pass",
+      "androidLive": "pass",
+      "androidOfflineAfterRestart": "pass",
+      "hostAfterRestart": "pass",
+      "macAfterRestart": "pass",
+      "androidObservations": {
+        "live": 2,
+        "offlineAfterRestart": 2
+      }
+    },
+    {
+      "setting": "language",
+      "expected": "ko",
+      "changedFromScenarioA": true,
+      "macLive": "pass",
+      "androidLive": "pass",
+      "androidOfflineAfterRestart": "pass",
+      "hostAfterRestart": "pass",
+      "macAfterRestart": "pass",
+      "androidObservations": {
+        "live": 1,
+        "offlineAfterRestart": 1
+      }
+    },
+    {
+      "setting": "profileId",
+      "expected": "<redacted identifier or user label>",
+      "changedFromScenarioA": true,
+      "macLive": "pass",
+      "androidLive": "pass",
+      "androidOfflineAfterRestart": "pass",
+      "hostAfterRestart": "pass",
+      "macAfterRestart": "pass",
+      "androidObservations": {
+        "live": 1,
+        "offlineAfterRestart": 1
+      }
+    },
+    {
+      "setting": "startPageId",
+      "expected": "<redacted identifier or user label>",
+      "changedFromScenarioA": true,
+      "macLive": "pass",
+      "androidLive": "pass",
+      "androidOfflineAfterRestart": "pass",
+      "hostAfterRestart": "pass",
+      "macAfterRestart": "pass",
+      "androidObservations": {
+        "live": 1,
+        "offlineAfterRestart": 1
+      }
+    },
+    {
+      "setting": "orientation",
+      "expected": "auto",
+      "changedFromScenarioA": true,
+      "macLive": "pass",
+      "androidLive": "pass",
+      "androidOfflineAfterRestart": "pass",
+      "hostAfterRestart": "pass",
+      "macAfterRestart": "pass",
+      "androidObservations": {
+        "live": 1,
+        "offlineAfterRestart": 1
+      }
+    },
+    {
+      "setting": "name",
+      "expected": "<redacted identifier or user label>",
+      "changedFromScenarioA": true,
+      "macLive": "pass",
+      "androidLive": "pass",
+      "androidOfflineAfterRestart": "pass",
+      "hostAfterRestart": "pass",
+      "macAfterRestart": "pass",
+      "androidObservations": {
+        "live": 1,
+        "offlineAfterRestart": 1
+      }
+    }
+  ],
+  "mismatches": [],
+  "security": {
+    "setting": "allowInsecureWifi",
+    "observedFalseInAllNativeUiPhases": true,
+    "optInPerformed": false,
+    "scope": "Default policy observation only; physical-device opt-in is excluded."
+  },
+  "method": {
+    "expectedValues": "Read from the private host snapshot captured after Android settings changes. Confirmed every target differs from scenario A.",
+    "nativeMac": "Parse captured accessibility control label/value pairs and compare to source-defined presentation labels.",
+    "physicalAndroid": "Read every captured native control across all six settings categories; translated labels and enum choices are resolved from the shipped locale catalog. Repeated controls across scroll captures must all agree.",
+    "profileAndPageNames": "Resolve selected IDs against the private baseline profile/page catalog and account for default-profile choices; no user labels or IDs are emitted.",
+    "restartHost": "Compare all 29 settings and the name in the post-restart host snapshot."
+  },
+  "limitations": [
+    "Device interaction, restart timing and offline conditions were performed by the parent runner. This independent audit reads its recorded native UI and host snapshots.",
+    "This evidence establishes settings values, synchronization and restart persistence. It does not measure vibration strength, emitted sound, panel luminance or every renderer effect.",
+    "Device serials, UUIDs, names, profile/page labels and original user values are excluded from this public file."
+  ],
+  "sourceFiles": [
+    {
+      "filename": "private-baseline.json",
+      "sha256": "7a360f6d1e20c5a16997712cfb273186de5e670d5edf1a9c998f4c87e1bda8bc"
+    },
+    {
+      "filename": "mac-a-host.json",
+      "sha256": "29f171a3b5b8f831918f9a52342335ebc07105abce874e480ef2130d14fdfd01"
+    },
+    {
+      "filename": "android-b-host.json",
+      "sha256": "d4b152b075d74a220763c2516ebd89449d27c22458e7d13f76ab2885181dfd90"
+    },
+    {
+      "filename": "android-b-restart-host.json",
+      "sha256": "d4b152b075d74a220763c2516ebd89449d27c22458e7d13f76ab2885181dfd90"
+    },
+    {
+      "filename": "android-b-live-native.json",
+      "sha256": "41f011719a811654c1216da407dc08cc91d7e4951d49f43324ec9aab8ce4bb8e"
+    },
+    {
+      "filename": "android-b-restart-native.json",
+      "sha256": "01f6ea78c7e14472880b869efeccbe99e89b584fbc74bbf794ff8ab1ef16dcb2"
+    },
+    {
+      "filename": "android-b-live-display.json",
+      "sha256": "a708d0e975fd7af35adc7177a936b8a58259ea46368881b76c038d1bd09b80f7"
+    },
+    {
+      "filename": "android-b-live-input.json",
+      "sha256": "652539f05bde943dba583c7cbebd62919d697b30002ad92a161fb4340dd057ed"
+    },
+    {
+      "filename": "android-b-live-idle.json",
+      "sha256": "1015bd5c80ec6cfce541078eac9d86520403969ed09835d8b2df51a7afc69c92"
+    },
+    {
+      "filename": "android-b-live-startup.json",
+      "sha256": "5d253f6b64b085b4de349ae78eb61c1a01905de1b44d86bb778656762a293a86"
+    },
+    {
+      "filename": "android-b-live-connection.json",
+      "sha256": "1101e55c82115c9a69847e9c09e795a61b13920d1ef86620c58446e2e8a5b0bb"
+    },
+    {
+      "filename": "android-b-live-notifications.json",
+      "sha256": "212851e2357d7191021ac966893a3c5bce7fe195ae53f9bfd64831b2da2c238b"
+    },
+    {
+      "filename": "android-b-offline-display.json",
+      "sha256": "cd75837272471732648eebb797473864ad3219e0c11dc6cb209bf68f4b85b78e"
+    },
+    {
+      "filename": "android-b-offline-input.json",
+      "sha256": "0a34d27b30378076d319df715765d83bb96ad3d4ae00898fc76749f541fe5cad"
+    },
+    {
+      "filename": "android-b-offline-idle.json",
+      "sha256": "fa1add5dba9592ea84ac69202fba8f3705d456006ba612dfaeeb2bd6c1e55cb8"
+    },
+    {
+      "filename": "android-b-offline-startup.json",
+      "sha256": "df2cf85059336a7997eb2ce5a9f6d31a85c406f1be6d20e39a3f528e4aaa8cea"
+    },
+    {
+      "filename": "android-b-offline-connection.json",
+      "sha256": "20cce6345edb910a38cf67ee1203906311b574a3c239275979babb2178c91848"
+    },
+    {
+      "filename": "android-b-offline-notifications.json",
+      "sha256": "ea4bada493b8241efdce4f6bc54b7126e7aca77f0a0a7072df8bdb811a6ef798"
+    }
+  ]
+}
