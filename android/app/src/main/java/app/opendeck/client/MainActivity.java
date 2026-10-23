@@ -1101,6 +1101,7 @@ public class MainActivity extends Activity {
         axisPeakMinute = -1;
     private double visiblePeakValue = Double.NaN, visibleScalePeak = Double.NaN;
     private boolean visibleGeometry,
+        axisZoomed,
         downZoomed,
         panningGesture,
         pinchGesture,
@@ -1235,6 +1236,7 @@ public class MainActivity extends Activity {
           last = viewport.end() / 60000,
           peak = visiblePeakAt / 60000;
       if (forceLabels
+          || viewport.isZoomed() != axisZoomed
           || first != axisFirstMinute
           || middle != axisMiddleMinute
           || last != axisLastMinute
@@ -1247,6 +1249,7 @@ public class MainActivity extends Activity {
           lastLabel = viewport.hasData() ? chartTime(viewport.end()) : "";
         if (forceLabels || peak != axisPeakMinute)
           peakLabel = visibleSampleCount > 0 ? "▲ " + chartTime(visiblePeakAt) : "";
+        axisZoomed = viewport.isZoomed();
         axisFirstMinute = first;
         axisMiddleMinute = middle;
         axisLastMinute = last;
