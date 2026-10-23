@@ -24,7 +24,7 @@ The Android app renders Grafana values and trends directly with Canvas. It does 
 - Database: readiness, maximum CPU utilization among observed nodes, per-node CPU, committed TPS, QPS, memory and total observed connections. The detail view uses six large numeric cards and switchable TPS, QPS, CPU and memory charts. QPS sums the dashboard’s per-node Questions rates; memory reports the highest observed node utilization. A failed observed MariaDB exporter prevents a healthy readiness badge.
 - Mac: one supporting summary of CPU, memory, storage, power/thermal state and network. Its detail tabs use a balanced two-column layout with current values and native trend charts: CPU, memory utilization, disk read/write throughput, battery level and network receive/send throughput. They refresh every two seconds. App-level CPU/memory lists remain accessible from that dialog.
 
-Grafana detail dialogs also put the metric summary beside its native one-hour chart. The monitor and detail views contain no embedded webpage.
+Grafana detail dialogs also put the metric summary beside its native one-hour chart. The time axis shows the observed start, midpoint and end, and a marker identifies the highest sample and its time. Labels follow the device time format. Missing timestamps are not replaced with invented collection times. The monitor and detail views contain no embedded webpage.
 
 ### Service health
 

@@ -966,12 +966,12 @@ public class MainActivity extends Activity {
       JSONObject metric = grafanaMetric(data, chartMetric);
       JSONArray points = metric == null ? null : metric.optJSONArray("points");
       if (service && !Double.isFinite(serviceValue(data, chartMetric))) points = null;
-      plot.set(dp(45), dp(76), getWidth() - dp(16), getHeight() - dp(39));
-      double max = percent && !errorRate ? 100 : 1;
-      if ((!percent || errorRate) && points != null)
-        for (int i = 0; i < points.length(); i++)
-          if (points.optJSONArray(i) != null)
-            max = Math.max(max, points.optJSONArray(i).optDouble(1));
+      ChartTimeRange time = timeRange(points);
+      plot.set(dp(45), dp(82), getWidth() - dp(16), getHeight() - dp(39));
+      double max =
+          percent && !errorRate
+              ? 100
+              : Math.max(1, Double.isFinite(time.peakValue) ? time.peakValue : 1);
       for (int i = 0; i < 3; i++) {
         float y = plot.top + plot.height() * i / 2;
         p.setColor(Color.parseColor("#2b414f"));
@@ -989,7 +989,7 @@ public class MainActivity extends Activity {
             muted,
             Paint.Align.RIGHT);
       }
-      if (points == null || points.length() < 2)
+      if (!time.hasRange())
         text(
             c,
             L10n.text("수집 데이터 없음"),
@@ -998,9 +998,81 @@ public class MainActivity extends Activity {
             12,
             muted,
             Paint.Align.CENTER);
-      else if (deck != null) deck.grafanaTrend(c, points, plot, accent, percent && !errorRate);
-      text(c, L10n.text("이전"), plot.left, getHeight() - dp(16), 9, muted, Paint.Align.LEFT);
-      text(c, L10n.text("최근"), plot.right, getHeight() - dp(16), 9, muted, Paint.Align.RIGHT);
+      else {
+        if (deck != null) deck.grafanaTrend(c, points, plot, accent, max, time);
+        drawTimeAxis(c, time, muted);
+        float peakX = plot.left + plot.width() * (float) time.fraction(time.peakAt);
+        float peakY =
+            plot.bottom - (float) Math.max(0, Math.min(1, time.peakValue / max)) * plot.height();
+        p.setColor(accent);
+        p.setAlpha(95);
+        p.setStyle(Paint.Style.STROKE);
+        p.setStrokeWidth(dp(1));
+        p.setPathEffect(new DashPathEffect(new float[] {dp(3), dp(4)}, 0));
+        c.drawLine(peakX, plot.top, peakX, plot.bottom, p);
+        p.setPathEffect(null);
+        p.setAlpha(255);
+        p.setStyle(Paint.Style.FILL);
+        c.drawCircle(peakX, peakY, dp(3), p);
+        String peak = "▲ " + chartTime(time.peakAt);
+        p.setTypeface(font);
+        p.setTextSize(dp(9));
+        float half = p.measureText(peak) / 2;
+        float labelX = Math.max(plot.left + half, Math.min(plot.right - half, peakX));
+        text(c, peak, labelX, dp(69), 9, accent, Paint.Align.CENTER);
+        String description =
+            L10n.text("Grafana 최근 1시간 추이 그래프")
+                + ", "
+                + chartTime(time.first)
+                + " · "
+                + chartTime(time.middle)
+                + " · "
+                + chartTime(time.last)
+                + ", ▲ "
+                + chartTime(time.peakAt);
+        if (!description.contentEquals(getContentDescription())) setContentDescription(description);
+      }
+      if (!time.hasRange()) {
+        text(c, L10n.text("이전"), plot.left, getHeight() - dp(16), 9, muted, Paint.Align.LEFT);
+        text(c, L10n.text("최근"), plot.right, getHeight() - dp(16), 9, muted, Paint.Align.RIGHT);
+        setContentDescription(L10n.text("수집 데이터 없음"));
+      }
+    }
+
+    private ChartTimeRange timeRange(JSONArray points) {
+      int count = points == null ? 0 : points.length();
+      long[] timestamps = new long[count];
+      double[] values = new double[count];
+      for (int i = 0; i < count; i++) {
+        JSONArray point = points.optJSONArray(i);
+        timestamps[i] = point == null ? 0 : point.optLong(0, 0);
+        values[i] = point == null ? Double.NaN : point.optDouble(1, Double.NaN);
+      }
+      return ChartTimeRange.from(timestamps, values);
+    }
+
+    private String chartTime(long at) {
+      return osDate(at, settingString("timeFormat").equals("12h") ? "h:mm a" : "HH:mm");
+    }
+
+    private void drawTimeAxis(Canvas c, ChartTimeRange time, int muted) {
+      String first = chartTime(time.first),
+          middle = chartTime(time.middle),
+          last = chartTime(time.last);
+      p.setTypeface(font);
+      p.setTextSize(dp(9));
+      float width = plot.width(),
+          firstWidth = p.measureText(first),
+          middleWidth = p.measureText(middle),
+          lastWidth = p.measureText(last);
+      float required =
+          2 * Math.max(firstWidth + middleWidth / 2, lastWidth + middleWidth / 2) + dp(16);
+      float size = Math.max(7, Math.min(9, 9 * width / Math.max(1, required)));
+      boolean showMiddle = required * size / 9 <= width;
+      float y = getHeight() - dp(16);
+      text(c, first, plot.left, y, size, muted, Paint.Align.LEFT);
+      if (showMiddle) text(c, middle, plot.centerX(), y, size, muted, Paint.Align.CENTER);
+      text(c, last, plot.right, y, size, muted, Paint.Align.RIGHT);
     }
   }
 
@@ -5671,29 +5743,23 @@ public class MainActivity extends Activity {
       }
     }
 
-    void grafanaTrend(Canvas c, JSONArray points, RectF r, int accent, boolean percent) {
-      if (points == null || points.length() < 2 || r.height() < dp(8)) return;
-      long first = points.optJSONArray(0).optLong(0),
-          last = points.optJSONArray(points.length() - 1).optLong(0);
-      if (last <= first) return;
-      double max = percent ? 100 : 1;
-      if (!percent)
-        for (int i = 0; i < points.length(); i++)
-          max = Math.max(max, points.optJSONArray(i).optDouble(1));
+    void grafanaTrend(
+        Canvas c, JSONArray points, RectF r, int accent, double max, ChartTimeRange time) {
+      if (points == null || !time.hasRange() || r.height() < dp(8)) return;
       iconPath.rewind();
       boolean started = false;
       long previous = 0;
       for (int i = 0; i < points.length(); i++) {
         JSONArray point = points.optJSONArray(i);
-        long at = point.optLong(0);
-        double v = point.optDouble(1, Double.NaN);
-        if (!Double.isFinite(v)) {
+        long at = point == null ? 0 : point.optLong(0, 0);
+        double v = point == null ? Double.NaN : point.optDouble(1, Double.NaN);
+        if (at <= 0 || !Double.isFinite(v) || v < 0) {
           started = false;
           continue;
         }
-        float x = r.left + r.width() * (at - first) / (float) (last - first),
+        float x = r.left + r.width() * (float) time.fraction(at),
             y = r.bottom - (float) Math.max(0, Math.min(1, v / max)) * r.height();
-        if (started && at - previous <= 120000) iconPath.lineTo(x, y);
+        if (started && at >= previous && at - previous <= 120000) iconPath.lineTo(x, y);
         else iconPath.moveTo(x, y);
         started = true;
         previous = at;
