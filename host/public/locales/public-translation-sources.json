@@ -8384,5 +8384,13 @@
     "files": [
       "host/server.mjs"
     ]
+  },
+  {
+    "source": "터치·드래그로 값 확인",
+    "english": "Touch or drag to inspect values"
+  },
+  {
+    "source": "선택 해제",
+    "english": "Clear selection"
   }
 ]

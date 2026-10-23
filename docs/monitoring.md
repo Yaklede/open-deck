@@ -26,6 +26,8 @@ The Android app renders Grafana values and trends directly with Canvas. It does 
 
 Grafana detail dialogs also put the metric summary beside its native one-hour chart. The time axis shows the observed start, midpoint and end, and a marker identifies the highest sample and its time. Labels follow the device time format. Missing timestamps are not replaced with invented collection times. The monitor and detail views contain no embedded webpage.
 
+Touch or drag horizontally inside any CPU or database detail chart to inspect a measured sample. The crosshair shows the sample time down to seconds and its value with units, without K/M abbreviations or interpolating between samples. Selection remains after releasing the finger and clears when changing the chart. The selector does not substitute a distant value for a collection gap. DB CPU and memory history keep their existing maximum-across-nodes aggregation; current node readings are not inserted into historical tooltips.
+
 ### Service health
 
 System CPU remains the largest reading. A quieter secondary row shows response time in milliseconds, HTTP 5xx error percentage and requests per second (RPS). Tap the card to switch its history chart between CPU, response time, 5xx errors and RPS. RPS is HTTP request throughput, separate from database TPS and QPS.

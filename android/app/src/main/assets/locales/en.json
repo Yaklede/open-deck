@@ -1558,5 +1558,7 @@
   "회 발생": "Occurs once",
   "활성 알림이 너무 많습니다. 복구된 뒤 다시 시도하세요.": "There are too many active alerts. Try again after some have recovered.",
   "알림 이력을 저장하지 못했습니다. 디스크 상태를 확인하세요.": "Could not save alert history. Check disk availability.",
-  "태블릿 연결이 필요합니다.": "Tablet connection required."
+  "태블릿 연결이 필요합니다.": "Tablet connection required.",
+  "터치·드래그로 값 확인": "Touch or drag to inspect values",
+  "선택 해제": "Clear selection"
 }

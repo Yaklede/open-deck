@@ -925,6 +925,8 @@ public class MainActivity extends Activity {
       this.widget = widget;
       chartMetric = widget.optString("metric").equals("system") ? "system" : "cpu";
       setContentDescription(L10n.text("Grafana 최근 1시간 추이 그래프"));
+      setClickable(true);
+      setFocusable(true);
     }
 
     @Override
@@ -938,6 +940,7 @@ public class MainActivity extends Activity {
       boolean errorRate = chartMetric.equals("errorRate");
       JSONObject data = grafanaData(widget);
       boolean service = MonitorPresentation.serviceMetric(chartMetric);
+      refreshSamples(data);
       int accent = monitorColor(widget, system ? "cpu" : chartMetric),
           muted = Color.parseColor("#9bafbd");
       p.setStyle(Paint.Style.FILL);
@@ -964,10 +967,16 @@ public class MainActivity extends Activity {
           Color.parseColor("#d9f4fa"),
           Paint.Align.LEFT);
       text(c, L10n.text("최근 1시간"), dp(16), dp(50), 10, muted, Paint.Align.LEFT);
-      JSONObject metric = grafanaMetric(data, chartMetric);
-      JSONArray points = metric == null ? null : metric.optJSONArray("points");
-      if (service && !Double.isFinite(serviceValue(data, chartMetric))) points = null;
-      ChartTimeRange time = timeRange(points);
+      if (!inspecting) {
+        String hint = L10n.text("터치·드래그로 값 확인");
+        p.setTextSize(dp(8));
+        float hintWidth = p.measureText(hint);
+        p.setTextSize(dp(10));
+        if (hintWidth + p.measureText(L10n.text("최근 1시간")) + dp(40) < getWidth())
+          text(c, hint, getWidth() - dp(16), dp(50), 8, muted, Paint.Align.RIGHT);
+      }
+      JSONArray points = displayPoints;
+      ChartTimeRange time = sampleRange;
       plot.set(dp(45), dp(82), getWidth() - dp(16), getHeight() - dp(39));
       double max =
           percent && !errorRate
@@ -990,7 +999,7 @@ public class MainActivity extends Activity {
             muted,
             Paint.Align.RIGHT);
       }
-      if (!time.hasRange())
+      if (time.samples == 0)
         text(
             c,
             L10n.text("수집 데이터 없음"),
@@ -1000,56 +1009,380 @@ public class MainActivity extends Activity {
             muted,
             Paint.Align.CENTER);
       else {
-        if (deck != null) deck.grafanaTrend(c, points, plot, accent, max, time);
+        if (deck != null && time.hasRange()) deck.grafanaTrend(c, points, plot, accent, max, time);
         drawTimeAxis(c, time, muted);
-        float peakX = plot.left + plot.width() * (float) time.fraction(time.peakAt);
-        float peakY =
-            plot.bottom - (float) Math.max(0, Math.min(1, time.peakValue / max)) * plot.height();
-        p.setColor(accent);
-        p.setAlpha(95);
-        p.setStyle(Paint.Style.STROKE);
-        p.setStrokeWidth(dp(1));
-        p.setPathEffect(peakDash);
-        c.drawLine(peakX, plot.top, peakX, plot.bottom, p);
-        p.setPathEffect(null);
-        p.setAlpha(255);
-        p.setStyle(Paint.Style.FILL);
-        c.drawCircle(peakX, peakY, dp(3), p);
-        String peak = "▲ " + chartTime(time.peakAt);
-        p.setTypeface(font);
-        p.setTextSize(dp(9));
-        float half = p.measureText(peak) / 2;
-        float labelX = Math.max(plot.left + half, Math.min(plot.right - half, peakX));
-        text(c, peak, labelX, dp(69), 9, accent, Paint.Align.CENTER);
+        if (!inspecting) {
+          float peakX =
+              plot.left
+                  + plot.width() * (time.hasRange() ? (float) time.fraction(time.peakAt) : .5f);
+          float peakY =
+              plot.bottom - (float) Math.max(0, Math.min(1, time.peakValue / max)) * plot.height();
+          p.setColor(accent);
+          p.setAlpha(95);
+          p.setStyle(Paint.Style.STROKE);
+          p.setStrokeWidth(dp(1));
+          p.setPathEffect(peakDash);
+          c.drawLine(peakX, plot.top, peakX, plot.bottom, p);
+          p.setPathEffect(null);
+          p.setAlpha(255);
+          p.setStyle(Paint.Style.FILL);
+          c.drawCircle(peakX, peakY, dp(3), p);
+          String peak = peakLabel;
+          p.setTypeface(font);
+          p.setTextSize(dp(9));
+          float half = p.measureText(peak) / 2;
+          float labelX = Math.max(plot.left + half, Math.min(plot.right - half, peakX));
+          text(c, peak, labelX, dp(69), 9, accent, Paint.Align.CENTER);
+        }
+        if (inspecting) drawInspection(c, time, max, accent, muted);
         String description =
-            L10n.text("Grafana 최근 1시간 추이 그래프")
-                + ", "
-                + chartTime(time.first)
-                + " · "
-                + chartTime(time.middle)
-                + " · "
-                + chartTime(time.last)
-                + ", ▲ "
-                + chartTime(time.peakAt);
+            inspecting
+                ? (selectedIndex >= 0 ? selectedDescription : L10n.text("수집 데이터 없음"))
+                : defaultDescription;
         if (!description.contentEquals(getContentDescription())) setContentDescription(description);
       }
-      if (!time.hasRange()) {
+      if (time.samples == 0) {
         text(c, L10n.text("이전"), plot.left, getHeight() - dp(16), 9, muted, Paint.Align.LEFT);
         text(c, L10n.text("최근"), plot.right, getHeight() - dp(16), 9, muted, Paint.Align.RIGHT);
         setContentDescription(L10n.text("수집 데이터 없음"));
       }
     }
 
-    private ChartTimeRange timeRange(JSONArray points) {
-      int count = points == null ? 0 : points.length();
-      long[] timestamps = new long[count];
-      double[] values = new double[count];
-      for (int i = 0; i < count; i++) {
-        JSONArray point = points.optJSONArray(i);
-        timestamps[i] = point == null ? 0 : point.optLong(0, 0);
-        values[i] = point == null ? Double.NaN : point.optDouble(1, Double.NaN);
+    private JSONArray displayPoints, cachedPoints;
+    private long[] sampleTimes = new long[0];
+    private double[] sampleValues = new double[0];
+    private ChartTimeRange sampleRange = ChartTimeRange.from(null, null);
+    private String cachedMetric = "", cachedProject = "", cachedTimeFormat = "";
+    private Locale cachedLocale;
+    private String firstLabel = "",
+        middleLabel = "",
+        lastLabel = "",
+        peakLabel = "",
+        defaultDescription = "";
+    private String selectedTimeLabel = "", selectedValueLabel = "", selectedDescription = "";
+    private long selectedAt;
+    private double selectedValue = Double.NaN;
+    private int selectedIndex = -1, activePointerId = -1;
+    private boolean inspecting,
+        inspectionEnabled,
+        capturedGesture,
+        clearingGesture,
+        completingTouch;
+    private float cursorX;
+    private final RectF tooltipBounds = new RectF();
+
+    void selectMetric(String metric) {
+      // Re-tapping the current graph tab is also the touch route back to the peak view.
+      clearInspection();
+      chartMetric = metric;
+      cachedMetric = "";
+      invalidate();
+    }
+
+    private void refreshSamples(JSONObject data) {
+      JSONObject metric = grafanaMetric(data, chartMetric);
+      JSONArray points = metric == null ? null : metric.optJSONArray("points");
+      boolean service = MonitorPresentation.serviceMetric(chartMetric);
+      if (service && !Double.isFinite(serviceValue(data, chartMetric))) points = null;
+      String project = grafanaProject(widget).optString("value");
+      String timeFormat = settingString("timeFormat");
+      Locale locale = L10n.locale();
+      boolean contextChanged = !chartMetric.equals(cachedMetric) || !project.equals(cachedProject);
+      boolean formatChanged = !timeFormat.equals(cachedTimeFormat) || !locale.equals(cachedLocale);
+      int freshness = sourceState(data, chartMetric);
+      inspectionEnabled =
+          queryFresh(data)
+              && freshness != DataFreshness.STALE
+              && freshness != DataFreshness.MISSING;
+      if (contextChanged || !inspectionEnabled) clearInspectionState();
+      boolean changed = contextChanged || points != cachedPoints;
+      displayPoints = points;
+      if (changed) {
+        int count = points == null ? 0 : points.length();
+        sampleTimes = new long[count];
+        sampleValues = new double[count];
+        for (int i = 0; i < count; i++) {
+          JSONArray point = points.optJSONArray(i);
+          sampleTimes[i] = point == null ? 0 : point.optLong(0, 0);
+          sampleValues[i] = point == null ? Double.NaN : point.optDouble(1, Double.NaN);
+        }
+        sampleRange = ChartTimeRange.from(sampleTimes, sampleValues);
+        cachedPoints = points;
+        if (selectedAt > 0) {
+          selectedIndex = ChartScrubber.exactIndex(sampleTimes, sampleValues, selectedAt);
+          if (selectedIndex < 0) clearInspectionState();
+        }
       }
-      return ChartTimeRange.from(timestamps, values);
+      cachedMetric = chartMetric;
+      cachedProject = project;
+      cachedTimeFormat = timeFormat;
+      cachedLocale = locale;
+      if (changed || formatChanged) {
+        firstLabel = sampleRange.samples > 0 ? chartTime(sampleRange.first) : "";
+        middleLabel = sampleRange.samples > 0 ? chartTime(sampleRange.middle) : "";
+        lastLabel = sampleRange.samples > 0 ? chartTime(sampleRange.last) : "";
+        peakLabel = sampleRange.samples > 0 ? "▲ " + chartTime(sampleRange.peakAt) : "";
+        defaultDescription =
+            L10n.text("Grafana 최근 1시간 추이 그래프")
+                + ", "
+                + firstLabel
+                + " · "
+                + middleLabel
+                + " · "
+                + lastLabel
+                + ", "
+                + peakLabel
+                + ", "
+                + L10n.text("터치·드래그로 값 확인");
+        if (selectedIndex >= 0) updateSelectedLabels(formatChanged);
+      }
+    }
+
+    private void updateSelectedLabels(boolean force) {
+      if (selectedIndex < 0 || selectedIndex >= sampleTimes.length) return;
+      long at = sampleTimes[selectedIndex];
+      double value = sampleValues[selectedIndex];
+      if (!force
+          && at == selectedAt
+          && Double.doubleToLongBits(value) == Double.doubleToLongBits(selectedValue)) return;
+      selectedAt = at;
+      selectedValue = value;
+      selectedTimeLabel =
+          osDate(at, settingString("timeFormat").equals("12h") ? "h:mm:ss a" : "HH:mm:ss");
+      selectedValueLabel = ChartScrubber.valueText(value, chartMetric, L10n.locale());
+      selectedDescription = selectedTimeLabel + " · " + selectedValueLabel;
+    }
+
+    private void clearInspectionState() {
+      inspecting = false;
+      selectedIndex = -1;
+      selectedAt = 0;
+      selectedValue = Double.NaN;
+    }
+
+    private void releaseGesture() {
+      activePointerId = -1;
+      capturedGesture = false;
+      clearingGesture = false;
+      if (getParent() != null) getParent().requestDisallowInterceptTouchEvent(false);
+    }
+
+    private void clearInspection() {
+      clearInspectionState();
+      releaseGesture();
+      invalidate();
+    }
+
+    private void selectAt(float x) {
+      if (!inspectionEnabled || sampleRange.samples == 0 || plot.width() <= 0) return;
+      float clamped = Math.max(plot.left, Math.min(plot.right, x));
+      long at =
+          sampleRange.hasRange()
+              ? ChartScrubber.targetTime(sampleRange, (clamped - plot.left) / plot.width())
+              : sampleRange.first;
+      int next = ChartScrubber.nearestIndex(sampleTimes, sampleValues, at);
+      boolean changed = !inspecting || next != selectedIndex;
+      inspecting = true;
+      cursorX = clamped;
+      selectedIndex = next;
+      if (next >= 0) updateSelectedLabels(false);
+      else {
+        selectedAt = 0;
+        selectedValue = Double.NaN;
+      }
+      // Formatting and accessibility strings change only when the selected sample changes.
+      if (changed || next < 0) invalidate();
+    }
+
+    @Override
+    public boolean onTouchEvent(MotionEvent event) {
+      switch (event.getActionMasked()) {
+        case MotionEvent.ACTION_DOWN:
+          refreshSamples(grafanaData(widget));
+          if (!inspectionEnabled
+              || sampleRange.samples == 0
+              || plot.width() <= 0
+              || plot.height() <= 0) return false;
+          boolean inPlot = plot.contains(event.getX(), event.getY());
+          if (!inPlot && !(inspecting && event.getY() < plot.top)) return false;
+          clearingGesture = !inPlot;
+          if (clearingGesture) clearInspectionState();
+          activePointerId = event.getPointerId(0);
+          capturedGesture = true;
+          if (getParent() != null) getParent().requestDisallowInterceptTouchEvent(true);
+          if (!clearingGesture) selectAt(event.getX());
+          else invalidate();
+          return true;
+        case MotionEvent.ACTION_MOVE:
+          if (!capturedGesture) return false;
+          if (activePointerId >= 0 && !clearingGesture) {
+            int index = event.findPointerIndex(activePointerId);
+            if (index < 0) {
+              clearInspection();
+              return true;
+            }
+            selectAt(event.getX(index));
+          }
+          return true;
+        case MotionEvent.ACTION_POINTER_DOWN:
+          return capturedGesture;
+        case MotionEvent.ACTION_POINTER_UP:
+          if (!capturedGesture) return false;
+          if (event.getPointerId(event.getActionIndex()) == activePointerId) {
+            if (!clearingGesture) selectAt(event.getX(event.getActionIndex()));
+            // Do not jump to another finger. Keep consuming this gesture until its final UP.
+            activePointerId = -1;
+          }
+          return true;
+        case MotionEvent.ACTION_UP:
+          if (!capturedGesture) return false;
+          if (activePointerId >= 0 && !clearingGesture) {
+            int index = event.findPointerIndex(activePointerId);
+            if (index >= 0) selectAt(event.getX(index));
+          }
+          completingTouch = true;
+          performClick();
+          completingTouch = false;
+          releaseGesture();
+          if (inspecting)
+            announceForAccessibility(
+                selectedIndex >= 0 ? selectedDescription : L10n.text("수집 데이터 없음"));
+          return true;
+        case MotionEvent.ACTION_CANCEL:
+          if (!capturedGesture) return false;
+          clearInspection();
+          return true;
+        default:
+          return capturedGesture || super.onTouchEvent(event);
+      }
+    }
+
+    @Override
+    public boolean performClick() {
+      super.performClick();
+      if (!completingTouch) {
+        refreshSamples(grafanaData(widget));
+        if (inspectionEnabled && sampleRange.samples > 0) selectAt(plot.right);
+      }
+      return true;
+    }
+
+    @Override
+    public void onInitializeAccessibilityNodeInfo(
+        android.view.accessibility.AccessibilityNodeInfo info) {
+      super.onInitializeAccessibilityNodeInfo(info);
+      info.setClickable(true);
+      if (inspectionEnabled && sampleRange.samples > 0) {
+        info.addAction(
+            android.view.accessibility.AccessibilityNodeInfo.AccessibilityAction
+                .ACTION_SCROLL_FORWARD);
+        info.addAction(
+            android.view.accessibility.AccessibilityNodeInfo.AccessibilityAction
+                .ACTION_SCROLL_BACKWARD);
+      }
+      if (inspecting)
+        info.addAction(
+            new android.view.accessibility.AccessibilityNodeInfo.AccessibilityAction(
+                0x01030002, L10n.text("선택 해제")));
+    }
+
+    @Override
+    public boolean performAccessibilityAction(int action, Bundle arguments) {
+      if (action == 0x01030002) {
+        clearInspection();
+        return true;
+      }
+      if (action == android.view.accessibility.AccessibilityNodeInfo.ACTION_SCROLL_FORWARD
+          || action == android.view.accessibility.AccessibilityNodeInfo.ACTION_SCROLL_BACKWARD) {
+        refreshSamples(grafanaData(widget));
+        if (!inspectionEnabled) return false;
+        int next =
+            ChartScrubber.adjacentIndex(
+                sampleTimes,
+                sampleValues,
+                selectedAt,
+                action == android.view.accessibility.AccessibilityNodeInfo.ACTION_SCROLL_FORWARD);
+        if (next < 0) return false;
+        inspecting = true;
+        selectedIndex = next;
+        updateSelectedLabels(false);
+        invalidate();
+        announceForAccessibility(selectedDescription);
+        return true;
+      }
+      return super.performAccessibilityAction(action, arguments);
+    }
+
+    @Override
+    protected void onDetachedFromWindow() {
+      releaseGesture();
+      super.onDetachedFromWindow();
+    }
+
+    private void drawInspection(Canvas c, ChartTimeRange time, double max, int accent, int muted) {
+      float x =
+          selectedIndex < 0
+              ? cursorX
+              : plot.left
+                  + plot.width() * (time.hasRange() ? (float) time.fraction(selectedAt) : .5f);
+      p.setColor(accent);
+      p.setAlpha(150);
+      p.setStrokeWidth(dp(1));
+      p.setStyle(Paint.Style.STROKE);
+      c.drawLine(x, plot.top, x, plot.bottom, p);
+      if (selectedIndex < 0) {
+        p.setAlpha(255);
+        p.setStyle(Paint.Style.FILL);
+        text(c, L10n.text("수집 데이터 없음"), plot.centerX(), dp(69), 10, muted, Paint.Align.CENTER);
+        return;
+      }
+      float y = plot.bottom - (float) Math.max(0, Math.min(1, selectedValue / max)) * plot.height();
+      p.setAlpha(65);
+      c.drawLine(plot.left, y, plot.right, y, p);
+      p.setAlpha(255);
+      p.setStyle(Paint.Style.FILL);
+      c.drawCircle(x, y, dp(4), p);
+      p.setTypeface(font);
+      p.setTextSize(dp(12));
+      float desired =
+          Math.max(p.measureText(selectedValueLabel), p.measureText(selectedTimeLabel)) + dp(20);
+      float width = Math.min(plot.width(), Math.max(dp(116), desired));
+      float height = Math.min(dp(46), plot.height());
+      float left = x + dp(10);
+      if (left + width > plot.right) left = x - width - dp(10);
+      left = Math.max(plot.left, Math.min(plot.right - width, left));
+      float top = y - height - dp(10);
+      if (top < plot.top) top = y + dp(10);
+      top = Math.max(plot.top, Math.min(plot.bottom - height, top));
+      tooltipBounds.set(left, top, left + width, top + height);
+      p.setColor(color("#0d1823"));
+      c.drawRoundRect(tooltipBounds, dp(6), dp(6), p);
+      p.setColor(accent);
+      p.setAlpha(150);
+      p.setStyle(Paint.Style.STROKE);
+      c.drawRoundRect(tooltipBounds, dp(6), dp(6), p);
+      p.setStyle(Paint.Style.FILL);
+      p.setAlpha(255);
+      float size = Math.max(7, Math.min(12, 12 * (width - dp(20)) / Math.max(1, desired - dp(20))));
+      c.save();
+      c.clipRect(tooltipBounds);
+      text(
+          c,
+          selectedTimeLabel,
+          left + dp(10),
+          top + dp(16),
+          Math.min(10, size),
+          muted,
+          Paint.Align.LEFT);
+      text(
+          c,
+          selectedValueLabel,
+          left + dp(10),
+          top + Math.min(height - dp(8), dp(35)),
+          size,
+          color("#edf4fa"),
+          Paint.Align.LEFT);
+      c.restore();
     }
 
     private String chartTime(long at) {
@@ -1057,9 +1390,11 @@ public class MainActivity extends Activity {
     }
 
     private void drawTimeAxis(Canvas c, ChartTimeRange time, int muted) {
-      String first = chartTime(time.first),
-          middle = chartTime(time.middle),
-          last = chartTime(time.last);
+      if (!time.hasRange()) {
+        text(c, firstLabel, plot.centerX(), getHeight() - dp(16), 9, muted, Paint.Align.CENTER);
+        return;
+      }
+      String first = firstLabel, middle = middleLabel, last = lastLabel;
       p.setTypeface(font);
       p.setTextSize(dp(9));
       float width = plot.width(),
@@ -1508,8 +1843,7 @@ public class MainActivity extends Activity {
         chartTabs.addView(button, tabParams);
         button.setOnClickListener(
             v -> {
-              graph.chartMetric = keys[index];
-              graph.invalidate();
+              graph.selectMetric(keys[index]);
               for (int j = 0; j < buttons.length; j++)
                 if (buttons[j] != null) buttons[j].setAlpha(j == index ? 1f : .5f);
             });

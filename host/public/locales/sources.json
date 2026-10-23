@@ -4718,6 +4718,12 @@
     ]
   },
   {
+    "source": "선택 해제",
+    "files": [
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
     "source": "선택한 위젯 이동",
     "files": [
       "host/public/app.js"
@@ -8513,6 +8519,12 @@
   },
   {
     "source": "터치 효과음",
+    "files": [
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
+    "source": "터치·드래그로 값 확인",
     "files": [
       "android/app/src/main/java/app/opendeck/client/MainActivity.java"
     ]

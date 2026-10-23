@@ -1558,5 +1558,7 @@
   "회 발생": "Terjadi sekali",
   "활성 알림이 너무 많습니다. 복구된 뒤 다시 시도하세요.": "Ada terlalu banyak notifikasi aktif. Silakan coba lagi setelah pemulihan.",
   "알림 이력을 저장하지 못했습니다. 디스크 상태를 확인하세요.": "Gagal menyimpan riwayat notifikasi. Periksa status diska.",
-  "태블릿 연결이 필요합니다.": "Koneksi tablet diperlukan."
+  "태블릿 연결이 필요합니다.": "Koneksi tablet diperlukan.",
+  "터치·드래그로 값 확인": "Periksa nilai dengan menyentuh dan menyeret",
+  "선택 해제": "Batalkan pilihan"
 }

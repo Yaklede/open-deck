@@ -1558,5 +1558,7 @@
   "회 발생": "Komt één keer voor",
   "활성 알림이 너무 많습니다. 복구된 뒤 다시 시도하세요.": "Er zijn te veel actieve meldingen. Probeer het opnieuw na herstel.",
   "알림 이력을 저장하지 못했습니다. 디스크 상태를 확인하세요.": "Kan meldingsgeschiedenis niet opslaan. Controleer de schijfstatus.",
-  "태블릿 연결이 필요합니다.": "Tabletverbinding vereist."
+  "태블릿 연결이 필요합니다.": "Tabletverbinding vereist.",
+  "터치·드래그로 값 확인": "Controleer de waarde door aan te raken en te slepen",
+  "선택 해제": "Deselecteer"
 }

@@ -6,7 +6,7 @@ A local macro deck with a **macOS host and a native Android app**. Build your co
 
 ![Native monitor page on Android](assets/screenshots/monitor.png)
 
-> Version 0.11.0 supports USB + encrypted Wi-Fi on Apple Silicon Macs (macOS 13+) and Android 8+. It implements the core desk-control workflow; it does not claim full feature or plugin compatibility with Macro Deck or Touch Portal.
+> Version 0.11.1 supports USB + encrypted Wi-Fi on Apple Silicon Macs (macOS 13+) and Android 8+. It implements the core desk-control workflow; it does not claim full feature or plugin compatibility with Macro Deck or Touch Portal.
 
 ## Download
 
@@ -36,7 +36,7 @@ The macOS download is an ad-hoc signed developer build, not Apple notarized. You
 | HTTP connectors                      | GET polling, manual webhooks, scalar JSON binding, Keychain Bearer tokens                         |
 | Plugins (experimental)               | Trusted local macOS arm64 plugins: actions, eager variable reads and events; capability reporting |
 
-The **모니터** template prioritizes native Grafana system CPU and DB status cards with a shared project filter. A compact Mac card opens live CPU, memory, storage, power and network detail tabs. Editable upper/lower thresholds add risk colors, sustained-condition alerts and recovery notifications. See [monitoring setup and metric definitions](docs/monitoring.md).
+The **모니터** template prioritizes native Grafana system CPU and DB status cards with a shared project filter. Touch or drag the CPU and DB detail charts to inspect a measured sample’s time and value. A compact Mac card opens live CPU, memory, storage, power and network detail tabs. Editable upper/lower thresholds add risk colors, sustained-condition alerts and recovery notifications. See [monitoring setup and metric definitions](docs/monitoring.md).
 
 ## Jimin OS 연결
 

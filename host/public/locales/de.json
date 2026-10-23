@@ -1558,5 +1558,7 @@
   "회 발생": "Kommt einmal vor",
   "활성 알림이 너무 많습니다. 복구된 뒤 다시 시도하세요.": "Es sind zu viele aktive Benachrichtigungen vorhanden. Bitte versuchen Sie es nach der Wiederherstellung erneut.",
   "알림 이력을 저장하지 못했습니다. 디스크 상태를 확인하세요.": "Der Benachrichtigungsverlauf konnte nicht gespeichert werden. Überprüfen Sie den Festplattenstatus.",
-  "태블릿 연결이 필요합니다.": "Tablet-Verbindung erforderlich."
+  "태블릿 연결이 필요합니다.": "Tablet-Verbindung erforderlich.",
+  "터치·드래그로 값 확인": "Überprüfen Sie den Wert durch Berühren und Ziehen",
+  "선택 해제": "Abwählen"
 }
