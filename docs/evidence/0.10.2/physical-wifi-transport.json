@@ -1,0 +1,152 @@
+{
+  "schemaVersion": 1,
+  "verifiedAt": "2026-10-23T09:18:07.424089Z",
+  "mode": "final",
+  "scope": "Sampled Open Deck SSE transport for the selected physical tablet. Wireless ADB is a separate control channel.",
+  "result": "pass",
+  "startAssertions": {
+    "usbCableDisconnectedConfirmedByUser": true,
+    "usbAdbTransportAbsent": true,
+    "wirelessAdbConnected": true,
+    "openDeckUsbReverseAbsent": true,
+    "remoteAddressMatchesPhysicalTablet": true,
+    "hostTlsEnabled": true,
+    "targetSseTransportIsWifi": true
+  },
+  "endAssertions": {
+    "appReverseTunnelsAbsent": true,
+    "adbRestoredToUsbMode": true,
+    "temporaryWirelessDebugPortClosed": true,
+    "wirelessAdbDisconnected": true,
+    "usbCableStillAbsentByAdb": true,
+    "httpsWifiAfterCleanup": true,
+    "threePostCleanupWifiReadbacksPassed": true,
+    "wifiStillOnlineAfterOriginalUsbPreferenceRestored": true
+  },
+  "checks": {
+    "allStartAssertionsSatisfied": true,
+    "wifiTargetStreamObserved": true,
+    "noTargetUsbSamplesObserved": true,
+    "timestampsMonotonic": true,
+    "monitorStoppedBeforeFinalization": true,
+    "allEndAssertionsSatisfied": true
+  },
+  "captureWindow": {
+    "start": "2026-10-23T08:45:33.583782Z",
+    "end": "2026-10-23T09:16:33.993708Z",
+    "sampleSpanSeconds": 1860.41
+  },
+  "sampleCounts": {
+    "total": 2634,
+    "wifiSamples": 2399,
+    "usbSamples": 0,
+    "hostUnavailableSamples": 225,
+    "hostAvailableNoTargetStreamSamples": 10,
+    "hostAvailableSamples": 2409
+  },
+  "sampleIntervalsSeconds": {
+    "minimum": 0.701,
+    "median": 0.707,
+    "maximum": 0.753
+  },
+  "samplingGapRule": "Intervals greater than max(5 seconds, 3 times median interval); this run threshold is 5.000 seconds.",
+  "samplingGaps": [],
+  "connectionGaps": [
+    {
+      "state": "host-unavailable",
+      "contexts": [
+        "unclassified"
+      ],
+      "firstObserved": "2026-10-23T08:50:21.130079Z",
+      "lastObserved": "2026-10-23T08:50:21.130079Z",
+      "observedSamples": 1,
+      "observedSampleSpanSeconds": 0.0,
+      "previousSampleAt": "2026-10-23T08:50:20.422720Z",
+      "nextSampleAt": "2026-10-23T08:50:21.832762Z"
+    },
+    {
+      "state": "host-available-no-target-stream",
+      "contexts": [
+        "unclassified"
+      ],
+      "firstObserved": "2026-10-23T08:50:21.832762Z",
+      "lastObserved": "2026-10-23T08:50:22.544961Z",
+      "observedSamples": 2,
+      "observedSampleSpanSeconds": 0.712,
+      "previousSampleAt": "2026-10-23T08:50:21.130079Z",
+      "nextSampleAt": "2026-10-23T08:50:23.250850Z"
+    },
+    {
+      "state": "host-unavailable",
+      "contexts": [
+        "unclassified"
+      ],
+      "firstObserved": "2026-10-23T09:02:03.900351Z",
+      "lastObserved": "2026-10-23T09:04:40.949029Z",
+      "observedSamples": 224,
+      "observedSampleSpanSeconds": 157.049,
+      "previousSampleAt": "2026-10-23T09:02:03.196274Z",
+      "nextSampleAt": "2026-10-23T09:04:41.652763Z"
+    },
+    {
+      "state": "host-available-no-target-stream",
+      "contexts": [
+        "unclassified"
+      ],
+      "firstObserved": "2026-10-23T09:04:41.652763Z",
+      "lastObserved": "2026-10-23T09:04:45.185313Z",
+      "observedSamples": 6,
+      "observedSampleSpanSeconds": 3.533,
+      "previousSampleAt": "2026-10-23T09:04:40.949029Z",
+      "nextSampleAt": "2026-10-23T09:04:45.895319Z"
+    },
+    {
+      "state": "host-available-no-target-stream",
+      "contexts": [
+        "unclassified"
+      ],
+      "firstObserved": "2026-10-23T09:11:45.547749Z",
+      "lastObserved": "2026-10-23T09:11:46.255602Z",
+      "observedSamples": 2,
+      "observedSampleSpanSeconds": 0.708,
+      "previousSampleAt": "2026-10-23T09:11:44.842347Z",
+      "nextSampleAt": "2026-10-23T09:11:46.965804Z"
+    }
+  ],
+  "phaseWindows": [
+    {
+      "kind": "production_app_backgrounded_for_isolated_security",
+      "start": "2026-10-23T09:05:27.019286Z",
+      "end": "2026-10-23T09:10:29.340983Z"
+    }
+  ],
+  "cleanupEvidence": {
+    "provided": true,
+    "filename": "final-transport-cleanup.json",
+    "passed": true,
+    "completedAt": "2026-10-23T09:16:14.055029+00:00",
+    "finalCheckedAt": "2026-10-23T09:16:34.637442+00:00",
+    "scope": "Ending assertions are read from the parent runner cleanup capture. No cleanup commands or independent port probes are performed by this audit; physical USB absence here is the ADB observation, alongside the earlier user-confirmed cable removal."
+  },
+  "sourceFiles": [
+    {
+      "filename": "transport-start.json",
+      "sha256": "aaee8ccfe39538a47cfcaae080b62b73edccbbc44acf913eb4c675c45cdf74c5"
+    },
+    {
+      "filename": "transport-timeline.jsonl",
+      "sha256": "068e32f752e05d164813bba4352e7694963c8982a3ab01e6e29a07d4f8b3e65d"
+    },
+    {
+      "filename": "final-transport-cleanup.json",
+      "sha256": "f6df5e83f6d20f20bf4483173bc2a4cef8fa17748c73653a59d7bbfade6b4425"
+    }
+  ],
+  "limitations": [
+    "This is a sampled transport observation, not proof of uninterrupted connectivity between samples or a subsecond latency measurement.",
+    "Host-unavailable samples and host-available samples without a target stream are reported as gaps. Their cause remains unclassified unless the parent supplied an explicit phase time window; file modification times are not used to infer intent.",
+    "Samples inside the explicitly recorded isolated-security phase may lack the production app stream because the production app was backgrounded. They are not silently counted as a connection failure or continuous connection.",
+    "Physical cable disconnection, TLS state, remote-address match and ADB/reverse checks are parent-runner assertions in the start capture. No IP, device identifier, certificate fingerprint, credential or token is copied into this report.",
+    "The wifi transport label is produced by the actual LAN server listener for the target authenticated SSE stream; unrelated localhost editor streams are outside this target-only timeline."
+  ]
+}
