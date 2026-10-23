@@ -1,0 +1,26 @@
+{
+  "release": "https://github.com/Yaklede/open-deck/releases/tag/v0.9.0",
+  "tag": "v0.9.0",
+  "sourceCommit": "4b59a45a99864d3e8509f013a582336fa3c93d5b",
+  "latest": true,
+  "assets": [
+    {
+      "name": "Open-Deck-Android.apk",
+      "size": 5464890,
+      "sha256": "d4986e7a7672af85cf0b81bd3edef706aea64b1a1c695c6a6b081443e5fcc844",
+      "verified": true
+    },
+    {
+      "name": "Open-Deck-macOS-arm64.zip",
+      "size": 38724181,
+      "sha256": "09a1568e64d5fec98dd98bcb883ef8ea76c5aa0805b21959d79e7222cb7ddf2a",
+      "verified": true
+    },
+    {
+      "name": "SHA256SUMS.txt",
+      "size": 180,
+      "sha256": "789de0598a5602dbcbbdc3053277580738812c58286dd62e9a14fe8c275bdfb3",
+      "verified": true
+    }
+  ]
+}

@@ -1,0 +1,329 @@
+{
+  "sourceCommit": "ff27316",
+  "appVersion": "0.10.2",
+  "verifiedAt": "2026-10-22T15:59:22.501509+00:00",
+  "scenario": "Mac-configured settings observed in Android native controls and Mac accessibility controls, then both applications terminated and relaunched by the parent test runner",
+  "scope": {
+    "nonSecuritySettings": 29,
+    "deviceName": 1,
+    "phases": 4,
+    "comparisons": 120,
+    "mismatches": 0
+  },
+  "result": "pass",
+  "checks": [
+    {
+      "setting": "timeFormat",
+      "expected": "12h",
+      "macLive": "pass",
+      "macAfterRestart": "pass",
+      "androidLive": "pass",
+      "androidAfterRestart": "pass"
+    },
+    {
+      "setting": "textScale",
+      "expected": 117,
+      "macLive": "pass",
+      "macAfterRestart": "pass",
+      "androidLive": "pass",
+      "androidAfterRestart": "pass"
+    },
+    {
+      "setting": "theme",
+      "expected": "dark",
+      "macLive": "pass",
+      "macAfterRestart": "pass",
+      "androidLive": "pass",
+      "androidAfterRestart": "pass"
+    },
+    {
+      "setting": "awake",
+      "expected": false,
+      "macLive": "pass",
+      "macAfterRestart": "pass",
+      "androidLive": "pass",
+      "androidAfterRestart": "pass"
+    },
+    {
+      "setting": "showHeader",
+      "expected": false,
+      "macLive": "pass",
+      "macAfterRestart": "pass",
+      "androidLive": "pass",
+      "androidAfterRestart": "pass"
+    },
+    {
+      "setting": "fullscreen",
+      "expected": false,
+      "macLive": "pass",
+      "macAfterRestart": "pass",
+      "androidLive": "pass",
+      "androidAfterRestart": "pass"
+    },
+    {
+      "setting": "settingsButtonHidden",
+      "expected": true,
+      "macLive": "pass",
+      "macAfterRestart": "pass",
+      "androidLive": "pass",
+      "androidAfterRestart": "pass"
+    },
+    {
+      "setting": "showNavigation",
+      "expected": false,
+      "macLive": "pass",
+      "macAfterRestart": "pass",
+      "androidLive": "pass",
+      "androidAfterRestart": "pass"
+    },
+    {
+      "setting": "rememberPage",
+      "expected": false,
+      "macLive": "pass",
+      "macAfterRestart": "pass",
+      "androidLive": "pass",
+      "androidAfterRestart": "pass"
+    },
+    {
+      "setting": "haptics",
+      "expected": false,
+      "macLive": "pass",
+      "macAfterRestart": "pass",
+      "androidLive": "pass",
+      "androidAfterRestart": "pass"
+    },
+    {
+      "setting": "sound",
+      "expected": true,
+      "macLive": "pass",
+      "macAfterRestart": "pass",
+      "androidLive": "pass",
+      "androidAfterRestart": "pass"
+    },
+    {
+      "setting": "swipeEnabled",
+      "expected": false,
+      "macLive": "pass",
+      "macAfterRestart": "pass",
+      "androidLive": "pass",
+      "androidAfterRestart": "pass"
+    },
+    {
+      "setting": "reducedMotion",
+      "expected": true,
+      "macLive": "pass",
+      "macAfterRestart": "pass",
+      "androidLive": "pass",
+      "androidAfterRestart": "pass"
+    },
+    {
+      "setting": "fixedVibration",
+      "expected": true,
+      "macLive": "pass",
+      "macAfterRestart": "pass",
+      "androidLive": "pass",
+      "androidAfterRestart": "pass"
+    },
+    {
+      "setting": "firstTouchWakes",
+      "expected": false,
+      "macLive": "pass",
+      "macAfterRestart": "pass",
+      "androidLive": "pass",
+      "androidAfterRestart": "pass"
+    },
+    {
+      "setting": "osNotifications",
+      "expected": false,
+      "macLive": "pass",
+      "macAfterRestart": "pass",
+      "androidLive": "pass",
+      "androidAfterRestart": "pass"
+    },
+    {
+      "setting": "monitorNotifications",
+      "expected": false,
+      "macLive": "pass",
+      "macAfterRestart": "pass",
+      "androidLive": "pass",
+      "androidAfterRestart": "pass"
+    },
+    {
+      "setting": "notificationBanner",
+      "expected": false,
+      "macLive": "pass",
+      "macAfterRestart": "pass",
+      "androidLive": "pass",
+      "androidAfterRestart": "pass"
+    },
+    {
+      "setting": "brightness",
+      "expected": 35,
+      "macLive": "pass",
+      "macAfterRestart": "pass",
+      "androidLive": "pass",
+      "androidAfterRestart": "pass"
+    },
+    {
+      "setting": "vibrationMs",
+      "expected": 83,
+      "macLive": "pass",
+      "macAfterRestart": "pass",
+      "androidLive": "pass",
+      "androidAfterRestart": "pass"
+    },
+    {
+      "setting": "dimPercent",
+      "expected": 17,
+      "macLive": "pass",
+      "macAfterRestart": "pass",
+      "androidLive": "pass",
+      "androidAfterRestart": "pass"
+    },
+    {
+      "setting": "screenSaverMinutes",
+      "expected": 7,
+      "macLive": "pass",
+      "macAfterRestart": "pass",
+      "androidLive": "pass",
+      "androidAfterRestart": "pass"
+    },
+    {
+      "setting": "profileId",
+      "expected": "<redacted identifier or user label>",
+      "macLive": "pass",
+      "macAfterRestart": "pass",
+      "androidLive": "pass",
+      "androidAfterRestart": "pass"
+    },
+    {
+      "setting": "startPageId",
+      "expected": "<redacted identifier or user label>",
+      "macLive": "pass",
+      "macAfterRestart": "pass",
+      "androidLive": "pass",
+      "androidAfterRestart": "pass"
+    },
+    {
+      "setting": "orientation",
+      "expected": "landscape",
+      "macLive": "pass",
+      "macAfterRestart": "pass",
+      "androidLive": "pass",
+      "androidAfterRestart": "pass"
+    },
+    {
+      "setting": "renderMode",
+      "expected": "simple",
+      "macLive": "pass",
+      "macAfterRestart": "pass",
+      "androidLive": "pass",
+      "androidAfterRestart": "pass"
+    },
+    {
+      "setting": "screenSaverMode",
+      "expected": "clock",
+      "macLive": "pass",
+      "macAfterRestart": "pass",
+      "androidLive": "pass",
+      "androidAfterRestart": "pass"
+    },
+    {
+      "setting": "iconResolution",
+      "expected": 256,
+      "macLive": "pass",
+      "macAfterRestart": "pass",
+      "androidLive": "pass",
+      "androidAfterRestart": "pass"
+    },
+    {
+      "setting": "language",
+      "expected": "en",
+      "macLive": "pass",
+      "macAfterRestart": "pass",
+      "androidLive": "pass",
+      "androidAfterRestart": "pass"
+    },
+    {
+      "setting": "name",
+      "expected": "<redacted identifier or user label>",
+      "macLive": "pass",
+      "macAfterRestart": "pass",
+      "androidLive": "pass",
+      "androidAfterRestart": "pass"
+    }
+  ],
+  "mismatches": [],
+  "security": {
+    "setting": "allowInsecureWifi",
+    "defaultObservedFalse": true,
+    "optInRuntimeTest": "not part of this evidence; isolated test required"
+  },
+  "limitations": [
+    "This records visible control values and persistence; it does not independently measure sound, vibration or every renderer effect.",
+    "Restart actions and capture timing were performed by the parent test runner; this audit reads their captured files.",
+    "Profile and page IDs were resolved to UI labels from the local deck snapshot; identifiers and user labels are excluded from this public report."
+  ],
+  "sourceFiles": [
+    {
+      "filename": "mac-a-host.json",
+      "sha256": "3e3b66873ad0e6d93a1e1bae40a934cd139019855047ebbb4f16afa6a1178f18"
+    },
+    {
+      "filename": "mac-a-native.json",
+      "sha256": "2fb00f82f961c8ea0f5b070914cc30c621d9a7324ce572cc27bc7768dd95e1cf"
+    },
+    {
+      "filename": "mac-a-restart-native.json",
+      "sha256": "04cf3462b65bcb041796ca2c38568e98a3bd6882e95764c3957a34149686dc85"
+    },
+    {
+      "filename": "mac-a-live-display.json",
+      "sha256": "f457e1c94db9673a4c82a14c93725da33925a45cb5595cf5a20d3f223c78d4d2"
+    },
+    {
+      "filename": "mac-a-live-input.json",
+      "sha256": "0afb4a47989bae9e0b5234340dc495d6d4c49464a3eb24b1f533f9f3827a534d"
+    },
+    {
+      "filename": "mac-a-live-idle.json",
+      "sha256": "0ed68cf4b06db165085e35119e8ed0a13e63c1d8b17488eeb1a68e5ff6fea7a0"
+    },
+    {
+      "filename": "mac-a-live-startup.json",
+      "sha256": "4df3d26edf84be39cb7e50ef8aa0a9b7c07bfe48643b483bebeb7977c00dc813"
+    },
+    {
+      "filename": "mac-a-live-notifications.json",
+      "sha256": "0ab1285ca6002b6c09d081c862fdd440bb7ff8887204feba1c5e7c71fccbd924"
+    },
+    {
+      "filename": "mac-a-live-connection.json",
+      "sha256": "fd93b54b37aa82c4424b02f04d49416860bd2f90598846a4ae804f510ba3ff82"
+    },
+    {
+      "filename": "mac-a-restart-display.json",
+      "sha256": "b4ce4de7dbc206330ca04b3a1f12a28a1d5ba8654f8324bf56d94f57e25b6466"
+    },
+    {
+      "filename": "mac-a-restart-input.json",
+      "sha256": "0bbfbe50a055c072ee7fc21ba6dcc41e1cfd1ad353b0e443c0f651f08268a9bb"
+    },
+    {
+      "filename": "mac-a-restart-idle.json",
+      "sha256": "b16ff13c005e58646d3b6d572c1d8347a193e4ba58777ec8c8bdabb2fdd1c69b"
+    },
+    {
+      "filename": "mac-a-restart-startup.json",
+      "sha256": "23f0698623e9d1e803e669c5432d75a8e9fe6c773f7754fd9c33fd1b460707c9"
+    },
+    {
+      "filename": "mac-a-restart-notifications.json",
+      "sha256": "9efd9187a7203c04fa96d032c0533532c082feace8c64d62a8cf4d4a60d353b3"
+    },
+    {
+      "filename": "mac-a-restart-connection.json",
+      "sha256": "bb3d481b8ab380595695cdce7cd208a82b51f61b86bc9bba480fb6b98ac84066"
+    }
+  ]
+}

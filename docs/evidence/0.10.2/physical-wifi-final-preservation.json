@@ -1,0 +1,64 @@
+{
+  "schemaVersion": 1,
+  "createdAt": "2026-10-23T09:16:33.405970+00:00",
+  "mode": "verify-physical-wifi-preservation",
+  "sourceFilesWritten": 0,
+  "directProductionFileWrites": 0,
+  "otherDeviceUpdatesSent": 0,
+  "deviceRestoreRequestsSent": 0,
+  "usbPreferencePatchesSent": 0,
+  "adbOrUiCommandsRun": 0,
+  "wirelessDebuggingRestoration": {
+    "performedByHelper": false,
+    "verifiedByHelper": false,
+    "responsibility": "The root runner separately restores the original ADB USB mode and removes temporary wireless debugging."
+  },
+  "androidConnectionPreference": {
+    "writtenByHelper": false,
+    "verifiedByHelper": false
+  },
+  "phase": "complete",
+  "passed": true,
+  "effectiveSettingsCount": 30,
+  "restorationUsesExactBaselineSettings": true,
+  "otherPairedDevicesCompared": 3,
+  "readbacks": [
+    {
+      "nameMatches": true,
+      "all30SettingsMatch": true
+    },
+    {
+      "nameMatches": true,
+      "all30SettingsMatch": true
+    },
+    {
+      "nameMatches": true,
+      "all30SettingsMatch": true
+    }
+  ],
+  "observedAppVersion": "0.10.2",
+  "differences": {
+    "target": [],
+    "config": [],
+    "preferences": [],
+    "otherDeviceNamesAndSettings": [],
+    "informationalOtherDeviceMetadata": [],
+    "configChangedDuringHelper": [],
+    "unexpectedPreferenceChangesDuringHelper": []
+  },
+  "checks": {
+    "originalNameRestored": true,
+    "exactOriginal30SettingsRestored": true,
+    "restorationPersistedToDisk": true,
+    "targetPairingUnchangedDuringHelper": true,
+    "threeReadbacksStable": true,
+    "appVersionStill0102": true,
+    "originalUsbEnabledRestored": true,
+    "fullProductionPreferencesMatchBaseline": true,
+    "fullPreferencesPersistedMatchBaseline": true,
+    "productionDeckUnchangedFromBaseline": true,
+    "otherDeviceNamesAndSettingsUnchanged": true,
+    "onlyIntendedUsbPreferenceChangedDuringHelper": true,
+    "productionDeckUnchangedDuringHelper": true
+  }
+}

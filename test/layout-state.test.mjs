@@ -292,6 +292,9 @@ test("SSE sends configuration once, then state deltas; a save refreshes configur
     assert.equal((await next()).config, undefined);
     const c = defaultConfig();
     c.name = "Updated";
+    c.pages[0].name = "Renamed monitor";
+    c.pages[0].widgets[0].label = "Changed tablet label";
+    c.pages[0].widgets[0].style = { textSize: 24 };
     const saved = await fetch(base + "/api/admin/config", {
       method: "PUT",
       headers: {
@@ -301,7 +304,11 @@ test("SSE sends configuration once, then state deltas; a save refreshes configur
       body: JSON.stringify(c),
     });
     assert.equal(saved.status, 200);
-    assert.equal((await next()).config.name, "Updated");
+    const refreshed = (await next()).config;
+    assert.equal(refreshed.name, "Updated");
+    assert.equal(refreshed.pages[0].name, "Renamed monitor");
+    assert.equal(refreshed.pages[0].widgets[0].label, "Changed tablet label");
+    assert.equal(refreshed.pages[0].widgets[0].style.textSize, 24);
   } finally {
     abort.abort();
     await h.close();

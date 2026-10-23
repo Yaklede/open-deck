@@ -1,0 +1,67 @@
+{
+  "schemaVersion": 1,
+  "verifiedAt": "2026-10-23T09:17:29.542687+00:00",
+  "result": "pass",
+  "wirelessControlCleanup": {
+    "schemaVersion": 1,
+    "startedAt": "2026-10-23T09:16:07.028649+00:00",
+    "usbSerialAbsentBeforeCleanup": true,
+    "wirelessAdbPresentBeforeCleanup": true,
+    "appReverseTunnelsAbsent": true,
+    "httpsWifiBeforeCleanup": true,
+    "originalAdbTcpPortUnset": true,
+    "adbRestoredToUsbMode": true,
+    "temporaryWirelessDebugPortClosed": true,
+    "wirelessAdbDisconnected": true,
+    "usbCableStillAbsentByAdb": true,
+    "httpsWifiAfterCleanup": true,
+    "threePostCleanupWifiReadbacksPassed": true,
+    "completedAt": "2026-10-23T09:16:14.055029+00:00",
+    "passed": true,
+    "wifiStillOnlineAfterOriginalUsbPreferenceRestored": true,
+    "finalCheckedAt": "2026-10-23T09:16:34.637442+00:00",
+    "phaseWindows": [
+      {
+        "kind": "production_app_backgrounded_for_isolated_security",
+        "start": "2026-10-23T09:05:27.019286+00:00",
+        "end": "2026-10-23T09:10:29.340983+00:00",
+        "note": "Separate synthetic HTTPS security preference test; production app remained installed."
+      }
+    ]
+  },
+  "isolatedFixtureCleanup": {
+    "verificationApkUninstalled": true,
+    "isolatedHostStopped": true,
+    "nativeHarnessClosed": true,
+    "originalProductionNameAnd30SettingsRestored": true,
+    "hostUsbPreferenceStillDisabledUntilAdbCleanup": true,
+    "recordedAt": "2026-10-23T09:10:29.340983+00:00",
+    "isolatedProcessAndPortsConfirmedStopped": true,
+    "nativeHarnessProcessConfirmedStopped": true
+  },
+  "installedProductionApp": {
+    "androidInstalledReleaseSha256": "e311a9dec0d88415ddeea1ce83010118f29a77fe1cb6dc94105a5fbe8dc458c8",
+    "installedApkMatchesPublished0102": true,
+    "verificationApkRemovedFromTestedUser": true,
+    "originalSettingsMatchAfterAppRestart": true,
+    "onlineAfterRestart": true,
+    "androidConnectionModeRestoredToAuto": true
+  },
+  "publishedRelease": {
+    "release": "https://github.com/Yaklede/open-deck/releases/tag/v0.10.2",
+    "releaseChecksums": {
+      "Open-Deck-macOS-arm64.zip": "099d6c0c31ece0a25e7ede7ef0ff160ecf6eccc9fa72a70ee4c022e94b6c0c97",
+      "Open-Deck-Android.apk": "e311a9dec0d88415ddeea1ce83010118f29a77fe1cb6dc94105a5fbe8dc458c8"
+    },
+    "localApkMatchesPublishedChecksum": true,
+    "installedMacVersion": "0.10.2",
+    "installedMacBuild": 18,
+    "appSourceChanged": false
+  },
+  "rawEvidenceSha256": {
+    "final-transport-cleanup.json": "f6df5e83f6d20f20bf4483173bc2a4cef8fa17748c73653a59d7bbfade6b4425",
+    "isolated-cleanup.json": "157902f86fee7f3c519715fd336b4bf71912ad128f2078d563347c2884cd1d7f",
+    "restored-device-installation.json": "3373b4295e67083450588571fda28d89f4916312b2ffa2ed9b32b016983aa9a9",
+    "release-verification.json": "ccf22aa926e02e48917deca66a185082d062e618a4497fd117574c55c405ccf5"
+  }
+}

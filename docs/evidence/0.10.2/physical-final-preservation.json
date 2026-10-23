@@ -1,0 +1,68 @@
+{
+  "schemaVersion": 1,
+  "createdAt": "2026-10-23T08:33:19.499115+00:00",
+  "mode": "verify-physical-preservation",
+  "expectedAppUpdate": {
+    "from": "0.10.0",
+    "to": "0.10.2"
+  },
+  "transportPreference": {
+    "expected": "auto",
+    "writtenByHelper": false,
+    "verifiedByHelper": false,
+    "reason": "Local Android transport is outside the host device-settings API; root verifies it separately."
+  },
+  "configurationFileWrites": 0,
+  "otherDeviceUpdatesSent": 0,
+  "restoreRequestsSent": 0,
+  "phase": "complete",
+  "passed": true,
+  "originalOverrideFields": [
+    "haptics",
+    "screenSaverMode",
+    "settingsButtonHidden",
+    "showHeader",
+    "showNavigation",
+    "textScale"
+  ],
+  "effectiveSettingsCount": 30,
+  "readbacks": [
+    {
+      "nameMatches": true,
+      "all30SettingsMatch": true
+    },
+    {
+      "nameMatches": true,
+      "all30SettingsMatch": true
+    },
+    {
+      "nameMatches": true,
+      "all30SettingsMatch": true
+    }
+  ],
+  "otherPairedDevicesCompared": 3,
+  "observedTargetAppVersion": "0.10.2",
+  "differences": {
+    "target": [],
+    "config": [],
+    "preferences": [],
+    "otherDeviceNamesAndSettings": [],
+    "informationalOtherDeviceMetadata": [],
+    "productionDataChangedDuringHelper": {
+      "config": [],
+      "preferences": []
+    }
+  },
+  "checks": {
+    "originalNameRestored": true,
+    "all30EffectiveSettingsRestored": true,
+    "restorationPersistedToDisk": true,
+    "targetPairingUnchangedDuringHelper": true,
+    "threeReadbacksStable": true,
+    "expectedAppUpdatePresent": true,
+    "productionDeckUnchangedFromBaseline": true,
+    "productionPreferencesUnchangedFromBaseline": true,
+    "otherDeviceNamesAndSettingsUnchanged": true,
+    "productionDataUnchangedDuringHelper": true
+  }
+}

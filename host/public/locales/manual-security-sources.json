@@ -1,0 +1,579 @@
+[
+  {
+    "source": "Open Deck 관리자 로그인",
+    "files": [
+      "host/public/editor-lock.mjs"
+    ],
+    "english": "Open Deck administrator login"
+  },
+  {
+    "source": "값 교체",
+    "files": [
+      "host/public/security-ui.mjs"
+    ]
+  },
+  {
+    "source": "계정 복구",
+    "files": [
+      "host/public/editor-lock.mjs"
+    ],
+    "english": "Recover account"
+  },
+  {
+    "source": "계정 복구 키",
+    "files": [
+      "host/public/editor-lock.mjs",
+      "host/public/security-ui.mjs"
+    ],
+    "english": "Account recovery key"
+  },
+  {
+    "source": "계정 복구 키 교체",
+    "files": [
+      "host/public/security-ui.mjs"
+    ]
+  },
+  {
+    "source": "계정 복구 키 분실 처리",
+    "files": [
+      "host/public/security-ui.mjs"
+    ]
+  },
+  {
+    "source": "계정 복구 키 생성",
+    "files": [
+      "host/public/security-ui.mjs"
+    ]
+  },
+  {
+    "source": "계정 복구 키가 없습니다. 암호를 잊기 전에 생성하고 보관하세요.",
+    "files": [
+      "host/public/security-ui.mjs"
+    ]
+  },
+  {
+    "source": "계정 복구 키가 활성화되어 있습니다. 분실했다면 새 키로 교체하세요.",
+    "files": [
+      "host/public/security-ui.mjs"
+    ]
+  },
+  {
+    "source": "계정 복구에 한 번 사용한 키는 폐기됩니다. 암호화 백업 복구 키는 별도로 관리합니다.",
+    "files": [
+      "host/public/security-ui.mjs"
+    ]
+  },
+  {
+    "source": "계정 암호",
+    "files": [
+      "host/public/editor-lock.mjs"
+    ],
+    "english": "Account password"
+  },
+  {
+    "source": "계정 암호 (8자 이상)",
+    "files": [
+      "host/public/security-ui.mjs"
+    ],
+    "english": "Account password (8+ characters)"
+  },
+  {
+    "source": "계정 암호 다시 입력",
+    "files": [
+      "host/public/security-ui.mjs"
+    ],
+    "english": "Confirm account password"
+  },
+  {
+    "source": "계정 암호 변경",
+    "files": [
+      "host/public/security-ui.mjs"
+    ]
+  },
+  {
+    "source": "계정 정보 저장",
+    "files": [
+      "host/public/security-ui.mjs"
+    ]
+  },
+  {
+    "source": "계정을 만들면 사용자명과 암호로 편집기에 로그인합니다.",
+    "files": [
+      "host/public/security-ui.mjs"
+    ]
+  },
+  {
+    "source": "관리자 계정",
+    "files": [
+      "host/public/security-ui.mjs"
+    ]
+  },
+  {
+    "source": "관리자 계정 만들기",
+    "files": [
+      "host/public/security-ui.mjs"
+    ]
+  },
+  {
+    "source": "관리자 로그인",
+    "files": [
+      "host/public/editor-lock.mjs"
+    ],
+    "english": "Administrator login"
+  },
+  {
+    "source": "기존 로컬 백업 모두 암호화",
+    "files": [
+      "host/public/security-ui.mjs"
+    ]
+  },
+  {
+    "source": "나중에 설정",
+    "files": [
+      "host/public/security-ui.mjs"
+    ]
+  },
+  {
+    "source": "로그인",
+    "files": [
+      "host/public/editor-lock.mjs"
+    ],
+    "english": "Sign in"
+  },
+  {
+    "source": "로그인 세션",
+    "files": [
+      "host/public/security-ui.mjs"
+    ]
+  },
+  {
+    "source": "로그인 세션은 이 맥의 편집기와 설정 변경을 보호합니다. 연결된 태블릿은 계속 사용할 수 있습니다.",
+    "files": [
+      "host/public/security-ui.mjs"
+    ]
+  },
+  {
+    "source": "로그인 유지 (시간)",
+    "files": [
+      "host/public/security-ui.mjs"
+    ]
+  },
+  {
+    "source": "로그인으로 돌아가기",
+    "files": [
+      "host/public/editor-lock.mjs"
+    ],
+    "english": "Back to sign in"
+  },
+  {
+    "source": "로컬 백업 암호화",
+    "files": [
+      "host/public/security-ui.mjs"
+    ]
+  },
+  {
+    "source": "로컬 백업 암호화 켜기",
+    "files": [
+      "host/public/security-ui.mjs"
+    ]
+  },
+  {
+    "source": "만료",
+    "files": [
+      "host/public/security-ui.mjs"
+    ],
+    "english": "Expires"
+  },
+  {
+    "source": "모든 세션 로그아웃",
+    "files": [
+      "host/public/security-ui.mjs"
+    ]
+  },
+  {
+    "source": "백업 복구 키 교체",
+    "files": [
+      "host/public/security-ui.mjs"
+    ]
+  },
+  {
+    "source": "백업 복구 키 분실 처리",
+    "files": [
+      "host/public/security-ui.mjs"
+    ]
+  },
+  {
+    "source": "백업 복구 키 생성",
+    "files": [
+      "host/public/security-ui.mjs"
+    ]
+  },
+  {
+    "source": "백업 복구 키가 없습니다. 로컬 백업 암호화를 켜기 전에 생성하세요.",
+    "files": [
+      "host/public/security-ui.mjs"
+    ]
+  },
+  {
+    "source": "백업 복구 키가 활성화되어 있습니다.",
+    "files": [
+      "host/public/security-ui.mjs"
+    ]
+  },
+  {
+    "source": "보관 확인 · 키 활성화",
+    "files": [
+      "host/public/security-ui.mjs"
+    ]
+  },
+  {
+    "source": "보관한 복구 키를 다시 입력하세요",
+    "files": [
+      "host/public/security-ui.mjs"
+    ],
+    "english": "Re-enter the recovery key you stored"
+  },
+  {
+    "source": "복구 키",
+    "files": [
+      "host/public/security-ui.mjs"
+    ],
+    "english": "Recovery key"
+  },
+  {
+    "source": "복구 키가 분실 처리되었습니다. 새 키를 만들어야 복구 기능을 사용할 수 있습니다.",
+    "files": [
+      "host/public/security-ui.mjs"
+    ]
+  },
+  {
+    "source": "복구 키로 계정 복구",
+    "files": [
+      "host/public/editor-lock.mjs"
+    ],
+    "english": "Recover account with recovery key"
+  },
+  {
+    "source": "복구 키를 별도로 보관했습니다",
+    "files": [
+      "host/public/security-ui.mjs"
+    ],
+    "english": "I stored this recovery key separately"
+  },
+  {
+    "source": "복구 키를 안전하게 보관하세요",
+    "files": [
+      "host/public/security-ui.mjs"
+    ],
+    "english": "Store your recovery key safely"
+  },
+  {
+    "source": "복구에 사용한 키가 폐기되었습니다. 새 키를 생성하세요.",
+    "files": [
+      "host/public/security-ui.mjs"
+    ]
+  },
+  {
+    "source": "복구에 사용한 키와 기존 로그인 세션은 폐기됩니다.",
+    "files": [
+      "host/public/editor-lock.mjs"
+    ],
+    "english": "Recovery consumes this key and revokes existing login sessions."
+  },
+  {
+    "source": "비밀 값",
+    "files": [
+      "host/public/security-ui.mjs"
+    ],
+    "english": "Secret value"
+  },
+  {
+    "source": "비밀 삭제",
+    "files": [
+      "host/public/security-ui.mjs"
+    ]
+  },
+  {
+    "source": "비밀 식별자 (영문·숫자·밑줄·하이픈)",
+    "files": [
+      "host/public/security-ui.mjs"
+    ],
+    "english": "Secret ID (letters, numbers, underscores, hyphens)"
+  },
+  {
+    "source": "비밀 식별자를 HTTP 연결의 secretId와 동일하게 지정하세요. 저장된 값은 화면이나 내보내기에서 공개되지 않습니다.",
+    "files": [
+      "host/public/security-ui.mjs"
+    ]
+  },
+  {
+    "source": "비밀 이름",
+    "files": [
+      "host/public/security-ui.mjs"
+    ],
+    "english": "Secret label"
+  },
+  {
+    "source": "비밀 저장소 만들기",
+    "files": [
+      "host/public/security-ui.mjs"
+    ]
+  },
+  {
+    "source": "사용자명",
+    "files": [
+      "host/public/editor-lock.mjs",
+      "host/public/security-ui.mjs"
+    ],
+    "english": "Username"
+  },
+  {
+    "source": "새 계정 암호 (8자 이상)",
+    "files": [
+      "host/public/editor-lock.mjs",
+      "host/public/security-ui.mjs"
+    ],
+    "english": "New account password (8+ characters)"
+  },
+  {
+    "source": "새 로컬 백업 암호화 끄기",
+    "files": [
+      "host/public/security-ui.mjs"
+    ]
+  },
+  {
+    "source": "새 로컬 백업은 암호화되지 않습니다. 기존 암호화 백업은 그대로 유지됩니다.",
+    "files": [
+      "host/public/security-ui.mjs"
+    ]
+  },
+  {
+    "source": "새 백업은 AES-256-GCM으로 암호화됩니다. 기존 평문 백업은 아래 버튼으로 변환하세요.",
+    "files": [
+      "host/public/security-ui.mjs"
+    ]
+  },
+  {
+    "source": "새 복구 키의 보관 확인을 기다리고 있습니다.",
+    "files": [
+      "host/public/security-ui.mjs"
+    ]
+  },
+  {
+    "source": "새 비밀 값",
+    "files": [
+      "host/public/security-ui.mjs"
+    ],
+    "english": "New secret value"
+  },
+  {
+    "source": "새 저장소 암호 (8자 이상)",
+    "files": [
+      "host/public/security-ui.mjs"
+    ],
+    "english": "New vault password (8+ characters)"
+  },
+  {
+    "source": "세션 종료",
+    "files": [
+      "host/public/security-ui.mjs"
+    ]
+  },
+  {
+    "source": "암호 재설정 후 로그인",
+    "files": [
+      "host/public/editor-lock.mjs"
+    ],
+    "english": "Reset password and sign in"
+  },
+  {
+    "source": "암호가 일치하지 않습니다.",
+    "files": [
+      "host/public/editor-lock.mjs",
+      "host/public/security-ui.mjs"
+    ],
+    "english": "Passwords do not match."
+  },
+  {
+    "source": "암호와 복구 키를 모두 잃으면 암호화 데이터는 복구할 수 없습니다.",
+    "files": [
+      "host/public/security-ui.mjs"
+    ]
+  },
+  {
+    "source": "암호화 비밀 저장소",
+    "files": [
+      "host/public/security-ui.mjs"
+    ]
+  },
+  {
+    "source": "연결 비밀 추가",
+    "files": [
+      "host/public/security-ui.mjs"
+    ]
+  },
+  {
+    "source": "연결된 태블릿은 계속 사용할 수 있습니다.",
+    "files": [
+      "host/public/editor-lock.mjs"
+    ],
+    "english": "Connected tablets remain available."
+  },
+  {
+    "source": "이 비밀을 삭제할까요? 연결에서 더 이상 사용할 수 없습니다.",
+    "files": [
+      "host/public/security-ui.mjs"
+    ],
+    "english": "Delete this secret? Connections will no longer be able to use it."
+  },
+  {
+    "source": "이 키는 지금 한 번만 표시됩니다. 암호와 다른 안전한 위치에 보관하세요. 보관 확인 전에는 기존 키가 유지됩니다.",
+    "files": [
+      "host/public/security-ui.mjs"
+    ],
+    "english": "This key is displayed once. Store it somewhere safe, separate from your password. Your previous key remains active until confirmation."
+  },
+  {
+    "source": "저장된 연결 비밀",
+    "files": [
+      "host/public/security-ui.mjs"
+    ]
+  },
+  {
+    "source": "저장소 복구 키",
+    "files": [
+      "host/public/security-ui.mjs"
+    ],
+    "english": "Vault recovery key"
+  },
+  {
+    "source": "저장소 암호",
+    "files": [
+      "host/public/security-ui.mjs"
+    ],
+    "english": "Vault password"
+  },
+  {
+    "source": "저장소 암호 (8자 이상)",
+    "files": [
+      "host/public/security-ui.mjs"
+    ],
+    "english": "Vault password (8+ characters)"
+  },
+  {
+    "source": "저장소 암호 다시 입력",
+    "files": [
+      "host/public/security-ui.mjs"
+    ],
+    "english": "Confirm vault password"
+  },
+  {
+    "source": "저장소 암호 변경",
+    "files": [
+      "host/public/security-ui.mjs"
+    ]
+  },
+  {
+    "source": "저장소 암호 복구",
+    "files": [
+      "host/public/security-ui.mjs"
+    ]
+  },
+  {
+    "source": "저장소 잠금 해제",
+    "files": [
+      "host/public/security-ui.mjs"
+    ]
+  },
+  {
+    "source": "저장소 잠금 해제됨",
+    "files": [
+      "host/public/security-ui.mjs"
+    ]
+  },
+  {
+    "source": "저장소 잠김",
+    "files": [
+      "host/public/security-ui.mjs"
+    ]
+  },
+  {
+    "source": "저장소는 별도의 암호로 보호됩니다. 앱을 다시 시작하면 잠기며, 잠긴 동안 암호화 예약 백업과 저장소 비밀을 쓰는 연결은 대기합니다.",
+    "files": [
+      "host/public/security-ui.mjs"
+    ]
+  },
+  {
+    "source": "지금 저장소 잠그기",
+    "files": [
+      "host/public/security-ui.mjs"
+    ]
+  },
+  {
+    "source": "최근 사용",
+    "files": [
+      "host/public/security-ui.mjs"
+    ],
+    "english": "Last active"
+  },
+  {
+    "source": "키 파일 저장",
+    "files": [
+      "host/public/security-ui.mjs"
+    ]
+  },
+  {
+    "source": "키를 교체해도 이미 내보낸 백업에는 당시의 복구 키가 필요합니다. 새 키를 만든 뒤 중요한 백업을 다시 내보내세요.",
+    "files": [
+      "host/public/security-ui.mjs"
+    ]
+  },
+  {
+    "source": "현재 계정 암호",
+    "files": [
+      "host/public/security-ui.mjs"
+    ],
+    "english": "Current account password"
+  },
+  {
+    "source": "현재 백업 복구 키를 비활성화하고 분실 처리할까요? 저장소 암호는 계속 사용할 수 있습니다.",
+    "files": [
+      "host/public/security-ui.mjs"
+    ],
+    "english": "Deactivate the backup recovery key and mark it lost? Your vault password will keep working."
+  },
+  {
+    "source": "현재 복구 키를 비활성화하고 분실 처리할까요? 새 키를 생성하기 전까지 계정 복구가 불가능합니다.",
+    "files": [
+      "host/public/security-ui.mjs"
+    ],
+    "english": "Deactivate the current recovery key and mark it lost? Account recovery will be unavailable until a new key is created."
+  },
+  {
+    "source": "현재 사용자: {0}",
+    "files": [
+      "host/public/security-ui.mjs"
+    ]
+  },
+  {
+    "source": "현재 세션",
+    "files": [
+      "host/public/security-ui.mjs"
+    ],
+    "english": "Current session"
+  },
+  {
+    "source": "현재 저장소 암호",
+    "files": [
+      "host/public/security-ui.mjs"
+    ],
+    "english": "Current vault password"
+  },
+  {
+    "source": "현재 창을 포함한 모든 로그인 세션을 종료할까요?",
+    "files": [
+      "host/public/security-ui.mjs"
+    ],
+    "english": "Sign out every session, including this window?"
+  }
+]

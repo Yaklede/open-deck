@@ -1,0 +1,2512 @@
+{
+  "schemaVersion": 1,
+  "auditedAt": "2026-10-22T15:38:24.988Z",
+  "sourceRevision": "452b0cfbaa0f22dc93fd23306c08f501f326ae9c",
+  "appVersion": "0.10.2",
+  "mode": "Read-only source inventory for the committed 0.10.2 app. The inventory does not certify live emulator runs.",
+  "scope": "All fields in host/preferences schema and shared device schema, user-editable auxiliary account/vault settings, Android local preferences, and operation controls. Deck/page/widget/action/connector configuration is a separate editor domain.",
+  "summary": {
+    "sharedDeviceSettings": 30,
+    "sharedMetadata": 1,
+    "sharedSchemaMacControlsPresent": 30,
+    "sharedSchemaAndroidControlsPresent": 30,
+    "missingMacControls": [],
+    "missingAndroidControls": [],
+    "macOnlyPreferenceFields": 34,
+    "macOnlyAuxiliaryFields": 3,
+    "androidOnlyLocalPreferences": 2,
+    "androidOnlyRememberedViewState": 2,
+    "baselineMissingMacControls": [
+      "language",
+      "allowInsecureWifi"
+    ]
+  },
+  "sources": [
+    "host/settings.mjs",
+    "host/public/settings-ui.mjs",
+    "host/public/device-drafts.mjs",
+    "host/public/security-ui.mjs",
+    "android/app/src/main/java/app/opendeck/client/ClientSettingsPolicy.java",
+    "android/app/src/main/java/app/opendeck/client/MainActivity.java",
+    "android/app/src/main/java/app/opendeck/client/ClientSettingsPanel.java",
+    "android/app/src/main/java/app/opendeck/client/ProfileNavigation.java"
+  ],
+  "sharedSettings": [
+    {
+      "key": "awake",
+      "classification": "shared",
+      "default": true,
+      "storage": {
+        "mac": "devices.json[].settings.awake",
+        "android": "SharedPreferences.clientSettings.awake",
+        "pending": "SharedPreferences.pendingClientSettings.awake"
+      },
+      "mac": {
+        "category": "태블릿별 설정",
+        "label": "화면 켜짐 유지",
+        "controlPresent": true,
+        "source": {
+          "file": "host/public/settings-ui.mjs",
+          "line": 1077
+        },
+        "canonicalSelector": "[data-device-setting=\"awake\"]"
+      },
+      "android": {
+        "category": "화면 · 밝기",
+        "label": "화면 켜짐 유지",
+        "control": "toggle",
+        "controlPresent": true,
+        "source": {
+          "file": "android/app/src/main/java/app/opendeck/client/MainActivity.java",
+          "line": 3614
+        }
+      },
+      "recommendedTest": {
+        "macToAndroid": false,
+        "androidToMac": true,
+        "method": "UI change; observe already-open opposite control and host persisted field; verify A: both-app restart; B: offline Android restart followed by Mac return; compare values again",
+        "status": "not-run-by-inventory"
+      }
+    },
+    {
+      "key": "orientation",
+      "classification": "shared",
+      "default": "auto",
+      "storage": {
+        "mac": "devices.json[].settings.orientation",
+        "android": "SharedPreferences.clientSettings.orientation",
+        "pending": "SharedPreferences.pendingClientSettings.orientation"
+      },
+      "mac": {
+        "category": "태블릿별 설정",
+        "label": "화면 방향",
+        "controlPresent": true,
+        "source": {
+          "file": "host/public/settings-ui.mjs",
+          "line": 1123
+        },
+        "canonicalSelector": "[data-device-setting=\"orientation\"]"
+      },
+      "android": {
+        "category": "화면 · 밝기",
+        "label": "화면 회전",
+        "control": "choice",
+        "controlPresent": true,
+        "source": {
+          "file": "android/app/src/main/java/app/opendeck/client/MainActivity.java",
+          "line": 3604
+        }
+      },
+      "recommendedTest": {
+        "macToAndroid": "portrait",
+        "androidToMac": "landscape",
+        "method": "UI change; observe already-open opposite control and host persisted field; verify A: both-app restart; B: offline Android restart followed by Mac return; compare values again",
+        "status": "not-run-by-inventory"
+      }
+    },
+    {
+      "key": "theme",
+      "classification": "shared",
+      "default": "system",
+      "storage": {
+        "mac": "devices.json[].settings.theme",
+        "android": "SharedPreferences.clientSettings.theme",
+        "pending": "SharedPreferences.pendingClientSettings.theme"
+      },
+      "mac": {
+        "category": "태블릿별 설정",
+        "label": "앱 테마",
+        "controlPresent": true,
+        "source": {
+          "file": "host/public/settings-ui.mjs",
+          "line": 1138
+        },
+        "canonicalSelector": "[data-device-setting=\"theme\"]"
+      },
+      "android": {
+        "category": "화면 · 밝기",
+        "label": "설정 화면 테마",
+        "control": "choice",
+        "controlPresent": true,
+        "source": {
+          "file": "android/app/src/main/java/app/opendeck/client/MainActivity.java",
+          "line": 3599
+        }
+      },
+      "recommendedTest": {
+        "macToAndroid": "light",
+        "androidToMac": "dark",
+        "method": "UI change; observe already-open opposite control and host persisted field; verify A: both-app restart; B: offline Android restart followed by Mac return; compare values again",
+        "status": "not-run-by-inventory"
+      },
+      "notes": [
+        "A settings-panel theme, not the deck page theme; page design is separate."
+      ]
+    },
+    {
+      "key": "language",
+      "classification": "shared",
+      "default": "system",
+      "storage": {
+        "mac": "devices.json[].settings.language",
+        "android": "SharedPreferences.clientSettings.language",
+        "pending": "SharedPreferences.pendingClientSettings.language"
+      },
+      "mac": {
+        "category": "태블릿별 설정",
+        "label": "언어",
+        "controlPresent": true,
+        "baselineControlPresent": false,
+        "remediation": "Present in committed 0.10.2 source. Native emulator confirmation is tracked separately.",
+        "source": {
+          "file": "host/public/settings-ui.mjs",
+          "line": 1197
+        },
+        "canonicalSelector": "[data-device-setting=\"language\"]"
+      },
+      "android": {
+        "category": "화면 · 밝기",
+        "label": "언어",
+        "control": "choice",
+        "controlPresent": true,
+        "source": {
+          "file": "android/app/src/main/java/app/opendeck/client/MainActivity.java",
+          "line": 3597
+        }
+      },
+      "recommendedTest": {
+        "macToAndroid": "en",
+        "androidToMac": "ko",
+        "method": "UI change; observe already-open opposite control and host persisted field; verify A: both-app restart; B: offline Android restart followed by Mac return; compare values again",
+        "status": "not-run-by-inventory"
+      },
+      "notes": [
+        "Mac appearance.language is independent Mac editor language; it is not this device.language setting.",
+        "Changing device language can recreate the Android display settings panel; verify saved language and reopen category as needed."
+      ]
+    },
+    {
+      "key": "allowInsecureWifi",
+      "classification": "shared",
+      "default": false,
+      "storage": {
+        "mac": "devices.json[].settings.allowInsecureWifi",
+        "android": "SharedPreferences.clientSettings.allowInsecureWifi",
+        "pending": "SharedPreferences.pendingClientSettings.allowInsecureWifi"
+      },
+      "mac": {
+        "category": "태블릿별 설정",
+        "label": "암호화하지 않는 Wi-Fi 허용",
+        "controlPresent": true,
+        "baselineControlPresent": false,
+        "remediation": "Present in committed 0.10.2 source. Native emulator confirmation is tracked separately.",
+        "source": {
+          "file": "host/public/settings-ui.mjs",
+          "line": 1215
+        },
+        "canonicalSelector": "[data-device-setting=\"allowInsecureWifi\"]"
+      },
+      "android": {
+        "category": "연결 · 기기 이름",
+        "label": "암호화하지 않는 Wi-Fi 허용",
+        "control": "toggle",
+        "controlPresent": true,
+        "source": {
+          "file": "android/app/src/main/java/app/opendeck/client/MainActivity.java",
+          "line": 3759
+        }
+      },
+      "recommendedTest": {
+        "macToAndroid": true,
+        "androidToMac": false,
+        "method": "UI change; observe already-open opposite control and host persisted field; verify A: both-app restart; B: offline Android restart followed by Mac return; compare values again",
+        "status": "not-run-by-inventory"
+      },
+      "notes": [
+        "Keep the verification connection on USB or valid HTTPS; setting true alone is not proof of a successful plain HTTP session.",
+        "Restore false after the field persistence test."
+      ]
+    },
+    {
+      "key": "timeFormat",
+      "classification": "shared",
+      "default": "24h",
+      "storage": {
+        "mac": "devices.json[].settings.timeFormat",
+        "android": "SharedPreferences.clientSettings.timeFormat",
+        "pending": "SharedPreferences.pendingClientSettings.timeFormat"
+      },
+      "mac": {
+        "category": "태블릿별 설정",
+        "label": "시간 형식",
+        "controlPresent": true,
+        "source": {
+          "file": "host/public/settings-ui.mjs",
+          "line": 1183
+        },
+        "canonicalSelector": "[data-device-setting=\"timeFormat\"]"
+      },
+      "android": {
+        "category": "화면 · 밝기",
+        "label": "시계 표시",
+        "control": "choice",
+        "controlPresent": true,
+        "source": {
+          "file": "android/app/src/main/java/app/opendeck/client/MainActivity.java",
+          "line": 3625
+        }
+      },
+      "recommendedTest": {
+        "macToAndroid": "12h",
+        "androidToMac": "24h",
+        "method": "UI change; observe already-open opposite control and host persisted field; verify A: both-app restart; B: offline Android restart followed by Mac return; compare values again",
+        "status": "not-run-by-inventory"
+      }
+    },
+    {
+      "key": "renderMode",
+      "classification": "shared",
+      "default": "standard",
+      "storage": {
+        "mac": "devices.json[].settings.renderMode",
+        "android": "SharedPreferences.clientSettings.renderMode",
+        "pending": "SharedPreferences.pendingClientSettings.renderMode"
+      },
+      "mac": {
+        "category": "태블릿별 설정",
+        "label": "렌더링 모드",
+        "controlPresent": true,
+        "source": {
+          "file": "host/public/settings-ui.mjs",
+          "line": 1153
+        },
+        "canonicalSelector": "[data-device-setting=\"renderMode\"]"
+      },
+      "android": {
+        "category": "화면 · 밝기",
+        "label": "렌더링",
+        "control": "choice",
+        "controlPresent": true,
+        "source": {
+          "file": "android/app/src/main/java/app/opendeck/client/MainActivity.java",
+          "line": 3633
+        }
+      },
+      "recommendedTest": {
+        "macToAndroid": "simple",
+        "androidToMac": "standard",
+        "method": "UI change; observe already-open opposite control and host persisted field; verify A: both-app restart; B: offline Android restart followed by Mac return; compare values again",
+        "status": "not-run-by-inventory"
+      }
+    },
+    {
+      "key": "fullscreen",
+      "classification": "shared",
+      "default": true,
+      "storage": {
+        "mac": "devices.json[].settings.fullscreen",
+        "android": "SharedPreferences.clientSettings.fullscreen",
+        "pending": "SharedPreferences.pendingClientSettings.fullscreen"
+      },
+      "mac": {
+        "category": "태블릿별 설정",
+        "label": "전체 화면",
+        "controlPresent": true,
+        "source": {
+          "file": "host/public/settings-ui.mjs",
+          "line": 1098
+        },
+        "canonicalSelector": "[data-device-setting=\"fullscreen\"]"
+      },
+      "android": {
+        "category": "화면 · 밝기",
+        "label": "전체 화면",
+        "control": "toggle",
+        "controlPresent": true,
+        "source": {
+          "file": "android/app/src/main/java/app/opendeck/client/MainActivity.java",
+          "line": 3613
+        }
+      },
+      "recommendedTest": {
+        "macToAndroid": false,
+        "androidToMac": true,
+        "method": "UI change; observe already-open opposite control and host persisted field; verify A: both-app restart; B: offline Android restart followed by Mac return; compare values again",
+        "status": "not-run-by-inventory"
+      }
+    },
+    {
+      "key": "brightness",
+      "classification": "shared",
+      "default": -1,
+      "storage": {
+        "mac": "devices.json[].settings.brightness",
+        "android": "SharedPreferences.clientSettings.brightness",
+        "pending": "SharedPreferences.pendingClientSettings.brightness"
+      },
+      "mac": {
+        "category": "태블릿별 설정",
+        "label": "밝기 (−1: 시스템)",
+        "controlPresent": true,
+        "source": {
+          "file": "host/public/settings-ui.mjs",
+          "line": 1248
+        },
+        "canonicalSelector": "[data-device-setting=\"brightness\"]"
+      },
+      "android": {
+        "category": "화면 · 밝기",
+        "label": "앱 밝기",
+        "control": "numeric-choice-with-custom-input",
+        "controlPresent": true,
+        "source": {
+          "file": "android/app/src/main/java/app/opendeck/client/MainActivity.java",
+          "line": 3616
+        }
+      },
+      "recommendedTest": {
+        "macToAndroid": 25,
+        "androidToMac": 75,
+        "method": "UI change; observe already-open opposite control and host persisted field; verify A: both-app restart; B: offline Android restart followed by Mac return; compare values again",
+        "status": "not-run-by-inventory"
+      }
+    },
+    {
+      "key": "textScale",
+      "classification": "shared",
+      "default": 100,
+      "storage": {
+        "mac": "devices.json[].settings.textScale",
+        "android": "SharedPreferences.clientSettings.textScale",
+        "pending": "SharedPreferences.pendingClientSettings.textScale"
+      },
+      "mac": {
+        "category": "태블릿별 설정",
+        "label": "글자 크기 (%)",
+        "controlPresent": true,
+        "source": {
+          "file": "host/public/settings-ui.mjs",
+          "line": 1257
+        },
+        "canonicalSelector": "[data-device-setting=\"textScale\"]"
+      },
+      "android": {
+        "category": "화면 · 밝기",
+        "label": "덱 글자 크기",
+        "control": "slider",
+        "controlPresent": true,
+        "source": {
+          "file": "android/app/src/main/java/app/opendeck/client/MainActivity.java",
+          "line": 3623
+        }
+      },
+      "recommendedTest": {
+        "macToAndroid": 120,
+        "androidToMac": 140,
+        "method": "UI change; observe already-open opposite control and host persisted field; verify A: both-app restart; B: offline Android restart followed by Mac return; compare values again",
+        "status": "not-run-by-inventory"
+      }
+    },
+    {
+      "key": "haptics",
+      "classification": "shared",
+      "default": true,
+      "storage": {
+        "mac": "devices.json[].settings.haptics",
+        "android": "SharedPreferences.clientSettings.haptics",
+        "pending": "SharedPreferences.pendingClientSettings.haptics"
+      },
+      "mac": {
+        "category": "태블릿별 설정",
+        "label": "터치 진동",
+        "controlPresent": true,
+        "source": {
+          "file": "host/public/settings-ui.mjs",
+          "line": 1087
+        },
+        "canonicalSelector": "[data-device-setting=\"haptics\"]"
+      },
+      "android": {
+        "category": "터치 · 페이지 이동",
+        "label": "터치 진동",
+        "control": "toggle",
+        "controlPresent": true,
+        "source": {
+          "file": "android/app/src/main/java/app/opendeck/client/MainActivity.java",
+          "line": 3643
+        }
+      },
+      "recommendedTest": {
+        "macToAndroid": false,
+        "androidToMac": true,
+        "method": "UI change; observe already-open opposite control and host persisted field; verify A: both-app restart; B: offline Android restart followed by Mac return; compare values again",
+        "status": "not-run-by-inventory"
+      },
+      "notes": [
+        "Emulator can prove control/state/persistence; physical vibration strength is not measurable evidence."
+      ]
+    },
+    {
+      "key": "fixedVibration",
+      "classification": "shared",
+      "default": false,
+      "storage": {
+        "mac": "devices.json[].settings.fixedVibration",
+        "android": "SharedPreferences.clientSettings.fixedVibration",
+        "pending": "SharedPreferences.pendingClientSettings.fixedVibration"
+      },
+      "mac": {
+        "category": "태블릿별 설정",
+        "label": "진동 시간 직접 설정",
+        "controlPresent": true,
+        "source": {
+          "file": "host/public/settings-ui.mjs",
+          "line": 1100
+        },
+        "canonicalSelector": "[data-device-setting=\"fixedVibration\"]"
+      },
+      "android": {
+        "category": "터치 · 페이지 이동",
+        "label": "고정 길이 진동",
+        "control": "toggle",
+        "controlPresent": true,
+        "source": {
+          "file": "android/app/src/main/java/app/opendeck/client/MainActivity.java",
+          "line": 3644
+        }
+      },
+      "recommendedTest": {
+        "macToAndroid": true,
+        "androidToMac": false,
+        "method": "UI change; observe already-open opposite control and host persisted field; verify A: both-app restart; B: offline Android restart followed by Mac return; compare values again",
+        "status": "not-run-by-inventory"
+      },
+      "notes": [
+        "Actual vibration requires haptics=true; emulator hardware effect is not a proof target."
+      ]
+    },
+    {
+      "key": "vibrationMs",
+      "classification": "shared",
+      "default": 80,
+      "storage": {
+        "mac": "devices.json[].settings.vibrationMs",
+        "android": "SharedPreferences.clientSettings.vibrationMs",
+        "pending": "SharedPreferences.pendingClientSettings.vibrationMs"
+      },
+      "mac": {
+        "category": "태블릿별 설정",
+        "label": "진동 길이 (ms)",
+        "controlPresent": true,
+        "source": {
+          "file": "host/public/settings-ui.mjs",
+          "line": 1230
+        },
+        "canonicalSelector": "[data-device-setting=\"vibrationMs\"]"
+      },
+      "android": {
+        "category": "터치 · 페이지 이동",
+        "label": "진동 길이",
+        "control": "slider",
+        "controlPresent": true,
+        "source": {
+          "file": "android/app/src/main/java/app/opendeck/client/MainActivity.java",
+          "line": 3645
+        }
+      },
+      "recommendedTest": {
+        "macToAndroid": 120,
+        "androidToMac": 60,
+        "method": "UI change; observe already-open opposite control and host persisted field; verify A: both-app restart; B: offline Android restart followed by Mac return; compare values again",
+        "status": "not-run-by-inventory"
+      },
+      "notes": [
+        "For actual effect haptics and fixedVibration must be enabled."
+      ]
+    },
+    {
+      "key": "sound",
+      "classification": "shared",
+      "default": false,
+      "storage": {
+        "mac": "devices.json[].settings.sound",
+        "android": "SharedPreferences.clientSettings.sound",
+        "pending": "SharedPreferences.pendingClientSettings.sound"
+      },
+      "mac": {
+        "category": "태블릿별 설정",
+        "label": "터치 소리",
+        "controlPresent": true,
+        "source": {
+          "file": "host/public/settings-ui.mjs",
+          "line": 1088
+        },
+        "canonicalSelector": "[data-device-setting=\"sound\"]"
+      },
+      "android": {
+        "category": "터치 · 페이지 이동",
+        "label": "터치 효과음",
+        "control": "toggle",
+        "controlPresent": true,
+        "source": {
+          "file": "android/app/src/main/java/app/opendeck/client/MainActivity.java",
+          "line": 3646
+        }
+      },
+      "recommendedTest": {
+        "macToAndroid": true,
+        "androidToMac": false,
+        "method": "UI change; observe already-open opposite control and host persisted field; verify A: both-app restart; B: offline Android restart followed by Mac return; compare values again",
+        "status": "not-run-by-inventory"
+      },
+      "notes": [
+        "Control/state/persistence can be tested without activating external applications; device audio output is a separate effect."
+      ]
+    },
+    {
+      "key": "swipeEnabled",
+      "classification": "shared",
+      "default": true,
+      "storage": {
+        "mac": "devices.json[].settings.swipeEnabled",
+        "android": "SharedPreferences.clientSettings.swipeEnabled",
+        "pending": "SharedPreferences.pendingClientSettings.swipeEnabled"
+      },
+      "mac": {
+        "category": "태블릿별 설정",
+        "label": "좌우 스와이프",
+        "controlPresent": true,
+        "source": {
+          "file": "host/public/settings-ui.mjs",
+          "line": 1089
+        },
+        "canonicalSelector": "[data-device-setting=\"swipeEnabled\"]"
+      },
+      "android": {
+        "category": "터치 · 페이지 이동",
+        "label": "좌우 제스처",
+        "control": "toggle",
+        "controlPresent": true,
+        "source": {
+          "file": "android/app/src/main/java/app/opendeck/client/MainActivity.java",
+          "line": 3647
+        }
+      },
+      "recommendedTest": {
+        "macToAndroid": false,
+        "androidToMac": true,
+        "method": "UI change; observe already-open opposite control and host persisted field; verify A: both-app restart; B: offline Android restart followed by Mac return; compare values again",
+        "status": "not-run-by-inventory"
+      }
+    },
+    {
+      "key": "reducedMotion",
+      "classification": "shared",
+      "default": false,
+      "storage": {
+        "mac": "devices.json[].settings.reducedMotion",
+        "android": "SharedPreferences.clientSettings.reducedMotion",
+        "pending": "SharedPreferences.pendingClientSettings.reducedMotion"
+      },
+      "mac": {
+        "category": "태블릿별 설정",
+        "label": "움직임 줄이기",
+        "controlPresent": true,
+        "source": {
+          "file": "host/public/settings-ui.mjs",
+          "line": 1090
+        },
+        "canonicalSelector": "[data-device-setting=\"reducedMotion\"]"
+      },
+      "android": {
+        "category": "터치 · 페이지 이동",
+        "label": "동작 효과 줄이기",
+        "control": "toggle",
+        "controlPresent": true,
+        "source": {
+          "file": "android/app/src/main/java/app/opendeck/client/MainActivity.java",
+          "line": 3648
+        }
+      },
+      "recommendedTest": {
+        "macToAndroid": true,
+        "androidToMac": false,
+        "method": "UI change; observe already-open opposite control and host persisted field; verify A: both-app restart; B: offline Android restart followed by Mac return; compare values again",
+        "status": "not-run-by-inventory"
+      }
+    },
+    {
+      "key": "showHeader",
+      "classification": "shared",
+      "default": true,
+      "storage": {
+        "mac": "devices.json[].settings.showHeader",
+        "android": "SharedPreferences.clientSettings.showHeader",
+        "pending": "SharedPreferences.pendingClientSettings.showHeader"
+      },
+      "mac": {
+        "category": "태블릿별 설정",
+        "label": "상단 상태 표시",
+        "controlPresent": true,
+        "source": {
+          "file": "host/public/settings-ui.mjs",
+          "line": 1084
+        },
+        "canonicalSelector": "[data-device-setting=\"showHeader\"]"
+      },
+      "android": {
+        "category": "터치 · 페이지 이동",
+        "label": "상단 연결 정보",
+        "control": "toggle",
+        "controlPresent": true,
+        "source": {
+          "file": "android/app/src/main/java/app/opendeck/client/MainActivity.java",
+          "line": 3649
+        }
+      },
+      "recommendedTest": {
+        "macToAndroid": false,
+        "androidToMac": true,
+        "method": "UI change; observe already-open opposite control and host persisted field; verify A: both-app restart; B: offline Android restart followed by Mac return; compare values again",
+        "status": "not-run-by-inventory"
+      }
+    },
+    {
+      "key": "showNavigation",
+      "classification": "shared",
+      "default": true,
+      "storage": {
+        "mac": "devices.json[].settings.showNavigation",
+        "android": "SharedPreferences.clientSettings.showNavigation",
+        "pending": "SharedPreferences.pendingClientSettings.showNavigation"
+      },
+      "mac": {
+        "category": "태블릿별 설정",
+        "label": "하단 탭 표시",
+        "controlPresent": true,
+        "source": {
+          "file": "host/public/settings-ui.mjs",
+          "line": 1085
+        },
+        "canonicalSelector": "[data-device-setting=\"showNavigation\"]"
+      },
+      "android": {
+        "category": "터치 · 페이지 이동",
+        "label": "하단 페이지 버튼",
+        "control": "toggle",
+        "controlPresent": true,
+        "source": {
+          "file": "android/app/src/main/java/app/opendeck/client/MainActivity.java",
+          "line": 3650
+        }
+      },
+      "recommendedTest": {
+        "macToAndroid": false,
+        "androidToMac": true,
+        "method": "UI change; observe already-open opposite control and host persisted field; verify A: both-app restart; B: offline Android restart followed by Mac return; compare values again",
+        "status": "not-run-by-inventory"
+      }
+    },
+    {
+      "key": "settingsButtonHidden",
+      "classification": "shared",
+      "default": false,
+      "storage": {
+        "mac": "devices.json[].settings.settingsButtonHidden",
+        "android": "SharedPreferences.clientSettings.settingsButtonHidden",
+        "pending": "SharedPreferences.pendingClientSettings.settingsButtonHidden"
+      },
+      "mac": {
+        "category": "태블릿별 설정",
+        "label": "설정 버튼 숨기기",
+        "controlPresent": true,
+        "source": {
+          "file": "host/public/settings-ui.mjs",
+          "line": 1079
+        },
+        "canonicalSelector": "[data-device-setting=\"settingsButtonHidden\"]"
+      },
+      "android": {
+        "category": "터치 · 페이지 이동",
+        "label": "설정 버튼 숨기기",
+        "control": "toggle",
+        "controlPresent": true,
+        "source": {
+          "file": "android/app/src/main/java/app/opendeck/client/MainActivity.java",
+          "line": 3652
+        }
+      },
+      "recommendedTest": {
+        "macToAndroid": true,
+        "androidToMac": false,
+        "method": "UI change; observe already-open opposite control and host persisted field; verify A: both-app restart; B: offline Android restart followed by Mac return; compare values again",
+        "status": "not-run-by-inventory"
+      },
+      "notes": [
+        "Run late; retain settings access via a long press on the top-right corner and restore the original value."
+      ]
+    },
+    {
+      "key": "screenSaverMinutes",
+      "classification": "shared",
+      "default": 0,
+      "storage": {
+        "mac": "devices.json[].settings.screenSaverMinutes",
+        "android": "SharedPreferences.clientSettings.screenSaverMinutes",
+        "pending": "SharedPreferences.pendingClientSettings.screenSaverMinutes"
+      },
+      "mac": {
+        "category": "태블릿별 설정",
+        "label": "화면 보호 대기 (분, 0: 끔)",
+        "controlPresent": true,
+        "source": {
+          "file": "host/public/settings-ui.mjs",
+          "line": 1266
+        },
+        "canonicalSelector": "[data-device-setting=\"screenSaverMinutes\"]"
+      },
+      "android": {
+        "category": "화면 보호",
+        "label": "사용하지 않을 때",
+        "control": "numeric-choice-with-custom-input",
+        "controlPresent": true,
+        "source": {
+          "file": "android/app/src/main/java/app/opendeck/client/MainActivity.java",
+          "line": 3661
+        }
+      },
+      "recommendedTest": {
+        "macToAndroid": 1,
+        "androidToMac": 2,
+        "method": "UI change; observe already-open opposite control and host persisted field; verify A: both-app restart; B: offline Android restart followed by Mac return; compare values again",
+        "status": "not-run-by-inventory"
+      },
+      "notes": [
+        "Use synthetic/inactive deck while waiting; restore 0 after timing checks."
+      ]
+    },
+    {
+      "key": "screenSaverMode",
+      "classification": "shared",
+      "default": "dim",
+      "storage": {
+        "mac": "devices.json[].settings.screenSaverMode",
+        "android": "SharedPreferences.clientSettings.screenSaverMode",
+        "pending": "SharedPreferences.pendingClientSettings.screenSaverMode"
+      },
+      "mac": {
+        "category": "태블릿별 설정",
+        "label": "화면 보호 모드",
+        "controlPresent": true,
+        "source": {
+          "file": "host/public/settings-ui.mjs",
+          "line": 1275
+        },
+        "canonicalSelector": "[data-device-setting=\"screenSaverMode\"]"
+      },
+      "android": {
+        "category": "화면 보호",
+        "label": "화면 보호 방식",
+        "control": "choice",
+        "controlPresent": true,
+        "source": {
+          "file": "android/app/src/main/java/app/opendeck/client/MainActivity.java",
+          "line": 3684
+        }
+      },
+      "recommendedTest": {
+        "macToAndroid": "clock",
+        "androidToMac": "dim",
+        "method": "UI change; observe already-open opposite control and host persisted field; verify A: both-app restart; B: offline Android restart followed by Mac return; compare values again",
+        "status": "not-run-by-inventory"
+      },
+      "notes": [
+        "Set screenSaverMinutes or use preview to test effect; stored mode alone does not prove idle rendering."
+      ]
+    },
+    {
+      "key": "dimPercent",
+      "classification": "shared",
+      "default": 10,
+      "storage": {
+        "mac": "devices.json[].settings.dimPercent",
+        "android": "SharedPreferences.clientSettings.dimPercent",
+        "pending": "SharedPreferences.pendingClientSettings.dimPercent"
+      },
+      "mac": {
+        "category": "태블릿별 설정",
+        "label": "화면 보호 밝기 (%)",
+        "controlPresent": true,
+        "source": {
+          "file": "host/public/settings-ui.mjs",
+          "line": 1239
+        },
+        "canonicalSelector": "[data-device-setting=\"dimPercent\"]"
+      },
+      "android": {
+        "category": "화면 보호",
+        "label": "화면 보호 밝기",
+        "control": "slider",
+        "controlPresent": true,
+        "source": {
+          "file": "android/app/src/main/java/app/opendeck/client/MainActivity.java",
+          "line": 3687
+        }
+      },
+      "recommendedTest": {
+        "macToAndroid": 25,
+        "androidToMac": 15,
+        "method": "UI change; observe already-open opposite control and host persisted field; verify A: both-app restart; B: offline Android restart followed by Mac return; compare values again",
+        "status": "not-run-by-inventory"
+      }
+    },
+    {
+      "key": "firstTouchWakes",
+      "classification": "shared",
+      "default": true,
+      "storage": {
+        "mac": "devices.json[].settings.firstTouchWakes",
+        "android": "SharedPreferences.clientSettings.firstTouchWakes",
+        "pending": "SharedPreferences.pendingClientSettings.firstTouchWakes"
+      },
+      "mac": {
+        "category": "태블릿별 설정",
+        "label": "첫 터치는 화면만 깨우기",
+        "controlPresent": true,
+        "source": {
+          "file": "host/public/settings-ui.mjs",
+          "line": 1106
+        },
+        "canonicalSelector": "[data-device-setting=\"firstTouchWakes\"]"
+      },
+      "android": {
+        "category": "화면 보호",
+        "label": "첫 터치는 화면만 깨우기",
+        "control": "toggle",
+        "controlPresent": true,
+        "source": {
+          "file": "android/app/src/main/java/app/opendeck/client/MainActivity.java",
+          "line": 3689
+        }
+      },
+      "recommendedTest": {
+        "macToAndroid": false,
+        "androidToMac": true,
+        "method": "UI change; observe already-open opposite control and host persisted field; verify A: both-app restart; B: offline Android restart followed by Mac return; compare values again",
+        "status": "not-run-by-inventory"
+      },
+      "notes": [
+        "Clock screensaver always consumes the wake touch regardless of this flag; use dim mode for true/false effect comparison."
+      ]
+    },
+    {
+      "key": "rememberPage",
+      "classification": "shared",
+      "default": true,
+      "storage": {
+        "mac": "devices.json[].settings.rememberPage",
+        "android": "SharedPreferences.clientSettings.rememberPage",
+        "pending": "SharedPreferences.pendingClientSettings.rememberPage"
+      },
+      "mac": {
+        "category": "태블릿별 설정",
+        "label": "마지막 페이지 기억",
+        "controlPresent": true,
+        "source": {
+          "file": "host/public/settings-ui.mjs",
+          "line": 1086
+        },
+        "canonicalSelector": "[data-device-setting=\"rememberPage\"]"
+      },
+      "android": {
+        "category": "프로필 · 시작 페이지",
+        "label": "마지막 페이지 기억",
+        "control": "toggle",
+        "controlPresent": true,
+        "source": {
+          "file": "android/app/src/main/java/app/opendeck/client/MainActivity.java",
+          "line": 3701
+        }
+      },
+      "recommendedTest": {
+        "macToAndroid": false,
+        "androidToMac": true,
+        "method": "UI change; observe already-open opposite control and host persisted field; verify A: both-app restart; B: offline Android restart followed by Mac return; compare values again",
+        "status": "not-run-by-inventory"
+      },
+      "notes": [
+        "Verify last visible page after app restart separately from the stored boolean."
+      ]
+    },
+    {
+      "key": "startPageId",
+      "classification": "shared",
+      "default": "",
+      "storage": {
+        "mac": "devices.json[].settings.startPageId",
+        "android": "SharedPreferences.clientSettings.startPageId",
+        "pending": "SharedPreferences.pendingClientSettings.startPageId"
+      },
+      "mac": {
+        "category": "태블릿별 설정",
+        "label": "시작 페이지",
+        "controlPresent": true,
+        "source": {
+          "file": "host/public/settings-ui.mjs",
+          "line": 1052
+        },
+        "canonicalSelector": "[data-device-setting=\"startPageId\"]"
+      },
+      "android": {
+        "category": "프로필 · 시작 페이지",
+        "label": "시작 페이지",
+        "control": "dynamic-choice",
+        "controlPresent": true,
+        "source": {
+          "file": "android/app/src/main/java/app/opendeck/client/MainActivity.java",
+          "line": 3702
+        }
+      },
+      "recommendedTest": {
+        "macToAndroid": "fixture-page-b",
+        "androidToMac": "fixture-page-a",
+        "method": "UI change; observe already-open opposite control and host persisted field; verify A: both-app restart; B: offline Android restart followed by Mac return; compare values again",
+        "status": "not-run-by-inventory"
+      },
+      "notes": [
+        "Create two synthetic pages in the currently selected profile; substitute actual fixture IDs. Set rememberPage=false when checking startup page selection."
+      ]
+    },
+    {
+      "key": "profileId",
+      "classification": "shared",
+      "default": "",
+      "storage": {
+        "mac": "devices.json[].settings.profileId",
+        "android": "SharedPreferences.clientSettings.profileId",
+        "pending": "SharedPreferences.pendingClientSettings.profileId"
+      },
+      "mac": {
+        "category": "태블릿별 설정",
+        "label": "시작 프로필",
+        "controlPresent": true,
+        "source": {
+          "file": "host/public/settings-ui.mjs",
+          "line": 1017
+        },
+        "canonicalSelector": "[data-device-setting=\"profileId\"]"
+      },
+      "android": {
+        "category": "프로필 · 시작 페이지",
+        "label": "사용할 프로필",
+        "control": "dynamic-choice",
+        "controlPresent": true,
+        "source": {
+          "file": "android/app/src/main/java/app/opendeck/client/MainActivity.java",
+          "line": 3700
+        }
+      },
+      "recommendedTest": {
+        "macToAndroid": "fixture-profile-b",
+        "androidToMac": "fixture-profile-a",
+        "method": "UI change; observe already-open opposite control and host persisted field; verify A: both-app restart; B: offline Android restart followed by Mac return; compare values again",
+        "status": "not-run-by-inventory"
+      },
+      "notes": [
+        "Create synthetic profiles and substitute real fixture IDs. Changing profile also clears startPageId; verify that coupled behavior."
+      ]
+    },
+    {
+      "key": "iconResolution",
+      "classification": "shared",
+      "default": 0,
+      "storage": {
+        "mac": "devices.json[].settings.iconResolution",
+        "android": "SharedPreferences.clientSettings.iconResolution",
+        "pending": "SharedPreferences.pendingClientSettings.iconResolution"
+      },
+      "mac": {
+        "category": "태블릿별 설정",
+        "label": "이미지 해상도",
+        "controlPresent": true,
+        "source": {
+          "file": "host/public/settings-ui.mjs",
+          "line": 1167
+        },
+        "canonicalSelector": "[data-device-setting=\"iconResolution\"]"
+      },
+      "android": {
+        "category": "화면 · 밝기",
+        "label": "아이콘 해상도",
+        "control": "choice",
+        "controlPresent": true,
+        "source": {
+          "file": "android/app/src/main/java/app/opendeck/client/MainActivity.java",
+          "line": 3629
+        }
+      },
+      "recommendedTest": {
+        "macToAndroid": 128,
+        "androidToMac": 512,
+        "method": "UI change; observe already-open opposite control and host persisted field; verify A: both-app restart; B: offline Android restart followed by Mac return; compare values again",
+        "status": "not-run-by-inventory"
+      }
+    },
+    {
+      "key": "osNotifications",
+      "classification": "shared",
+      "default": true,
+      "storage": {
+        "mac": "devices.json[].settings.osNotifications",
+        "android": "SharedPreferences.clientSettings.osNotifications",
+        "pending": "SharedPreferences.pendingClientSettings.osNotifications"
+      },
+      "mac": {
+        "category": "태블릿별 설정",
+        "label": "OS 알림",
+        "controlPresent": true,
+        "source": {
+          "file": "host/public/settings-ui.mjs",
+          "line": 1091
+        },
+        "canonicalSelector": "[data-device-setting=\"osNotifications\"]"
+      },
+      "android": {
+        "category": "알림",
+        "label": "Jimin OS 알림",
+        "control": "toggle",
+        "controlPresent": true,
+        "source": {
+          "file": "android/app/src/main/java/app/opendeck/client/MainActivity.java",
+          "line": 3834
+        }
+      },
+      "recommendedTest": {
+        "macToAndroid": false,
+        "androidToMac": true,
+        "method": "UI change; observe already-open opposite control and host persisted field; verify A: both-app restart; B: offline Android restart followed by Mac return; compare values again",
+        "status": "not-run-by-inventory"
+      },
+      "notes": [
+        "Synchronized preference is separate from Android OS notification permission. Do not send real work notifications for the settings test."
+      ]
+    },
+    {
+      "key": "monitorNotifications",
+      "classification": "shared",
+      "default": true,
+      "storage": {
+        "mac": "devices.json[].settings.monitorNotifications",
+        "android": "SharedPreferences.clientSettings.monitorNotifications",
+        "pending": "SharedPreferences.pendingClientSettings.monitorNotifications"
+      },
+      "mac": {
+        "category": "태블릿별 설정",
+        "label": "모니터 경고 알림",
+        "controlPresent": true,
+        "source": {
+          "file": "host/public/settings-ui.mjs",
+          "line": 1093
+        },
+        "canonicalSelector": "[data-device-setting=\"monitorNotifications\"]"
+      },
+      "android": {
+        "category": "알림",
+        "label": "시스템 · DB 경고",
+        "control": "toggle",
+        "controlPresent": true,
+        "source": {
+          "file": "android/app/src/main/java/app/opendeck/client/MainActivity.java",
+          "line": 3835
+        }
+      },
+      "recommendedTest": {
+        "macToAndroid": false,
+        "androidToMac": true,
+        "method": "UI change; observe already-open opposite control and host persisted field; verify A: both-app restart; B: offline Android restart followed by Mac return; compare values again",
+        "status": "not-run-by-inventory"
+      },
+      "notes": [
+        "Synchronized preference is separate from monitoring threshold values in deck/widget configuration."
+      ]
+    },
+    {
+      "key": "notificationBanner",
+      "classification": "shared",
+      "default": true,
+      "storage": {
+        "mac": "devices.json[].settings.notificationBanner",
+        "android": "SharedPreferences.clientSettings.notificationBanner",
+        "pending": "SharedPreferences.pendingClientSettings.notificationBanner"
+      },
+      "mac": {
+        "category": "태블릿별 설정",
+        "label": "앱 내 알림 배너",
+        "controlPresent": true,
+        "source": {
+          "file": "host/public/settings-ui.mjs",
+          "line": 1112
+        },
+        "canonicalSelector": "[data-device-setting=\"notificationBanner\"]"
+      },
+      "android": {
+        "category": "알림",
+        "label": "앱 안에서 경고 배너",
+        "control": "toggle",
+        "controlPresent": true,
+        "source": {
+          "file": "android/app/src/main/java/app/opendeck/client/MainActivity.java",
+          "line": 3836
+        }
+      },
+      "recommendedTest": {
+        "macToAndroid": false,
+        "androidToMac": true,
+        "method": "UI change; observe already-open opposite control and host persisted field; verify A: both-app restart; B: offline Android restart followed by Mac return; compare values again",
+        "status": "not-run-by-inventory"
+      },
+      "notes": [
+        "In-app banner switch; Android OS permission is separate."
+      ]
+    }
+  ],
+  "sharedMetadata": [
+    {
+      "key": "name",
+      "classification": "shared-device-metadata",
+      "default": "Android Build.MANUFACTURER + Build.MODEL at first pairing",
+      "storage": {
+        "mac": "devices.json[].name",
+        "android": "SharedPreferences.deviceName"
+      },
+      "mac": {
+        "category": "태블릿별 설정",
+        "label": "기기 이름",
+        "controlPresent": true,
+        "source": {
+          "file": "host/public/settings-ui.mjs",
+          "line": 1011
+        }
+      },
+      "android": {
+        "category": "연결 · 기기 이름",
+        "label": "기기 이름",
+        "controlPresent": true,
+        "source": {
+          "file": "android/app/src/main/java/app/opendeck/client/MainActivity.java",
+          "line": 3766
+        }
+      },
+      "recommendedTest": {
+        "macToAndroid": "Sync Mac Fixture",
+        "androidToMac": "Sync Android Fixture",
+        "status": "not-run-by-inventory"
+      },
+      "notes": [
+        "Android name editing requires connected=true; offline rename is explicitly rejected instead of queued.",
+        "Name is not in clientSettings or the shared 30-field schema."
+      ]
+    }
+  ],
+  "macOnlyPreferences": [
+    {
+      "key": "appearance.themeMode",
+      "classification": "mac-only",
+      "default": "dark",
+      "storage": "preferences.json.appearance.themeMode",
+      "mac": {
+        "category": "화면 · 언어",
+        "label": "색상 모드",
+        "controlPresent": true,
+        "source": {
+          "file": "host/public/settings-ui.mjs",
+          "line": 305
+        }
+      },
+      "android": {
+        "controlPresent": false,
+        "reason": "Host/editor setting, not a tablet preference; no bidirectional device control is expected."
+      },
+      "recommendedTest": {
+        "sample": "light",
+        "method": "Isolated host settings roundtrip and Mac restart; not an Android control synchronization case.",
+        "status": "not-run-by-inventory"
+      }
+    },
+    {
+      "key": "appearance.accentColor",
+      "classification": "mac-only",
+      "default": "#a6acff",
+      "storage": "preferences.json.appearance.accentColor",
+      "mac": {
+        "category": "화면 · 언어",
+        "label": "강조색",
+        "controlPresent": true,
+        "source": {
+          "file": "host/public/settings-ui.mjs",
+          "line": 312
+        }
+      },
+      "android": {
+        "controlPresent": false,
+        "reason": "Host/editor setting, not a tablet preference; no bidirectional device control is expected."
+      },
+      "recommendedTest": {
+        "sample": "#2288cc",
+        "method": "Isolated host settings roundtrip and Mac restart; not an Android control synchronization case.",
+        "status": "not-run-by-inventory"
+      }
+    },
+    {
+      "key": "appearance.fontFamily",
+      "classification": "mac-only",
+      "default": "system",
+      "storage": "preferences.json.appearance.fontFamily",
+      "mac": {
+        "category": "화면 · 언어",
+        "label": "글꼴",
+        "controlPresent": true,
+        "source": {
+          "file": "host/public/settings-ui.mjs",
+          "line": 353
+        }
+      },
+      "android": {
+        "controlPresent": false,
+        "reason": "Host/editor setting, not a tablet preference; no bidirectional device control is expected."
+      },
+      "recommendedTest": {
+        "sample": "mono",
+        "method": "Isolated host settings roundtrip and Mac restart; not an Android control synchronization case.",
+        "status": "not-run-by-inventory"
+      }
+    },
+    {
+      "key": "appearance.uiScale",
+      "classification": "mac-only",
+      "default": 100,
+      "storage": "preferences.json.appearance.uiScale",
+      "mac": {
+        "category": "화면 · 언어",
+        "label": "화면 크기 (%)",
+        "controlPresent": true,
+        "source": {
+          "file": "host/public/settings-ui.mjs",
+          "line": 373
+        }
+      },
+      "android": {
+        "controlPresent": false,
+        "reason": "Host/editor setting, not a tablet preference; no bidirectional device control is expected."
+      },
+      "recommendedTest": {
+        "sample": 110,
+        "method": "Isolated host settings roundtrip and Mac restart; not an Android control synchronization case.",
+        "status": "not-run-by-inventory"
+      }
+    },
+    {
+      "key": "appearance.language",
+      "classification": "mac-only",
+      "default": "ko",
+      "storage": "preferences.json.appearance.language",
+      "mac": {
+        "category": "화면 · 언어",
+        "label": "설정 언어",
+        "controlPresent": true,
+        "source": {
+          "file": "host/public/settings-ui.mjs",
+          "line": 377
+        }
+      },
+      "android": {
+        "controlPresent": false,
+        "reason": "Host/editor setting, not a tablet preference; no bidirectional device control is expected."
+      },
+      "recommendedTest": {
+        "sample": "en",
+        "method": "Isolated host settings roundtrip and Mac restart; not an Android control synchronization case.",
+        "status": "not-run-by-inventory"
+      }
+    },
+    {
+      "key": "appearance.timeFormat",
+      "classification": "mac-only",
+      "default": "24h",
+      "storage": "preferences.json.appearance.timeFormat",
+      "mac": {
+        "category": "화면 · 언어",
+        "label": "시간 형식",
+        "controlPresent": true,
+        "source": {
+          "file": "host/public/settings-ui.mjs",
+          "line": 386
+        }
+      },
+      "android": {
+        "controlPresent": false,
+        "reason": "Host/editor setting, not a tablet preference; no bidirectional device control is expected."
+      },
+      "recommendedTest": {
+        "sample": "12h",
+        "method": "Isolated host settings roundtrip and Mac restart; not an Android control synchronization case.",
+        "status": "not-run-by-inventory"
+      }
+    },
+    {
+      "key": "appearance.palette",
+      "classification": "mac-only",
+      "default": [],
+      "storage": "preferences.json.appearance.palette",
+      "mac": {
+        "category": "화면 · 언어",
+        "label": "저장한 색상 팔레트",
+        "controlPresent": true,
+        "source": {
+          "file": "host/public/settings-ui.mjs",
+          "line": 335
+        }
+      },
+      "android": {
+        "controlPresent": false,
+        "reason": "Host/editor setting, not a tablet preference; no bidirectional device control is expected."
+      },
+      "recommendedTest": {
+        "sample": [
+          "#2288cc",
+          "#cc8822"
+        ],
+        "method": "Isolated host settings roundtrip and Mac restart; not an Android control synchronization case.",
+        "status": "not-run-by-inventory"
+      }
+    },
+    {
+      "key": "startup.autostart",
+      "classification": "mac-only",
+      "default": true,
+      "storage": "preferences.json.startup.autostart",
+      "mac": {
+        "category": "Mac 시작 · Dock",
+        "label": "Mac 로그인 시 자동 실행",
+        "controlPresent": true,
+        "source": {
+          "file": "host/public/settings-ui.mjs",
+          "line": 400
+        }
+      },
+      "android": {
+        "controlPresent": false,
+        "reason": "Host/editor setting, not a tablet preference; no bidirectional device control is expected."
+      },
+      "recommendedTest": {
+        "sample": false,
+        "method": "Isolated host settings roundtrip and Mac restart; not an Android control synchronization case.",
+        "status": "not-run-by-inventory"
+      },
+      "notes": [
+        "Saving the value and app restart do not prove a macOS login event. Login/startup behavior needs a separately authorized login test."
+      ]
+    },
+    {
+      "key": "startup.openMinimized",
+      "classification": "mac-only",
+      "default": true,
+      "storage": "preferences.json.startup.openMinimized",
+      "mac": {
+        "category": "Mac 시작 · Dock",
+        "label": "편집기 창을 숨긴 채 시작",
+        "controlPresent": true,
+        "source": {
+          "file": "host/public/settings-ui.mjs",
+          "line": 408
+        }
+      },
+      "android": {
+        "controlPresent": false,
+        "reason": "Host/editor setting, not a tablet preference; no bidirectional device control is expected."
+      },
+      "recommendedTest": {
+        "sample": false,
+        "method": "Isolated host settings roundtrip and Mac restart; not an Android control synchronization case.",
+        "status": "not-run-by-inventory"
+      }
+    },
+    {
+      "key": "startup.showDockIcon",
+      "classification": "mac-only",
+      "default": true,
+      "storage": "preferences.json.startup.showDockIcon",
+      "mac": {
+        "category": "Mac 시작 · Dock",
+        "label": "Dock 아이콘 표시",
+        "controlPresent": true,
+        "source": {
+          "file": "host/public/settings-ui.mjs",
+          "line": 416
+        }
+      },
+      "android": {
+        "controlPresent": false,
+        "reason": "Host/editor setting, not a tablet preference; no bidirectional device control is expected."
+      },
+      "recommendedTest": {
+        "sample": false,
+        "method": "Isolated host settings roundtrip and Mac restart; not an Android control synchronization case.",
+        "status": "not-run-by-inventory"
+      }
+    },
+    {
+      "key": "network.wifiEnabled",
+      "classification": "mac-only",
+      "default": true,
+      "storage": "preferences.json.network.wifiEnabled",
+      "mac": {
+        "category": "네트워크 · USB",
+        "label": "Wi-Fi 연결 허용",
+        "controlPresent": true,
+        "source": {
+          "file": "host/public/settings-ui.mjs",
+          "line": 429
+        }
+      },
+      "android": {
+        "controlPresent": false,
+        "reason": "Host/editor setting, not a tablet preference; no bidirectional device control is expected."
+      },
+      "recommendedTest": {
+        "sample": false,
+        "method": "Isolated host settings roundtrip and Mac restart; not an Android control synchronization case.",
+        "status": "not-run-by-inventory"
+      },
+      "notes": [
+        "Changing this can disconnect the verification transport or shared ADB service. Use an isolated host/test path and restore the original setting; do not blindly batch with device UI tests."
+      ]
+    },
+    {
+      "key": "network.wifiPort",
+      "classification": "mac-only",
+      "default": 8841,
+      "storage": "preferences.json.network.wifiPort",
+      "mac": {
+        "category": "네트워크 · USB",
+        "label": "공개 연결 포트",
+        "controlPresent": true,
+        "source": {
+          "file": "host/public/settings-ui.mjs",
+          "line": 436
+        }
+      },
+      "android": {
+        "controlPresent": false,
+        "reason": "Host/editor setting, not a tablet preference; no bidirectional device control is expected."
+      },
+      "recommendedTest": {
+        "sample": 18841,
+        "method": "Isolated host settings roundtrip and Mac restart; not an Android control synchronization case.",
+        "status": "not-run-by-inventory"
+      },
+      "notes": [
+        "Changing this can disconnect the verification transport or shared ADB service. Use an isolated host/test path and restore the original setting; do not blindly batch with device UI tests."
+      ]
+    },
+    {
+      "key": "network.discoveryEnabled",
+      "classification": "mac-only",
+      "default": true,
+      "storage": "preferences.json.network.discoveryEnabled",
+      "mac": {
+        "category": "네트워크 · USB",
+        "label": "로컬 네트워크에 호스트 알리기",
+        "controlPresent": true,
+        "source": {
+          "file": "host/public/settings-ui.mjs",
+          "line": 481
+        }
+      },
+      "android": {
+        "controlPresent": false,
+        "reason": "Host/editor setting, not a tablet preference; no bidirectional device control is expected."
+      },
+      "recommendedTest": {
+        "sample": false,
+        "method": "Isolated host settings roundtrip and Mac restart; not an Android control synchronization case.",
+        "status": "not-run-by-inventory"
+      },
+      "notes": [
+        "Changing this can disconnect the verification transport or shared ADB service. Use an isolated host/test path and restore the original setting; do not blindly batch with device UI tests."
+      ]
+    },
+    {
+      "key": "network.tlsEnabled",
+      "classification": "mac-only",
+      "default": true,
+      "storage": "preferences.json.network.tlsEnabled",
+      "mac": {
+        "category": "네트워크 · USB",
+        "label": "HTTPS 암호화 사용",
+        "controlPresent": true,
+        "source": {
+          "file": "host/public/settings-ui.mjs",
+          "line": 448
+        }
+      },
+      "android": {
+        "controlPresent": false,
+        "reason": "Host/editor setting, not a tablet preference; no bidirectional device control is expected."
+      },
+      "recommendedTest": {
+        "sample": false,
+        "method": "Isolated host settings roundtrip and Mac restart; not an Android control synchronization case.",
+        "status": "not-run-by-inventory"
+      },
+      "notes": [
+        "Changing this can disconnect the verification transport or shared ADB service. Use an isolated host/test path and restore the original setting; do not blindly batch with device UI tests."
+      ]
+    },
+    {
+      "key": "network.tlsMode",
+      "classification": "mac-only",
+      "default": "Replace",
+      "storage": "preferences.json.network.tlsMode",
+      "mac": {
+        "category": "네트워크 · USB",
+        "label": "HTTPS 연결 방식",
+        "controlPresent": true,
+        "source": {
+          "file": "host/public/settings-ui.mjs",
+          "line": 452
+        }
+      },
+      "android": {
+        "controlPresent": false,
+        "reason": "Host/editor setting, not a tablet preference; no bidirectional device control is expected."
+      },
+      "recommendedTest": {
+        "sample": "Additional",
+        "method": "Isolated host settings roundtrip and Mac restart; not an Android control synchronization case.",
+        "status": "not-run-by-inventory"
+      },
+      "notes": [
+        "Changing this can disconnect the verification transport or shared ADB service. Use an isolated host/test path and restore the original setting; do not blindly batch with device UI tests."
+      ]
+    },
+    {
+      "key": "network.tlsHttpsPort",
+      "classification": "mac-only",
+      "default": 8842,
+      "storage": "preferences.json.network.tlsHttpsPort",
+      "mac": {
+        "category": "네트워크 · USB",
+        "label": "추가 HTTPS 포트",
+        "controlPresent": true,
+        "source": {
+          "file": "host/public/settings-ui.mjs",
+          "line": 465
+        }
+      },
+      "android": {
+        "controlPresent": false,
+        "reason": "Host/editor setting, not a tablet preference; no bidirectional device control is expected."
+      },
+      "recommendedTest": {
+        "sample": 18842,
+        "method": "Isolated host settings roundtrip and Mac restart; not an Android control synchronization case.",
+        "status": "not-run-by-inventory"
+      },
+      "notes": [
+        "Changing this can disconnect the verification transport or shared ADB service. Use an isolated host/test path and restore the original setting; do not blindly batch with device UI tests."
+      ]
+    },
+    {
+      "key": "usb.enabled",
+      "classification": "mac-only",
+      "default": true,
+      "storage": "preferences.json.usb.enabled",
+      "mac": {
+        "category": "네트워크 · USB",
+        "label": "USB 연결 사용",
+        "controlPresent": true,
+        "source": {
+          "file": "host/public/settings-ui.mjs",
+          "line": 609
+        }
+      },
+      "android": {
+        "controlPresent": false,
+        "reason": "Host/editor setting, not a tablet preference; no bidirectional device control is expected."
+      },
+      "recommendedTest": {
+        "sample": false,
+        "method": "Isolated host settings roundtrip and Mac restart; not an Android control synchronization case.",
+        "status": "not-run-by-inventory"
+      },
+      "notes": [
+        "Changing this can disconnect the verification transport or shared ADB service. Use an isolated host/test path and restore the original setting; do not blindly batch with device UI tests."
+      ]
+    },
+    {
+      "key": "usb.executablePath",
+      "classification": "mac-only",
+      "default": "",
+      "storage": "preferences.json.usb.executablePath",
+      "mac": {
+        "category": "네트워크 · USB",
+        "label": "ADB 실행 파일",
+        "controlPresent": true,
+        "source": {
+          "file": "host/public/settings-ui.mjs",
+          "line": 648
+        }
+      },
+      "android": {
+        "controlPresent": false,
+        "reason": "Host/editor setting, not a tablet preference; no bidirectional device control is expected."
+      },
+      "recommendedTest": {
+        "sample": "<existing verified adb path>",
+        "method": "Isolated host settings roundtrip and Mac restart; not an Android control synchronization case.",
+        "status": "not-run-by-inventory"
+      },
+      "notes": [
+        "Changing this can disconnect the verification transport or shared ADB service. Use an isolated host/test path and restore the original setting; do not blindly batch with device UI tests."
+      ]
+    },
+    {
+      "key": "usb.defaultDeviceSerial",
+      "classification": "mac-only",
+      "default": "",
+      "storage": "preferences.json.usb.defaultDeviceSerial",
+      "mac": {
+        "category": "네트워크 · USB",
+        "label": "기본 기기 일련번호",
+        "controlPresent": true,
+        "source": {
+          "file": "host/public/settings-ui.mjs",
+          "line": 658
+        }
+      },
+      "android": {
+        "controlPresent": false,
+        "reason": "Host/editor setting, not a tablet preference; no bidirectional device control is expected."
+      },
+      "recommendedTest": {
+        "sample": "<test emulator serial>",
+        "method": "Isolated host settings roundtrip and Mac restart; not an Android control synchronization case.",
+        "status": "not-run-by-inventory"
+      },
+      "notes": [
+        "Changing this can disconnect the verification transport or shared ADB service. Use an isolated host/test path and restore the original setting; do not blindly batch with device UI tests."
+      ]
+    },
+    {
+      "key": "usb.autoConnect",
+      "classification": "mac-only",
+      "default": true,
+      "storage": "preferences.json.usb.autoConnect",
+      "mac": {
+        "category": "네트워크 · USB",
+        "label": "연결된 태블릿 자동 재연결",
+        "controlPresent": true,
+        "source": {
+          "file": "host/public/settings-ui.mjs",
+          "line": 644
+        }
+      },
+      "android": {
+        "controlPresent": false,
+        "reason": "Host/editor setting, not a tablet preference; no bidirectional device control is expected."
+      },
+      "recommendedTest": {
+        "sample": false,
+        "method": "Isolated host settings roundtrip and Mac restart; not an Android control synchronization case.",
+        "status": "not-run-by-inventory"
+      },
+      "notes": [
+        "Changing this can disconnect the verification transport or shared ADB service. Use an isolated host/test path and restore the original setting; do not blindly batch with device UI tests."
+      ]
+    },
+    {
+      "key": "usb.stopServerOnExit",
+      "classification": "mac-only",
+      "default": false,
+      "storage": "preferences.json.usb.stopServerOnExit",
+      "mac": {
+        "category": "네트워크 · USB",
+        "label": "앱 종료 시 ADB 서버 정지",
+        "controlPresent": true,
+        "source": {
+          "file": "host/public/settings-ui.mjs",
+          "line": 616
+        }
+      },
+      "android": {
+        "controlPresent": false,
+        "reason": "Host/editor setting, not a tablet preference; no bidirectional device control is expected."
+      },
+      "recommendedTest": {
+        "sample": true,
+        "method": "Isolated host settings roundtrip and Mac restart; not an Android control synchronization case.",
+        "status": "not-run-by-inventory"
+      },
+      "notes": [
+        "Actual quit with true stops the shared ADB server. Prefer mock/isolated verification; do not stop the root-controlled emulator session merely to validate a flag."
+      ]
+    },
+    {
+      "key": "usb.companionAutoUpdate",
+      "classification": "mac-only",
+      "default": false,
+      "storage": "preferences.json.usb.companionAutoUpdate",
+      "mac": {
+        "category": "네트워크 · USB",
+        "label": "연결된 태블릿 앱 자동 업데이트",
+        "controlPresent": true,
+        "source": {
+          "file": "host/public/settings-ui.mjs",
+          "line": 630
+        }
+      },
+      "android": {
+        "controlPresent": false,
+        "reason": "Host/editor setting, not a tablet preference; no bidirectional device control is expected."
+      },
+      "recommendedTest": {
+        "sample": true,
+        "method": "Isolated host settings roundtrip and Mac restart; not an Android control synchronization case.",
+        "status": "not-run-by-inventory"
+      },
+      "notes": [
+        "True can install an update on connected devices. Persistence is testable in an isolated host with updater mocked; do not trigger uncontrolled updates."
+      ]
+    },
+    {
+      "key": "backups.enabled",
+      "classification": "mac-only",
+      "default": true,
+      "storage": "preferences.json.backups.enabled",
+      "mac": {
+        "category": "백업 · 복원",
+        "label": "자동 백업 켜기",
+        "controlPresent": true,
+        "source": {
+          "file": "host/public/settings-ui.mjs",
+          "line": 1486
+        }
+      },
+      "android": {
+        "controlPresent": false,
+        "reason": "Host/editor setting, not a tablet preference; no bidirectional device control is expected."
+      },
+      "recommendedTest": {
+        "sample": false,
+        "method": "Isolated host settings roundtrip and Mac restart; not an Android control synchronization case.",
+        "status": "not-run-by-inventory"
+      }
+    },
+    {
+      "key": "backups.beforeUpdate",
+      "classification": "mac-only",
+      "default": true,
+      "storage": "preferences.json.backups.beforeUpdate",
+      "mac": {
+        "category": "백업 · 복원",
+        "label": "앱 업데이트 전에 백업",
+        "controlPresent": true,
+        "source": {
+          "file": "host/public/settings-ui.mjs",
+          "line": 1494
+        }
+      },
+      "android": {
+        "controlPresent": false,
+        "reason": "Host/editor setting, not a tablet preference; no bidirectional device control is expected."
+      },
+      "recommendedTest": {
+        "sample": false,
+        "method": "Isolated host settings roundtrip and Mac restart; not an Android control synchronization case.",
+        "status": "not-run-by-inventory"
+      }
+    },
+    {
+      "key": "backups.intervalHours",
+      "classification": "mac-only",
+      "default": 24,
+      "storage": "preferences.json.backups.intervalHours",
+      "mac": {
+        "category": "백업 · 복원",
+        "label": "백업 간격 (시간)",
+        "controlPresent": true,
+        "source": {
+          "file": "host/public/settings-ui.mjs",
+          "line": 1524
+        }
+      },
+      "android": {
+        "controlPresent": false,
+        "reason": "Host/editor setting, not a tablet preference; no bidirectional device control is expected."
+      },
+      "recommendedTest": {
+        "sample": 12,
+        "method": "Isolated host settings roundtrip and Mac restart; not an Android control synchronization case.",
+        "status": "not-run-by-inventory"
+      }
+    },
+    {
+      "key": "backups.retention",
+      "classification": "mac-only",
+      "default": 14,
+      "storage": "preferences.json.backups.retention",
+      "mac": {
+        "category": "백업 · 복원",
+        "label": "보관할 백업 수",
+        "controlPresent": true,
+        "source": {
+          "file": "host/public/settings-ui.mjs",
+          "line": 1528
+        }
+      },
+      "android": {
+        "controlPresent": false,
+        "reason": "Host/editor setting, not a tablet preference; no bidirectional device control is expected."
+      },
+      "recommendedTest": {
+        "sample": 7,
+        "method": "Isolated host settings roundtrip and Mac restart; not an Android control synchronization case.",
+        "status": "not-run-by-inventory"
+      }
+    },
+    {
+      "key": "backups.schedule",
+      "classification": "mac-only",
+      "default": "interval",
+      "storage": "preferences.json.backups.schedule",
+      "mac": {
+        "category": "백업 · 복원",
+        "label": "백업 일정",
+        "controlPresent": true,
+        "source": {
+          "file": "host/public/settings-ui.mjs",
+          "line": 1498
+        }
+      },
+      "android": {
+        "controlPresent": false,
+        "reason": "Host/editor setting, not a tablet preference; no bidirectional device control is expected."
+      },
+      "recommendedTest": {
+        "sample": "weekly",
+        "method": "Isolated host settings roundtrip and Mac restart; not an Android control synchronization case.",
+        "status": "not-run-by-inventory"
+      }
+    },
+    {
+      "key": "backups.time",
+      "classification": "mac-only",
+      "default": "03:00",
+      "storage": "preferences.json.backups.time",
+      "mac": {
+        "category": "백업 · 복원",
+        "label": "백업 시각",
+        "controlPresent": true,
+        "source": {
+          "file": "host/public/settings-ui.mjs",
+          "line": 1506
+        }
+      },
+      "android": {
+        "controlPresent": false,
+        "reason": "Host/editor setting, not a tablet preference; no bidirectional device control is expected."
+      },
+      "recommendedTest": {
+        "sample": "04:30",
+        "method": "Isolated host settings roundtrip and Mac restart; not an Android control synchronization case.",
+        "status": "not-run-by-inventory"
+      }
+    },
+    {
+      "key": "backups.dayOfWeek",
+      "classification": "mac-only",
+      "default": 0,
+      "storage": "preferences.json.backups.dayOfWeek",
+      "mac": {
+        "category": "백업 · 복원",
+        "label": "요일 (0: 일요일)",
+        "controlPresent": true,
+        "source": {
+          "file": "host/public/settings-ui.mjs",
+          "line": 1511
+        }
+      },
+      "android": {
+        "controlPresent": false,
+        "reason": "Host/editor setting, not a tablet preference; no bidirectional device control is expected."
+      },
+      "recommendedTest": {
+        "sample": 2,
+        "method": "Isolated host settings roundtrip and Mac restart; not an Android control synchronization case.",
+        "status": "not-run-by-inventory"
+      }
+    },
+    {
+      "key": "backups.dayOfMonth",
+      "classification": "mac-only",
+      "default": 1,
+      "storage": "preferences.json.backups.dayOfMonth",
+      "mac": {
+        "category": "백업 · 복원",
+        "label": "매월 날짜",
+        "controlPresent": true,
+        "source": {
+          "file": "host/public/settings-ui.mjs",
+          "line": 1515
+        }
+      },
+      "android": {
+        "controlPresent": false,
+        "reason": "Host/editor setting, not a tablet preference; no bidirectional device control is expected."
+      },
+      "recommendedTest": {
+        "sample": 15,
+        "method": "Isolated host settings roundtrip and Mac restart; not an Android control synchronization case.",
+        "status": "not-run-by-inventory"
+      }
+    },
+    {
+      "key": "logging.minimumLevel",
+      "classification": "mac-only",
+      "default": "info",
+      "storage": "preferences.json.logging.minimumLevel",
+      "mac": {
+        "category": "진단 · 로그",
+        "label": "최소 로그 수준",
+        "controlPresent": true,
+        "source": {
+          "file": "host/public/settings-ui.mjs",
+          "line": 1770
+        }
+      },
+      "android": {
+        "controlPresent": false,
+        "reason": "Host/editor setting, not a tablet preference; no bidirectional device control is expected."
+      },
+      "recommendedTest": {
+        "sample": "warn",
+        "method": "Isolated host settings roundtrip and Mac restart; not an Android control synchronization case.",
+        "status": "not-run-by-inventory"
+      }
+    },
+    {
+      "key": "http.userAgent",
+      "classification": "mac-only",
+      "default": "OpenDeck/0.10.2",
+      "storage": "preferences.json.http.userAgent",
+      "mac": {
+        "category": "네트워크 · USB",
+        "label": "사용자 에이전트",
+        "controlPresent": true,
+        "source": {
+          "file": "host/public/settings-ui.mjs",
+          "line": 742
+        }
+      },
+      "android": {
+        "controlPresent": false,
+        "reason": "Host/editor setting, not a tablet preference; no bidirectional device control is expected."
+      },
+      "recommendedTest": {
+        "sample": "OpenDeck-Settings-Verification",
+        "method": "Isolated host settings roundtrip and Mac restart; not an Android control synchronization case.",
+        "status": "not-run-by-inventory"
+      }
+    },
+    {
+      "key": "developer.enabled",
+      "classification": "mac-only",
+      "default": false,
+      "storage": "preferences.json.developer.enabled",
+      "mac": {
+        "category": "진단 · 로그",
+        "label": "고급 동작 JSON 표시",
+        "controlPresent": true,
+        "source": {
+          "file": "host/public/settings-ui.mjs",
+          "line": 1785
+        }
+      },
+      "android": {
+        "controlPresent": false,
+        "reason": "Host/editor setting, not a tablet preference; no bidirectional device control is expected."
+      },
+      "recommendedTest": {
+        "sample": true,
+        "method": "Isolated host settings roundtrip and Mac restart; not an Android control synchronization case.",
+        "status": "not-run-by-inventory"
+      }
+    },
+    {
+      "key": "security.idleLockMinutes",
+      "classification": "mac-only",
+      "default": 0,
+      "storage": "preferences.json.security.idleLockMinutes",
+      "mac": {
+        "category": "계정 · 보안",
+        "label": "자동 잠금 대기 (분, 0: 끔)",
+        "controlPresent": true,
+        "source": {
+          "file": "host/public/settings-ui.mjs",
+          "line": 791
+        }
+      },
+      "android": {
+        "controlPresent": false,
+        "reason": "Host/editor setting, not a tablet preference; no bidirectional device control is expected."
+      },
+      "recommendedTest": {
+        "sample": 5,
+        "method": "Isolated host settings roundtrip and Mac restart; not an Android control synchronization case.",
+        "status": "not-run-by-inventory"
+      }
+    }
+  ],
+  "macOnlyAuxiliarySettings": [
+    {
+      "key": "account.username",
+      "classification": "mac-only",
+      "default": null,
+      "storage": "account.json.username",
+      "mac": {
+        "category": "계정 · 보안",
+        "label": "사용자명",
+        "controlPresent": true
+      },
+      "android": {
+        "controlPresent": false
+      },
+      "recommendedTest": {
+        "sample": "sync-fixture-admin",
+        "method": "Synthetic isolated account only; requires current password."
+      }
+    },
+    {
+      "key": "account.sessionHours",
+      "classification": "mac-only",
+      "default": 24,
+      "storage": "account.json.sessionHours",
+      "mac": {
+        "category": "계정 · 보안",
+        "label": "로그인 유지 (시간)",
+        "controlPresent": true
+      },
+      "android": {
+        "controlPresent": false
+      },
+      "recommendedTest": {
+        "sample": 12,
+        "method": "Synthetic isolated account only; restart and verify policy."
+      }
+    },
+    {
+      "key": "vault.localBackupsEncrypted",
+      "classification": "mac-only",
+      "default": false,
+      "storage": "vault-keyring.json.localBackupsEncrypted",
+      "mac": {
+        "category": "계정 · 보안 / 백업 · 복원",
+        "label": "로컬 백업 암호화 켜기 / 새 로컬 백업 암호화 끄기",
+        "controlPresent": true
+      },
+      "android": {
+        "controlPresent": false
+      },
+      "recommendedTest": {
+        "sample": true,
+        "method": "Synthetic isolated vault and confirmed recovery key only."
+      }
+    }
+  ],
+  "androidOnlySettingsAndState": [
+    {
+      "key": "transport",
+      "classification": "android-only",
+      "default": "auto",
+      "storage": "SharedPreferences.transport",
+      "android": {
+        "category": "연결 · 기기 이름 → 연결 방식 · 주소",
+        "label": "연결",
+        "choices": [
+          "auto",
+          "wifi",
+          "usb"
+        ],
+        "source": {
+          "file": "android/app/src/main/java/app/opendeck/client/MainActivity.java",
+          "line": 2510
+        }
+      },
+      "mac": {
+        "controlPresent": false
+      },
+      "recommendedTest": {
+        "samples": [
+          "usb",
+          "auto"
+        ],
+        "method": "Emulator reverse transport supports USB semantics; Wi-Fi-only requires separately valid pinned LAN endpoint."
+      }
+    },
+    {
+      "key": "wifiUrls",
+      "classification": "android-only",
+      "default": [],
+      "storage": "SharedPreferences.wifiUrls",
+      "android": {
+        "category": "연결 · 기기 이름 → 연결 방식 · 주소 → 맥 Wi-Fi 주소 관리",
+        "label": "맥 Wi-Fi 주소",
+        "source": {
+          "file": "android/app/src/main/java/app/opendeck/client/MainActivity.java",
+          "line": 2696
+        }
+      },
+      "mac": {
+        "controlPresent": false
+      },
+      "recommendedTest": {
+        "sample": "<existing verified pinned host HTTPS LAN endpoint>",
+        "method": "Only use known endpoint; adding a fabricated address is not connection proof."
+      }
+    },
+    {
+      "key": "page",
+      "classification": "android-only",
+      "kind": "remembered-navigation-state",
+      "default": "",
+      "storage": "SharedPreferences.page",
+      "android": {
+        "category": "덱 페이지 이동",
+        "label": "현재 페이지"
+      },
+      "mac": {
+        "controlPresent": false
+      },
+      "recommendedTest": {
+        "method": "Navigate to a synthetic page with rememberPage=true, restart and compare."
+      }
+    },
+    {
+      "key": "grafana-project-{group}",
+      "classification": "android-only",
+      "kind": "remembered-view-selection",
+      "default": "widget.defaultProject or first project",
+      "storage": "SharedPreferences.grafana-project-{group}",
+      "android": {
+        "category": "모니터 → 프로젝트 선택",
+        "label": "프로젝트"
+      },
+      "mac": {
+        "controlPresent": false
+      },
+      "recommendedTest": {
+        "method": "Use synthetic project options; verify selection only, no private monitoring values in evidence."
+      }
+    }
+  ],
+  "actionsNotSettings": [
+    {
+      "platform": "both",
+      "category": "기기 연결",
+      "actions": [
+        "최초 페어링",
+        "페어링 해제",
+        "지금 다시 연결 / 연결 새로 고침"
+      ],
+      "reason": "Connection/authentication operations, not scalar settings."
+    },
+    {
+      "platform": "both",
+      "category": "화면 보호",
+      "actions": [
+        "지금 미리보기",
+        "화면 보호 지금 시작"
+      ],
+      "reason": "One-shot invocation; screenSaverAt is command state, not a persistent user preference."
+    },
+    {
+      "platform": "android",
+      "category": "프로필 · 시작 페이지",
+      "actions": [
+        "페이지 이동"
+      ],
+      "reason": "Navigation action; remembered page state is listed separately."
+    },
+    {
+      "platform": "android",
+      "category": "알림",
+      "actions": [
+        "Android 알림 권한"
+      ],
+      "reason": "Opens Android system policy, which cannot be controlled by a Mac shared setting."
+    },
+    {
+      "platform": "android",
+      "category": "정보 · 진단 · 초기화",
+      "actions": [
+        "연결 진단 보기",
+        "진단 공유",
+        "최신 버전 · 설치 파일",
+        "설정 초기화"
+      ],
+      "reason": "Inspect/share/open/reset operations, not separate preference fields."
+    },
+    {
+      "platform": "mac",
+      "category": "태블릿별 설정",
+      "actions": [
+        "기기에 적용",
+        "설정 저장",
+        "변경 취소",
+        "연결된 Android 기기 확인",
+        "최신 APK 설치"
+      ],
+      "reason": "Save/discard/query/install commands."
+    },
+    {
+      "platform": "mac",
+      "category": "네트워크 · USB",
+      "actions": [
+        "인증서 정보 확인",
+        "인증서 교체",
+        "로컬 CA로 인증서 재발급",
+        "로컬 인증기관 재생성",
+        "공개 CA 인증서 내보내기",
+        "USB 다시 연결",
+        "ADB 상태 확인",
+        "ADB 서버 시작",
+        "ADB 네트워크 기기 연결",
+        "ADB 서버 다시 시작",
+        "ADB 도구 다운로드·설치",
+        "연결 새로 고침"
+      ],
+      "reason": "Certificate/transport maintenance commands; certificate and authentication material are not shared UI preferences."
+    },
+    {
+      "platform": "mac",
+      "category": "계정 · 보안",
+      "actions": [
+        "계정 생성",
+        "로그인",
+        "로그아웃",
+        "다른 세션 해제",
+        "전체 로그아웃",
+        "계정 정보 저장",
+        "계정 암호 변경",
+        "계정 복구 키 생성/확인/교체/분실",
+        "계정 복구",
+        "편집기 암호 설정/변경/제거",
+        "지금 잠그기",
+        "저장소 생성/잠금해제/잠금/암호변경/복구",
+        "백업 복구 키 생성/확인/교체/분실",
+        "연결 비밀 추가/교체/삭제"
+      ],
+      "reason": "Credential/security lifecycle operations. Scalar username/session/encryption policies are inventoried separately; never publish secret values."
+    },
+    {
+      "platform": "mac",
+      "category": "백업 · 복원",
+      "actions": [
+        "지금 백업",
+        "미리 보기",
+        "복원",
+        "내보내기",
+        "암호화 내보내기",
+        "가져오기",
+        "삭제",
+        "백업 폴더 열기",
+        "기존 로컬 백업 모두 암호화"
+      ],
+      "reason": "Archive operations, not scalar settings; restore scope/password inputs are per-operation choices."
+    },
+    {
+      "platform": "mac",
+      "category": "Macro Deck",
+      "actions": [
+        "원본 파일 선택",
+        "미리보기",
+        "변환 확인 후 가져오기",
+        "내보내기"
+      ],
+      "reason": "One-shot migration operations; selection and passwords are not persistent global settings."
+    },
+    {
+      "platform": "mac",
+      "category": "진단 · 로그",
+      "actions": [
+        "데이터 폴더 열기",
+        "로그 폴더 열기",
+        "로그 새로 고침",
+        "로그 내보내기"
+      ],
+      "reason": "Read/export operations."
+    },
+    {
+      "platform": "mac",
+      "category": "앱 정보 · 업데이트",
+      "actions": [
+        "업데이트 확인",
+        "릴리즈와 설치 파일 열기",
+        "라이선스 원문 열기"
+      ],
+      "reason": "Read/open operations; update preparation may create a safety backup."
+    }
+  ],
+  "uiRangeDifferences": [
+    {
+      "key": "brightness",
+      "hostAllowed": "integer -1..100",
+      "androidSelectable": "integer -1..100",
+      "impact": "Baseline input-range mismatch is addressed in the committed 0.10.2 source. This inventory does not certify native UI execution.",
+      "baselineAndroidSelectable": [
+        -1,
+        10,
+        25,
+        50,
+        75,
+        100
+      ],
+      "status": "remediated-in-committed-source-runtime-tracked-separately",
+      "remediation": "Presets retained and validated custom numeric input added."
+    },
+    {
+      "key": "screenSaverMinutes",
+      "hostAllowed": "integer 0..120",
+      "androidSelectable": "integer 0..120",
+      "impact": "Baseline input-range mismatch is addressed in the committed 0.10.2 source. This inventory does not certify native UI execution.",
+      "baselineAndroidSelectable": [
+        0,
+        1,
+        2,
+        5,
+        10,
+        15,
+        30,
+        60
+      ],
+      "status": "remediated-in-committed-source-runtime-tracked-separately",
+      "remediation": "Presets retained and validated custom numeric input added."
+    },
+    {
+      "key": "textScale",
+      "hostAllowed": "integer 80..160",
+      "androidSelectable": "integer 80..160",
+      "impact": "Baseline input-range mismatch is addressed in the committed 0.10.2 source. This inventory does not certify native UI execution.",
+      "baselineAndroidSelectable": "80..160 in steps of 10",
+      "status": "remediated-in-committed-source-runtime-tracked-separately",
+      "remediation": "Slider step changed to 1, covering every integer allowed by the host schema."
+    },
+    {
+      "key": "vibrationMs",
+      "hostAllowed": "integer 20..200",
+      "androidSelectable": "integer 20..200",
+      "impact": "Baseline input-range mismatch is addressed in the committed 0.10.2 source. This inventory does not certify native UI execution.",
+      "baselineAndroidSelectable": "20..200 in steps of 10",
+      "status": "remediated-in-committed-source-runtime-tracked-separately",
+      "remediation": "Slider step changed to 1, covering every integer allowed by the host schema."
+    },
+    {
+      "key": "dimPercent",
+      "hostAllowed": "integer 5..50",
+      "androidSelectable": "integer 5..50",
+      "impact": "Baseline input-range mismatch is addressed in the committed 0.10.2 source. This inventory does not certify native UI execution.",
+      "baselineAndroidSelectable": "5..50 in steps of 5",
+      "status": "remediated-in-committed-source-runtime-tracked-separately",
+      "remediation": "Slider step changed to 1, covering every integer allowed by the host schema."
+    },
+    {
+      "key": "profileId/startPageId",
+      "hostAllowed": "max 80 characters with no control characters; IDs must exist",
+      "androidAllowed": "generic string validation permits up to 128 characters and only rejects newline",
+      "impact": "UI uses host-provided IDs, so normal selection is valid. Synthetic boundary tests should treat host as authoritative."
+    }
+  ],
+  "excludedInternalState": [
+    "token",
+    "wifiPin",
+    "host (learned endpoint)",
+    "pendingClientSettings",
+    "lastScreenSaverAt",
+    "deliveredNotifications",
+    "pendingOSMutation",
+    "osNotificationPermissionAsked",
+    "settingsRevision",
+    "model",
+    "appVersion",
+    "navigationCatalog"
+  ],
+  "nonPersistentUiControls": [
+    "Mac settings search/category",
+    "Log level filter/search/auto-refresh for currently open diagnostics panel",
+    "Per-operation backup/migration selection and temporary passwords"
+  ],
+  "recommendedExecutionPlan": [
+    "Use only root-controlled emulator; create synthetic profiles/pages, record original settings and restore them after testing.",
+    "For each shared field: Mac control changes to value A while matching Android panel is open; verify displayed value and server state. Android changes to value B while Mac panel is open; verify displayed value and server state.",
+    "Use fixture profiles first; verify coupled profile/startPage changes. Use harmless display/input fields next. Run hidden controls, orientation, idle timers and transport-sensitive fields last.",
+    "After the per-field roundtrip, record complete settings maps; run A: both-app restart and B: offline Android restart followed by Mac return. Read all 30 fields plus name after each scenario and compare; field control visibility alone does not prove persistence.",
+    "While Mac is stopped, edit multiple Android fields and restart Android before Mac returns. Verify pending edits persist, merge with unrelated Mac fields, then clear after acknowledgement.",
+    "Test same-field delayed responses and A-to-B-to-A intent using deterministic fixtures. Server apply order is authoritative; do not infer cross-device wall-clock conflict resolution.",
+    "Do not classify Mac-only settings as a failed tablet sync case. Do not count operating a one-shot action as persistence of a scalar setting.",
+    "Emulator evidence can establish state/controls/rendering; distinguish vibration, physical brightness, Mac login events, external notification delivery and Wi-Fi hardware effects that require a separate check."
+  ],
+  "validation": {
+    "deviceDefaultsKeysMatchInventory": true,
+    "allHostSchemaFieldsListed": true,
+    "containsUserValues": false,
+    "runtimeChecksPerformed": false
+  },
+  "sourceState": "Committed source 452b0cfbaa0f22dc93fd23306c08f501f326ae9c. Mac controls, Android numeric input ranges, and metadata-only offline profile/page name caching are present. Native runtime evidence from ff27316 and the final 452b0cf offline-label retest are recorded separately in the runtime evidence files. This inventory itself is a source audit.",
+  "remediationSummary": {
+    "macSharedControlsAdded": [
+      "language",
+      "allowInsecureWifi"
+    ],
+    "androidNumericRangeControlsExpanded": [
+      "brightness",
+      "screenSaverMinutes",
+      "textScale",
+      "vibrationMs",
+      "dimPercent"
+    ],
+    "status": "Present in committed source; this inventory makes no live emulator claim.",
+    "offlineNavigationLabels": {
+      "status": "Present in committed source; final runtime retest passed in emulator-to-mac-runtime.json.finalRetest. This inventory itself is a source audit.",
+      "cache": "SharedPreferences.navigationCatalog",
+      "allowedRootFields": [
+        "defaultProfileId",
+        "profiles",
+        "pages"
+      ],
+      "allowedProfileFields": [
+        "id",
+        "name",
+        "defaultPageId",
+        "pageIds"
+      ],
+      "allowedPageFields": [
+        "id",
+        "name"
+      ],
+      "reset": "Cleared when pairing/profile session data is reset.",
+      "excluded": "Actions, widgets, URLs, tokens, and live business state are not copied into this label cache."
+    }
+  },
+  "baselineSourceRevision": "de0e76f",
+  "baselineAppVersion": "0.10.1",
+  "androidVersionCode": 18,
+  "sourceRecheckedAt": "2026-10-22T16:12:51.151143+00:00",
+  "scopeNotes": {
+    "shared": "30 device settings plus the independently stored device name. These have Mac and Android controls and belong in the bidirectional/restart matrix.",
+    "macOnly": "34 preferences.json settings and 3 auxiliary account/vault policies are host/editor-local. They must not be counted as missing Android controls or falsely marked as tablet synchronization successes.",
+    "androidOnly": "Transport preference and endpoint list are Android-local connection settings. Remembered page and selected Grafana project are remembered view state, not shared settings.",
+    "operations": "Pairing, permission dialogs, backup/migration, certificate and ADB operations are actions; a button click is not proof that a scalar setting survived restart.",
+    "evidence": "Automated API/SSE, synthetic Mac browser UI, native Mac plus emulator, and physical hardware effects are separate evidence categories."
+  }
+}

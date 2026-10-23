@@ -1,0 +1,36 @@
+{
+  "version": "0.10.2",
+  "sourceCommit": "452b0cfbaa0f22dc93fd23306c08f501f326ae9c",
+  "release": "https://github.com/Yaklede/open-deck/releases/tag/v0.10.2",
+  "latest": true,
+  "tagMatchesSource": true,
+  "macInstalledMatchesPublishedBuild": true,
+  "macBuild": {
+    "version": "0.10.2",
+    "build": 18,
+    "commit": "452b0cfbaa0f22dc93fd23306c08f501f326ae9c"
+  },
+  "assets": [
+    {
+      "name": "Open-Deck-macOS-arm64.zip",
+      "sha256": "099d6c0c31ece0a25e7ede7ef0ff160ecf6eccc9fa72a70ee4c022e94b6c0c97",
+      "bytes": 39607783,
+      "publicDownloadMatchesLocal": true,
+      "githubDigestMatches": true
+    },
+    {
+      "name": "Open-Deck-Android.apk",
+      "sha256": "e311a9dec0d88415ddeea1ce83010118f29a77fe1cb6dc94105a5fbe8dc458c8",
+      "bytes": 6133425,
+      "publicDownloadMatchesLocal": true,
+      "githubDigestMatches": true
+    },
+    {
+      "name": "SHA256SUMS.txt",
+      "sha256": "bcc3c0b4b6567d04628c39676c41cd2d2a2bb717b4398cdc766c5bf97ee01107",
+      "bytes": 180,
+      "publicDownloadMatchesLocal": true,
+      "githubDigestMatches": true
+    }
+  ]
+}

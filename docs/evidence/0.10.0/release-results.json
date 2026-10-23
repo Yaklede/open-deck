@@ -1,0 +1,98 @@
+{
+  "verifiedAt": "2026-10-22T09:53:14.383577+00:00",
+  "release": {
+    "url": "https://github.com/Yaklede/open-deck/releases/tag/v0.10.0",
+    "tag": "v0.10.0",
+    "sourceCommit": "cb83101c9e4c722d391908cc6153ea40d832ec17",
+    "publicMacBuildInfo": {
+      "version": "0.10.0",
+      "build": 16,
+      "commit": "cb83101c9e4c722d391908cc6153ea40d832ec17"
+    },
+    "checksumManifestVerified": true,
+    "assets": [
+      {
+        "name": "Open-Deck-Android.apk",
+        "bytes": 6122763,
+        "sha256": "69ceeb20a4291c85fb017a46976d2a01060051dffd4ce0467b824dc0c75393a4",
+        "url": "https://github.com/Yaklede/open-deck/releases/download/v0.10.0/Open-Deck-Android.apk",
+        "publicDownloadVerified": true,
+        "matchesLocalBuild": true
+      },
+      {
+        "name": "Open-Deck-macOS-arm64.zip",
+        "bytes": 39602785,
+        "sha256": "7900bf7d359704d58c06639301729402a635290443c3ee79e1aa470a8f43f773",
+        "url": "https://github.com/Yaklede/open-deck/releases/download/v0.10.0/Open-Deck-macOS-arm64.zip",
+        "publicDownloadVerified": true,
+        "matchesLocalBuild": true
+      },
+      {
+        "name": "SHA256SUMS.txt",
+        "bytes": 180,
+        "sha256": "eb21261e759e84026e75026be888d3db41d0748db4fabb845bf1b927c58589db",
+        "url": "https://github.com/Yaklede/open-deck/releases/download/v0.10.0/SHA256SUMS.txt",
+        "publicDownloadVerified": true,
+        "matchesLocalBuild": true
+      }
+    ]
+  },
+  "latestRelease": true,
+  "ci": {
+    "url": "https://github.com/Yaklede/open-deck/actions/runs/39757808561",
+    "sourceCommit": "cb83101c9e4c722d391908cc6153ea40d832ec17",
+    "host": "success",
+    "android": "success",
+    "hostTestsPassed": 168
+  },
+  "installation": {
+    "mac": {
+      "version": "0.10.0",
+      "build": 16,
+      "commit": "cb83101c9e4c722d391908cc6153ea40d832ec17"
+    },
+    "macFontFamilies": 247,
+    "autostartPreserved": true,
+    "android": {
+      "model": "Samsung SM-T870",
+      "package": "app.opendeck.client",
+      "versionName": "0.10.0",
+      "versionCode": 16,
+      "updatedInPlace": true,
+      "installedApkMatchesRelease": true,
+      "signerSha256": "15cfc6762d9b063abd2ce5b8cd665757f1e30b03707b921abb4619ff38aeba4a",
+      "settingsScreenOpened": true,
+      "versionVisibleInSettings": true,
+      "encryptedWifiConnected": true
+    },
+    "pages": 3,
+    "widgets": 26,
+    "pageAndWidgetIdsUnchanged": true,
+    "actionsUnchanged": true,
+    "pairingCredentialsPreserved": true,
+    "nativeFileExport": {
+      "savePanelUsed": true,
+      "fileMode": "0600",
+      "zipIntegrityVerified": true,
+      "importerReadSucceeded": true,
+      "pages": 3,
+      "widgets": 26,
+      "productionDeckReimported": false
+    }
+  },
+  "cleanup": {
+    "isolatedVerificationAppRemoved": true,
+    "isolatedVerificationHostStopped": true,
+    "verificationUsbTunnelAbsent": true,
+    "productionUsbTunnelPreserved": true
+  },
+  "checks": {
+    "androidSettingsPassed": 100,
+    "swipePassed": 18,
+    "freshnessPassed": 15,
+    "realTabletNetworkScenariosPassed": 9,
+    "androidReleaseLintErrors": 0,
+    "androidReleaseLintWarnings": 20
+  },
+  "evidencePrivacy": "Production deck, pairing credentials, private export, passwords and recovery keys are excluded."
+}

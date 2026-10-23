@@ -6,7 +6,7 @@ A local macro deck with a **macOS host and a native Android app**. Build your co
 
 ![Native monitor page on Android](assets/screenshots/monitor.png)
 
-> Version 0.3.0 is a working USB + encrypted Wi-Fi alpha for Apple Silicon Macs (macOS 13+) and Android 8+. It implements the core desk-control workflow; it does not claim full feature or plugin compatibility with Macro Deck or Touch Portal.
+> Version 0.12.0 supports USB + encrypted Wi-Fi on Apple Silicon Macs (macOS 13+) and Android 8+. It implements the core desk-control workflow; it does not claim full feature or plugin compatibility with Macro Deck or Touch Portal.
 
 ## Download
 
@@ -27,10 +27,28 @@ The macOS download is an ad-hoc signed developer build, not Apple notarized. You
 | Routines                             | Multiple steps, waits, commands, volume, mute and conditional branches                            |
 | Automations                          | Weekday/time schedules, variable changes and experimental plugin events                           |
 | Live widgets                         | CPU/memory, clock, timer, volume, text, toggle, slider, graph, monthly calendar, todos and images |
+| Mac system monitor                   | Per-core CPU, memory pressure/compression/swap, storage and I/O, network, power/thermal state and top apps |
+| Grafana                              | Native system CPU, collection and DB status cards, CPU/MEM/TPS/QPS, actual GiB, configurable risk colors/tablet alerts and shared project selection |
+| Service health                       | Response time, 5xx error percentage and RPS below the primary CPU readout, with native history charts |
+| Monitoring inbox                     | Project-grouped incidents, acknowledge, 30-minute snooze/resume and persistent recovery history on Mac and Android |
 | Pairing                              | Expiring single-use PIN, per-device scoped tokens, device revocation                              |
 | Backup                               | Deck JSON with image assets; theme presets                                                        |
 | HTTP connectors                      | GET polling, manual webhooks, scalar JSON binding, Keychain Bearer tokens                         |
 | Plugins (experimental)               | Trusted local macOS arm64 plugins: actions, eager variable reads and events; capability reporting |
+
+The **모니터** template prioritizes native Grafana system CPU and DB status cards with a shared project filter. Touch or drag the CPU and DB detail charts to inspect a measured sample’s time and value. Pinch to zoom into a time interval, then drag the zoomed chart to pan through loaded history. A compact Mac card opens live CPU, memory, storage, power and network detail tabs. Editable upper/lower thresholds add risk colors, sustained-condition alerts and recovery notifications. See [monitoring setup and metric definitions](docs/monitoring.md).
+
+## Jimin OS 연결
+
+맥 편집기 **변수 · 연동 → Jimin OS → 연결하고 OS 탭 추가**에서 켤 수 있습니다. 연결 기능이 포함된 Jimin OS 맥 앱이 같은 맥에서 실행되고 로그인되어 있어야 합니다.
+
+- 태블릿 하단 **OS** 탭에서 실제 일정, 할 일 마감, 새 업무 요청과 예약 업무를 확인합니다.
+- 캘린더 날짜를 누르면 해당 날짜의 일정과 할 일을 볼 수 있고, **맥에서 열기**로 원래 Jimin OS 화면에 이어서 접근합니다. 월 제목을 누르면 이번 달과 다음 달을 전환합니다.
+- 업무 요청·예약 업무·일정 추가·AI 비서·할 일·회의 기록을 빠른 실행으로 엽니다. 실제 저장과 업무 전송은 Jimin OS의 기존 확인 흐름을 따릅니다.
+- 일정 시작·할 일 마감·새 업무 요청을 연결된 태블릿에 자동으로 알립니다. 알림 시점은 1~120분 전으로 조절하고 끌 수 있습니다. Android 13 이상에서는 알림 권한이 필요합니다.
+- 두 맥 앱과 태블릿 연결이 유지되는 동안 전달됩니다. 강제 종료한 태블릿 앱이나 오프라인 기기에 전달하는 클라우드 푸시는 제공하지 않습니다.
+
+Jimin OS 서버 로그인 정보는 Open Deck과 태블릿에 전달하지 않습니다. 이 연결은 Jimin OS 전용 확장으로, Macro Deck 플러그인 호환 어댑터와 별개입니다. [연동 프로토콜](docs/jimin-os.md)을 참고하세요.
 
 ## 빠른 시작
 

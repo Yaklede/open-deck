@@ -1,0 +1,182 @@
+{
+  "appVersion": "0.10.2",
+  "verifiedAt": "2026-10-23T08:34:28.664589+00:00",
+  "result": "pass",
+  "scope": {
+    "sharedSetting": "allowInsecureWifi",
+    "physicalAndroidStages": 5,
+    "androidControlAndHostComparisons": 10,
+    "macNativeHarnessReturnValueChecks": 2,
+    "totalValueChecks": 12,
+    "passed": 12,
+    "mismatches": 0
+  },
+  "surfaces": {
+    "android": {
+      "kind": "physical tablet, isolated verification APK",
+      "package": "app.opendeck.verification",
+      "versionName": "0.10.2",
+      "versionCode": 18,
+      "versionEvidence": "physical-installed-artifacts.json"
+    },
+    "mac": {
+      "kind": "isolated native WKWebView harness",
+      "usesShippedSettingsUi": true,
+      "shippingMacApplicationShell": false
+    },
+    "host": {
+      "kind": "synthetic localhost fixture",
+      "externalIntegrations": false,
+      "productionTlsConfigurationChanged": false
+    }
+  },
+  "sequence": [
+    {
+      "step": "01-default-false",
+      "action": "fresh verification-app pairing",
+      "expected": false,
+      "androidNativeControl": false,
+      "syntheticHostValue": false,
+      "settingsRevision": 2,
+      "recordedAt": "2026-10-23T08:20:46.525373+00:00",
+      "result": "pass",
+      "capture": "01-default-false.json"
+    },
+    {
+      "step": "02-mac-ui-true-device-true",
+      "action": "checkbox changed and applied in isolated native WKWebView by root runner",
+      "expected": true,
+      "androidNativeControl": true,
+      "syntheticHostValue": true,
+      "settingsRevision": 3,
+      "recordedAt": "2026-10-23T08:29:30.881631+00:00",
+      "result": "pass",
+      "capture": "02-mac-ui-true-device-true.json"
+    },
+    {
+      "step": "03-app-restart-true",
+      "action": "verification Android app restarted",
+      "expected": true,
+      "androidNativeControl": true,
+      "syntheticHostValue": true,
+      "settingsRevision": 4,
+      "recordedAt": "2026-10-23T08:29:37.751567+00:00",
+      "result": "pass",
+      "capture": "03-app-restart-true.json"
+    },
+    {
+      "step": "04-device-false-host-false",
+      "action": "checkbox changed in physical Android verification app",
+      "expected": false,
+      "androidNativeControl": false,
+      "syntheticHostValue": false,
+      "settingsRevision": 5,
+      "recordedAt": "2026-10-23T08:29:51.595289+00:00",
+      "result": "pass",
+      "capture": "04-device-false-host-false.json"
+    },
+    {
+      "step": "05-both-restart-false",
+      "action": "verification app and synthetic host both restarted",
+      "expected": false,
+      "androidNativeControl": false,
+      "syntheticHostValue": false,
+      "settingsRevision": 6,
+      "recordedAt": "2026-10-23T08:30:49.179604+00:00",
+      "result": "pass",
+      "capture": "05-both-restart-false.json"
+    }
+  ],
+  "macHarnessChecks": [
+    {
+      "step": "04-mac-ui-after-device-false",
+      "surface": "isolated native WKWebView harness using shipped settings-ui",
+      "expected": false,
+      "observed": false,
+      "recordedAt": "2026-10-23T08:30:12.335Z",
+      "result": "pass",
+      "capture": "04-mac-ui-after-device-false.json"
+    },
+    {
+      "step": "05-mac-ui-after-both-restart",
+      "surface": "isolated native WKWebView harness using shipped settings-ui",
+      "expected": false,
+      "observed": false,
+      "recordedAt": "2026-10-23T08:31:08.577Z",
+      "result": "pass",
+      "capture": "05-mac-ui-after-both-restart.json"
+    }
+  ],
+  "procedureAttribution": {
+    "macEnableAction": "The root runner operated the visible WKWebView checkbox and Apply to device button. The host-set API command was not used for this transition.",
+    "tabletDisableAction": "The root runner used the observed native Android switch in the separate verification package.",
+    "captureAudit": "This report independently parses the captured values and their order; direct UI actions were performed by the root runner."
+  },
+  "versionProvenance": {
+    "captureAppVersionField": null,
+    "reason": "The paired-device endpoint response used by the helper did not include appVersion.",
+    "verifiedVersionSource": "The separate installed-artifacts record contains package-manager versionName/versionCode for the verification package.",
+    "artifactRecordSha256": "ca1d8b43f3a23cadb852a49ac981ca6945f15926f8056030a1f53e9df3020a27"
+  },
+  "screenshot": {
+    "file": "physical-security-enabled.png",
+    "source": "02-mac-ui-true-device-true.png",
+    "sha256": "f3179fdfcd7a92c73a2a680ef70192f757ce69eff96ae07e5140081c894b625d",
+    "review": "Visually inspected: synthetic verification settings only, the default device model label, and ordinary Android system/taskbar UI. No personal records, credentials, IDs, or business deck content are visible."
+  },
+  "limitations": [
+    "This verifies shared preference synchronization and persistence on physical Android and an isolated native WKWebView harness; it does not claim execution inside the shipping Mac application shell.",
+    "The connection shown in the captures is USB. Actual unencrypted Wi-Fi traffic or transport behavior was not tested by this sequence.",
+    "No production TLS listener or security preference was changed; the setting changes were confined to the synthetic fixture and separate verification APK."
+  ],
+  "sourceCaptures": [
+    {
+      "filename": "01-default-false.json",
+      "sha256": "f244eeb64ec954bf92112adb3e004d43816e66aa918c544d79867d5039b73063"
+    },
+    {
+      "filename": "02-mac-ui-true-device-true.json",
+      "sha256": "e07fe642263459f881918010dee6e77d64090ab01d79dbf84a5caa00b54139c5"
+    },
+    {
+      "filename": "03-app-restart-true.json",
+      "sha256": "4b5a2603f81c4eaa26833dc6d1087a2a1835846a413ef6b50bd1a8f38cfebd33"
+    },
+    {
+      "filename": "04-device-false-host-false.json",
+      "sha256": "f4fae3cfc299729752e3b10faff08c72368f338bc1c55eb8ca3a4fd89a018fe5"
+    },
+    {
+      "filename": "04-mac-ui-after-device-false.json",
+      "sha256": "d08254c7e8f42946857e1230aac79c4c62beb79fdcb0becc992577e729bcab0c"
+    },
+    {
+      "filename": "05-both-restart-false.json",
+      "sha256": "1164af52eaf6998421d92790a1024074a7c71567a978d1c67256b0b09191c8e9"
+    },
+    {
+      "filename": "05-mac-ui-after-both-restart.json",
+      "sha256": "be2d071f716931a715f8c4b78680e0fcb0c4dddcfebdda13c846f8bf2ce3fc13"
+    },
+    {
+      "filename": "01-default-false.png",
+      "sha256": "fd45dcac2d781a1124ce28cb454c7bc2ef3b7a204b63f06cf036ef81bbbade98"
+    },
+    {
+      "filename": "02-mac-ui-true-device-true.png",
+      "sha256": "f3179fdfcd7a92c73a2a680ef70192f757ce69eff96ae07e5140081c894b625d"
+    },
+    {
+      "filename": "03-app-restart-true.png",
+      "sha256": "f3179fdfcd7a92c73a2a680ef70192f757ce69eff96ae07e5140081c894b625d"
+    },
+    {
+      "filename": "04-device-false-host-false.png",
+      "sha256": "e3fd5a77cd1eda2c1c9ee1c8ef8a4d804800bf756c9abda98dec76cca0b49473"
+    },
+    {
+      "filename": "05-both-restart-false.png",
+      "sha256": "fd45dcac2d781a1124ce28cb454c7bc2ef3b7a204b63f06cf036ef81bbbade98"
+    }
+  ]
+}

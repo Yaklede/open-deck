@@ -1,0 +1,784 @@
+{
+  "version": "0.11.1",
+  "build": 20,
+  "sourceCommit": "d432370b73485e64a40a7b499e4fde65a71a194b",
+  "artifactStage": "released",
+  "deviceModel": "SM-T870",
+  "result": "pass",
+  "graphs": 8,
+  "gestureChecksPassed": 16,
+  "gestureChecksTotal": 16,
+  "scope": {
+    "android": "physical native Android app",
+    "graphs": [
+      "Grafana system CPU",
+      "Grafana mean latency",
+      "Grafana 5xx error rate",
+      "Grafana RPS",
+      "Grafana DB TPS",
+      "Grafana DB QPS",
+      "Grafana DB CPU",
+      "Grafana DB memory"
+    ],
+    "excluded": "Mac-local history graphs without original sample timestamps",
+    "gestures": [
+      "tap",
+      "horizontal drag"
+    ],
+    "rawArtifactsPublished": false
+  },
+  "checks": [
+    {
+      "metric": "system",
+      "gesture": "tap",
+      "actualTimestampAndValueMatch": true,
+      "nearestMeasuredPoint": true,
+      "selectionRetainedAfterRelease": true,
+      "result": "pass",
+      "verificationMethod": "private-native-UI/sample-comparison-and-runner-gesture-record",
+      "evidence": [
+        "system-tap.png",
+        "system-tap.xml",
+        "system-tap-data.json"
+      ],
+      "note": "실제 측정 샘플의 시각·표시값 및 터치 시간에 가장 가까운 지점을 비공개 원본으로 대조했다. 손을 뗀 이후 유지 여부는 완료된 제스처 뒤 캡처와 실행 담당자 기록을 함께 사용했다."
+    },
+    {
+      "metric": "system",
+      "gesture": "drag",
+      "actualTimestampAndValueMatch": true,
+      "nearestMeasuredPoint": true,
+      "selectionRetainedAfterRelease": true,
+      "result": "pass",
+      "verificationMethod": "private-native-UI/sample-comparison-and-runner-gesture-record",
+      "evidence": [
+        "system-drag.png",
+        "system-drag.xml",
+        "system-drag-data.json"
+      ],
+      "note": "실제 측정 샘플의 시각·표시값 및 터치 시간에 가장 가까운 지점을 비공개 원본으로 대조했다. 손을 뗀 이후 유지 여부는 완료된 제스처 뒤 캡처와 실행 담당자 기록을 함께 사용했다."
+    },
+    {
+      "metric": "latency",
+      "gesture": "tap",
+      "actualTimestampAndValueMatch": true,
+      "nearestMeasuredPoint": true,
+      "selectionRetainedAfterRelease": true,
+      "result": "pass",
+      "verificationMethod": "private-native-UI/sample-comparison-and-runner-gesture-record",
+      "evidence": [
+        "latency-tap.png",
+        "latency-tap.xml",
+        "latency-tap-data.json"
+      ],
+      "note": "실제 측정 샘플의 시각·표시값 및 터치 시간에 가장 가까운 지점을 비공개 원본으로 대조했다. 손을 뗀 이후 유지 여부는 완료된 제스처 뒤 캡처와 실행 담당자 기록을 함께 사용했다."
+    },
+    {
+      "metric": "latency",
+      "gesture": "drag",
+      "actualTimestampAndValueMatch": true,
+      "nearestMeasuredPoint": true,
+      "selectionRetainedAfterRelease": true,
+      "result": "pass",
+      "verificationMethod": "private-native-UI/sample-comparison-and-runner-gesture-record",
+      "evidence": [
+        "latency-drag.png",
+        "latency-drag.xml",
+        "latency-drag-data.json"
+      ],
+      "note": "실제 측정 샘플의 시각·표시값 및 터치 시간에 가장 가까운 지점을 비공개 원본으로 대조했다. 손을 뗀 이후 유지 여부는 완료된 제스처 뒤 캡처와 실행 담당자 기록을 함께 사용했다."
+    },
+    {
+      "metric": "errorRate",
+      "gesture": "tap",
+      "actualTimestampAndValueMatch": true,
+      "nearestMeasuredPoint": true,
+      "selectionRetainedAfterRelease": true,
+      "result": "pass",
+      "verificationMethod": "private-native-UI/sample-comparison-and-runner-gesture-record",
+      "evidence": [
+        "errorRate-tap.png",
+        "errorRate-tap.xml",
+        "errorRate-tap-data.json"
+      ],
+      "note": "실제 측정 샘플의 시각·표시값 및 터치 시간에 가장 가까운 지점을 비공개 원본으로 대조했다. 손을 뗀 이후 유지 여부는 완료된 제스처 뒤 캡처와 실행 담당자 기록을 함께 사용했다."
+    },
+    {
+      "metric": "errorRate",
+      "gesture": "drag",
+      "actualTimestampAndValueMatch": true,
+      "nearestMeasuredPoint": true,
+      "selectionRetainedAfterRelease": true,
+      "result": "pass",
+      "verificationMethod": "private-native-UI/sample-comparison-and-runner-gesture-record",
+      "evidence": [
+        "errorRate-drag.png",
+        "errorRate-drag.xml",
+        "errorRate-drag-data.json"
+      ],
+      "note": "실제 측정 샘플의 시각·표시값 및 터치 시간에 가장 가까운 지점을 비공개 원본으로 대조했다. 손을 뗀 이후 유지 여부는 완료된 제스처 뒤 캡처와 실행 담당자 기록을 함께 사용했다."
+    },
+    {
+      "metric": "rps",
+      "gesture": "tap",
+      "actualTimestampAndValueMatch": true,
+      "nearestMeasuredPoint": true,
+      "selectionRetainedAfterRelease": true,
+      "result": "pass",
+      "verificationMethod": "private-native-UI/sample-comparison-and-runner-gesture-record",
+      "evidence": [
+        "rps-tap.png",
+        "rps-tap.xml",
+        "rps-tap-data.json"
+      ],
+      "note": "실제 측정 샘플의 시각·표시값 및 터치 시간에 가장 가까운 지점을 비공개 원본으로 대조했다. 손을 뗀 이후 유지 여부는 완료된 제스처 뒤 캡처와 실행 담당자 기록을 함께 사용했다."
+    },
+    {
+      "metric": "rps",
+      "gesture": "drag",
+      "actualTimestampAndValueMatch": true,
+      "nearestMeasuredPoint": true,
+      "selectionRetainedAfterRelease": true,
+      "result": "pass",
+      "verificationMethod": "private-native-UI/sample-comparison-and-runner-gesture-record",
+      "evidence": [
+        "rps-drag.png",
+        "rps-drag.xml",
+        "rps-drag-data.json"
+      ],
+      "note": "실제 측정 샘플의 시각·표시값 및 터치 시간에 가장 가까운 지점을 비공개 원본으로 대조했다. 손을 뗀 이후 유지 여부는 완료된 제스처 뒤 캡처와 실행 담당자 기록을 함께 사용했다."
+    },
+    {
+      "metric": "db-tps",
+      "gesture": "tap",
+      "actualTimestampAndValueMatch": true,
+      "nearestMeasuredPoint": true,
+      "selectionRetainedAfterRelease": true,
+      "result": "pass",
+      "verificationMethod": "private-native-UI/sample-comparison-and-runner-gesture-record",
+      "evidence": [
+        "db-tps-tap.png",
+        "db-tps-tap.xml",
+        "db-tps-tap-data.json"
+      ],
+      "note": "실제 측정 샘플의 시각·표시값 및 터치 시간에 가장 가까운 지점을 비공개 원본으로 대조했다. 손을 뗀 이후 유지 여부는 완료된 제스처 뒤 캡처와 실행 담당자 기록을 함께 사용했다."
+    },
+    {
+      "metric": "db-tps",
+      "gesture": "drag",
+      "actualTimestampAndValueMatch": true,
+      "nearestMeasuredPoint": true,
+      "selectionRetainedAfterRelease": true,
+      "result": "pass",
+      "verificationMethod": "private-native-UI/sample-comparison-and-runner-gesture-record",
+      "evidence": [
+        "db-tps-drag.png",
+        "db-tps-drag.xml",
+        "db-tps-drag-data.json"
+      ],
+      "note": "실제 측정 샘플의 시각·표시값 및 터치 시간에 가장 가까운 지점을 비공개 원본으로 대조했다. 손을 뗀 이후 유지 여부는 완료된 제스처 뒤 캡처와 실행 담당자 기록을 함께 사용했다."
+    },
+    {
+      "metric": "db-qps",
+      "gesture": "tap",
+      "actualTimestampAndValueMatch": true,
+      "nearestMeasuredPoint": true,
+      "selectionRetainedAfterRelease": true,
+      "result": "pass",
+      "verificationMethod": "private-native-UI/sample-comparison-and-runner-gesture-record",
+      "evidence": [
+        "db-qps-tap.png",
+        "db-qps-tap.xml",
+        "db-qps-tap-data.json"
+      ],
+      "note": "실제 측정 샘플의 시각·표시값 및 터치 시간에 가장 가까운 지점을 비공개 원본으로 대조했다. 손을 뗀 이후 유지 여부는 완료된 제스처 뒤 캡처와 실행 담당자 기록을 함께 사용했다."
+    },
+    {
+      "metric": "db-qps",
+      "gesture": "drag",
+      "actualTimestampAndValueMatch": true,
+      "nearestMeasuredPoint": true,
+      "selectionRetainedAfterRelease": true,
+      "result": "pass",
+      "verificationMethod": "private-native-UI/sample-comparison-and-runner-gesture-record",
+      "evidence": [
+        "db-qps-drag.png",
+        "db-qps-drag.xml",
+        "db-qps-drag-data.json"
+      ],
+      "note": "실제 측정 샘플의 시각·표시값 및 터치 시간에 가장 가까운 지점을 비공개 원본으로 대조했다. 손을 뗀 이후 유지 여부는 완료된 제스처 뒤 캡처와 실행 담당자 기록을 함께 사용했다."
+    },
+    {
+      "metric": "db-cpu",
+      "gesture": "tap",
+      "actualTimestampAndValueMatch": true,
+      "nearestMeasuredPoint": true,
+      "selectionRetainedAfterRelease": true,
+      "result": "pass",
+      "verificationMethod": "private-native-UI/sample-comparison-and-runner-gesture-record",
+      "evidence": [
+        "db-cpu-tap.png",
+        "db-cpu-tap.xml",
+        "db-cpu-tap-data.json"
+      ],
+      "note": "실제 측정 샘플의 시각·표시값 및 터치 시간에 가장 가까운 지점을 비공개 원본으로 대조했다. 손을 뗀 이후 유지 여부는 완료된 제스처 뒤 캡처와 실행 담당자 기록을 함께 사용했다."
+    },
+    {
+      "metric": "db-cpu",
+      "gesture": "drag",
+      "actualTimestampAndValueMatch": true,
+      "nearestMeasuredPoint": true,
+      "selectionRetainedAfterRelease": true,
+      "result": "pass",
+      "verificationMethod": "private-native-UI/sample-comparison-and-runner-gesture-record",
+      "evidence": [
+        "db-cpu-drag.png",
+        "db-cpu-drag.xml",
+        "db-cpu-drag-data.json"
+      ],
+      "note": "실제 측정 샘플의 시각·표시값 및 터치 시간에 가장 가까운 지점을 비공개 원본으로 대조했다. 손을 뗀 이후 유지 여부는 완료된 제스처 뒤 캡처와 실행 담당자 기록을 함께 사용했다."
+    },
+    {
+      "metric": "db-memory",
+      "gesture": "tap",
+      "actualTimestampAndValueMatch": true,
+      "nearestMeasuredPoint": true,
+      "selectionRetainedAfterRelease": true,
+      "result": "pass",
+      "verificationMethod": "private-native-UI/sample-comparison-and-runner-gesture-record",
+      "evidence": [
+        "db-memory-tap.png",
+        "db-memory-tap.xml",
+        "db-memory-tap-data.json"
+      ],
+      "note": "실제 측정 샘플의 시각·표시값 및 터치 시간에 가장 가까운 지점을 비공개 원본으로 대조했다. 손을 뗀 이후 유지 여부는 완료된 제스처 뒤 캡처와 실행 담당자 기록을 함께 사용했다."
+    },
+    {
+      "metric": "db-memory",
+      "gesture": "drag",
+      "actualTimestampAndValueMatch": true,
+      "nearestMeasuredPoint": true,
+      "selectionRetainedAfterRelease": true,
+      "result": "pass",
+      "verificationMethod": "private-native-UI/sample-comparison-and-runner-gesture-record",
+      "evidence": [
+        "db-memory-drag.png",
+        "db-memory-drag.xml",
+        "db-memory-drag-data.json"
+      ],
+      "note": "실제 측정 샘플의 시각·표시값 및 터치 시간에 가장 가까운 지점을 비공개 원본으로 대조했다. 손을 뗀 이후 유지 여부는 완료된 제스처 뒤 캡처와 실행 담당자 기록을 함께 사용했다."
+    }
+  ],
+  "supportingChecks": {
+    "distinctTapAndDragSelection": {
+      "result": "pass",
+      "graphs": 8,
+      "verificationMethod": "private selected-timestamp comparison"
+    },
+    "metricChangeClearsSelection": {
+      "result": "pass",
+      "graphs": 8,
+      "verificationMethod": "execution-runner script assertions after choosing each graph tab",
+      "note": "문서 작성자는 실제 조작을 수행하지 않았으며 실행 담당자의 assertion 결과를 인용한다."
+    },
+    "cpuVisualPriority": {
+      "result": "pass",
+      "verificationMethod": "runner-observation-and-independent-visual-review"
+    },
+    "configurationPreserved": {
+      "deckUnchanged": true,
+      "pairedDevicesUnchanged": true,
+      "deviceSettingsUnchanged": true
+    }
+  },
+  "visualReview": {
+    "independent": {
+      "result": "pass",
+      "files": [
+        "system-tap.png",
+        "system-drag.png",
+        "latency-tap.png",
+        "latency-drag.png",
+        "db-tps-drag.png",
+        "db-qps-drag.png",
+        "db-cpu-drag.png",
+        "db-memory-drag.png"
+      ],
+      "attribution": "Independent review agent; system/latency tap-and-drag plus four DB drag screenshots, as recorded by the execution runner. Visual scope only."
+    },
+    "executionRunner": {
+      "result": "pass",
+      "files": [
+        "system-drag.png",
+        "db-memory-drag.png"
+      ],
+      "attribution": "execution runner directly inspected the physical device screenshots"
+    },
+    "limitations": "시각 검토와 샘플 대조를 구분한다. 모든 16개 화면을 별도 시각 검토했다고 주장하지 않는다."
+  },
+  "originalEvidence": [
+    {
+      "filename": "system-tap.png",
+      "sha256": "cac3486bbe965af2eb5cf07a88f44e1dec98d78f99e8dac73e0e8a887c9a3414",
+      "published": false
+    },
+    {
+      "filename": "system-tap.xml",
+      "sha256": "63aa55a8a81a63a831d071cc90e6f2f0389156cdfceb3a94347ab67b928800a6",
+      "published": false
+    },
+    {
+      "filename": "system-tap-data.json",
+      "sha256": "e7b6d8d6921ab37cf584f8c71874d6e190d4e87778c12f988a37438223484b70",
+      "published": false
+    },
+    {
+      "filename": "system-drag.png",
+      "sha256": "7f0f09493c683142c4bce908dfffcc6e25e3ad6d899b99370e2c431a2b394855",
+      "published": false
+    },
+    {
+      "filename": "system-drag.xml",
+      "sha256": "a0367400dcf01dddfe2e5fba8afe99545e63d472862d9fa3b35c7543ed745eaa",
+      "published": false
+    },
+    {
+      "filename": "system-drag-data.json",
+      "sha256": "bf9cd9e729a0bf4e93ed0ea2bb3256d528cf117d546e9e0c3ba631c0c879009e",
+      "published": false
+    },
+    {
+      "filename": "latency-tap.png",
+      "sha256": "4cf134f8e9bbf02b657acf4e3fa512dee16fb548bf3be0437556e0ce5731ea42",
+      "published": false
+    },
+    {
+      "filename": "latency-tap.xml",
+      "sha256": "f63a6efd26cff427a0818fc3c65e3abbfe5b506871fe3a754f9247242c52d9e0",
+      "published": false
+    },
+    {
+      "filename": "latency-tap-data.json",
+      "sha256": "2b38bc52f70597a7ae93b6a144e63e0afd521831111f8d71580b7a0b9c690131",
+      "published": false
+    },
+    {
+      "filename": "latency-drag.png",
+      "sha256": "b388b65350625589dc051f29f0d6e52001f7ff1b97223ca4fb1d7333124d9cc3",
+      "published": false
+    },
+    {
+      "filename": "latency-drag.xml",
+      "sha256": "c8216c3874553938c81530a6f98485a7b98fc45304e13af687204472a8faa325",
+      "published": false
+    },
+    {
+      "filename": "latency-drag-data.json",
+      "sha256": "3af6911a1c98736fb57215811e659898cd54ed966029db9c91d9e2e1ea13eb64",
+      "published": false
+    },
+    {
+      "filename": "errorRate-tap.png",
+      "sha256": "b2344f9f92e9f7a57a0045f94c8a7a70a4fcaee0914f913ab0db2e7b4a1d5fd3",
+      "published": false
+    },
+    {
+      "filename": "errorRate-tap.xml",
+      "sha256": "6b372f030c38839c378edaaae62636715a7174d9e2b8659023cefc9696ba27fb",
+      "published": false
+    },
+    {
+      "filename": "errorRate-tap-data.json",
+      "sha256": "d039f2e4c71dd69cd49eaa52b5a8f419e1a4391c045772017737c82a2bf4c16e",
+      "published": false
+    },
+    {
+      "filename": "errorRate-drag.png",
+      "sha256": "8493a1fcf72c03f57561412b4a612d7ee977a8821c1afbfc30bc12c89a111dd9",
+      "published": false
+    },
+    {
+      "filename": "errorRate-drag.xml",
+      "sha256": "6dfa6e49c56571fff8535c83c4e5c1f676d80a6fd0b188852a1472464e083db6",
+      "published": false
+    },
+    {
+      "filename": "errorRate-drag-data.json",
+      "sha256": "3af6911a1c98736fb57215811e659898cd54ed966029db9c91d9e2e1ea13eb64",
+      "published": false
+    },
+    {
+      "filename": "rps-tap.png",
+      "sha256": "0b249a3533715d15b972183a35dd2dc9737c378243a9885d60ed69c6336ba1cd",
+      "published": false
+    },
+    {
+      "filename": "rps-tap.xml",
+      "sha256": "e69eea18554150523216d62ab1b64390219a272dee4fc03606c9aa457a957128",
+      "published": false
+    },
+    {
+      "filename": "rps-tap-data.json",
+      "sha256": "bfb25e09708061d4af0f7abc891200182dad17d944241842c19fb78dfc36856c",
+      "published": false
+    },
+    {
+      "filename": "rps-drag.png",
+      "sha256": "5271bf24513d86f7ab89d72cacf440bea1f5b0b05fe8c4cda0a2a69301a68fe8",
+      "published": false
+    },
+    {
+      "filename": "rps-drag.xml",
+      "sha256": "f0a12d833bdec21c601cbc0af71457c760449b34cdcb34fcf74f4d42b4a53d84",
+      "published": false
+    },
+    {
+      "filename": "rps-drag-data.json",
+      "sha256": "fbcf7892654ca5e9f2dae7eec4d4488debde05e7de74802f7efc72c9d386ba7b",
+      "published": false
+    },
+    {
+      "filename": "db-tps-tap.png",
+      "sha256": "1d47796a59f26eab82aa51f7eda6245bf19c1b7873d2d40fa5ae3ba12248083b",
+      "published": false
+    },
+    {
+      "filename": "db-tps-tap.xml",
+      "sha256": "0c78dc2de619496c71544fc684f45bec1a732cef9a0dc9e8df3053882ed2ab4d",
+      "published": false
+    },
+    {
+      "filename": "db-tps-tap-data.json",
+      "sha256": "87b509a0dbd93cb9177c66dfddc84c51e48b524c771187e999471be12bb0c595",
+      "published": false
+    },
+    {
+      "filename": "db-tps-drag.png",
+      "sha256": "50652391b9632da292963b44e555a89f5e3fd0ccd0f70f9696cb49d9371db7b7",
+      "published": false
+    },
+    {
+      "filename": "db-tps-drag.xml",
+      "sha256": "6d53143fe73d6d3c941610eacece15189eecba9855e0dc8a91d3efa1a900b374",
+      "published": false
+    },
+    {
+      "filename": "db-tps-drag-data.json",
+      "sha256": "7db856d8c3dec6e37719c36d67870575b482fcc6707528464d3d9eaa8524d90e",
+      "published": false
+    },
+    {
+      "filename": "db-qps-tap.png",
+      "sha256": "b9a08e39f273155f204743dd07963251846b20ae9ad20ba5b1c435e64569b806",
+      "published": false
+    },
+    {
+      "filename": "db-qps-tap.xml",
+      "sha256": "09c89cfd72aa06a400b8fabb09b7d8c723d2b45af56157e57a092c5a797a9094",
+      "published": false
+    },
+    {
+      "filename": "db-qps-tap-data.json",
+      "sha256": "c37b9c56d03943afa3ee4bbae9b98d21daa8c22f9402f10bb562580ae86225a1",
+      "published": false
+    },
+    {
+      "filename": "db-qps-drag.png",
+      "sha256": "458865ac9d6eefd5be68c30d8c52597b3752e8dc8f12744faf437b9c5853ec9d",
+      "published": false
+    },
+    {
+      "filename": "db-qps-drag.xml",
+      "sha256": "c0c174b59757fad6e7b419e795521ceed14eb83c7a55ab824e1255d9ea1a700e",
+      "published": false
+    },
+    {
+      "filename": "db-qps-drag-data.json",
+      "sha256": "cf82220127ff52422a6cca6b458d8cf691e341c72217094c70980a83a8ef5165",
+      "published": false
+    },
+    {
+      "filename": "db-cpu-tap.png",
+      "sha256": "62215cc775e2e590938a6f239d0b02cbad22bcb0201338465fc823ca3e850508",
+      "published": false
+    },
+    {
+      "filename": "db-cpu-tap.xml",
+      "sha256": "9fb74543921b3f0bdfa847716d3050ee38d1c187f1aa3414e0d8eb99f9b16ab0",
+      "published": false
+    },
+    {
+      "filename": "db-cpu-tap-data.json",
+      "sha256": "c37b9c56d03943afa3ee4bbae9b98d21daa8c22f9402f10bb562580ae86225a1",
+      "published": false
+    },
+    {
+      "filename": "db-cpu-drag.png",
+      "sha256": "4a6fcd0b97694b5d3c44619418e7ba54e25ab9e298504ef845a7a7d2f2c06912",
+      "published": false
+    },
+    {
+      "filename": "db-cpu-drag.xml",
+      "sha256": "3e13b696626c25ddd704cf0f33fcb768471d043b83412019bd7f255c8be8bcf4",
+      "published": false
+    },
+    {
+      "filename": "db-cpu-drag-data.json",
+      "sha256": "cf82220127ff52422a6cca6b458d8cf691e341c72217094c70980a83a8ef5165",
+      "published": false
+    },
+    {
+      "filename": "db-memory-tap.png",
+      "sha256": "43b7ea22eab94ece7ff6bed0b6b2b0d25fa99b2c8e95ea282598f9d696f99654",
+      "published": false
+    },
+    {
+      "filename": "db-memory-tap.xml",
+      "sha256": "e2bfb56e31977811929a532871386667d735feae33bb1c240f8e57860f0537a8",
+      "published": false
+    },
+    {
+      "filename": "db-memory-tap-data.json",
+      "sha256": "d3e8a7c4c512527874b8f0f7ba3f8fbab2068457698901662f865779af3a873f",
+      "published": false
+    },
+    {
+      "filename": "db-memory-drag.png",
+      "sha256": "323f2bc5e55ee2820678a9ab7c48c8f0ff94dd00a4e7b35e7e843255fcc7bf32",
+      "published": false
+    },
+    {
+      "filename": "db-memory-drag.xml",
+      "sha256": "4f5743cb5c0b4b2d0fd8e210771eb26c0ac076b4d00a8107e4d0e16ba5ea8e73",
+      "published": false
+    },
+    {
+      "filename": "db-memory-drag-data.json",
+      "sha256": "0d58133aca83116b4fc3479f6e18f222eae8a4eab252bdc09da8fad3df45a8a2",
+      "published": false
+    },
+    {
+      "filename": "public-gesture-results.json",
+      "sha256": "66a8d663786ee49b50cc339f896b6eba23dc74e426073bca2ce93b7de7528259",
+      "published": false
+    },
+    {
+      "filename": "configuration-preserved.json",
+      "sha256": "9b5bda2d57f6e52bb172ffca9e272ceae6851218c5986015e31ad0b4f98e66ed",
+      "published": false
+    },
+    {
+      "filename": "installed-apk-verification.json",
+      "sha256": "3b339498e684563ba1494b9a6cef04e6a002238abf1abbe36b4f0a06ef205a6a",
+      "published": false
+    },
+    {
+      "filename": "held-down.xml",
+      "sha256": "5273490ccbe749fea8145f51135614ae490d31991ea1a0e1da89aaf74c7cbe54",
+      "published": false
+    },
+    {
+      "filename": "held-move.xml",
+      "sha256": "cfec951414d1fb524d7bf8d8a64287aab973a0a23814f43410d67489ccb90c73",
+      "published": false
+    },
+    {
+      "filename": "cancelled.xml",
+      "sha256": "c289852e79daa806bb562a0d1a7cdccd52a90e393243102572050d181efa62b4",
+      "published": false
+    },
+    {
+      "filename": "held-pointer-results.json",
+      "sha256": "4a9d656c287d8156cbed7acca418e16b6ef5685ad43787efe47d57f131398ce3",
+      "published": false
+    },
+    {
+      "filename": "private-drag-gfxinfo.txt",
+      "sha256": "c4f957ad2458cc17da4d65a3da67c03f4fd49ff66241e44a2927dfb08b78f250",
+      "published": false
+    },
+    {
+      "filename": "refresh-before.png",
+      "sha256": "07b6760c488cc7ceb043a8bb6844d922e49ac9791a4b7dbfdd5bd2695a4de108",
+      "published": false
+    },
+    {
+      "filename": "refresh-before.xml",
+      "sha256": "d003c99541575a455ab22fa2a361da1dcb05d51ecaaa69a9133af5298e83215f",
+      "published": false
+    },
+    {
+      "filename": "refresh-before-data.json",
+      "sha256": "bba5af2c7c03095864102f4e48b87b845070a07c51c49e93f713cb2776a13b62",
+      "published": false
+    },
+    {
+      "filename": "refresh-after.png",
+      "sha256": "12de01ad7e42a6bce72b2f000e35efa9c5d206700cab3b69a7a19577e6eec628",
+      "published": false
+    },
+    {
+      "filename": "refresh-after.xml",
+      "sha256": "b6875d3baafca2f42099e7477048a076c97eaf905e14e42dea6838da284b1d09",
+      "published": false
+    },
+    {
+      "filename": "refresh-after-data.json",
+      "sha256": "b7bac28d3a5603c05e7efa5319b5026a3b51e4efb169d48eac5201f58e485d5d",
+      "published": false
+    },
+    {
+      "filename": "refresh-results.json",
+      "sha256": "c4e267dab23d15ab4c1198570c94da468f4615124552577500f65f1c55e27feb",
+      "published": false
+    }
+  ],
+  "buildAndTestReport": {
+    "verificationMethod": "execution-runner-report",
+    "host": {
+      "passed": 247,
+      "failed": 0
+    },
+    "java": {
+      "chartScrubber": 38,
+      "timeRange": 14,
+      "monitorPresentation": 38,
+      "passed": 90,
+      "failed": 0
+    },
+    "localization": {
+      "languages": 19,
+      "keys": 1558,
+      "errors": 0
+    },
+    "macReleaseBuild": "pass",
+    "androidReleaseBuild": "pass",
+    "androidLint": {
+      "errors": 0,
+      "warnings": 22
+    },
+    "existingAndroidSignerPreserved": true
+  },
+  "installedCandidate": {
+    "version": "0.11.1",
+    "build": 20,
+    "installedApkMatchesDistribution": true,
+    "distributionApkSha256": "5056e2459d0c0b56c42acc4cb6d2a42124699503455b0e7427d7f5ee9079bc4b",
+    "verificationMethod": "recorded installed-package comparison plus read-only distribution hash verification",
+    "publishedReleaseIdentity": "pending-final-release-check"
+  },
+  "additionalTouchLifecycleChecks": {
+    "status": "pass",
+    "checksPassed": 4,
+    "checksTotal": 4,
+    "checks": [
+      {
+        "check": "held-down-before-up",
+        "result": "pass",
+        "verificationMethod": "native XML selection plus execution-runner DOWN injection record",
+        "evidence": [
+          "held-down.xml",
+          "held-pointer-results.json"
+        ],
+        "note": "UP 없이 선택 시각·값 설명이 나타남."
+      },
+      {
+        "check": "held-move-before-up",
+        "result": "pass",
+        "verificationMethod": "private native XML comparison plus execution-runner MOVE injection record",
+        "evidence": [
+          "held-down.xml",
+          "held-move.xml",
+          "held-pointer-results.json"
+        ],
+        "note": "손을 놓기 전 MOVE 단계에서 선택 설명이 DOWN 단계와 달라짐."
+      },
+      {
+        "check": "cancel-clears-selection",
+        "result": "pass",
+        "verificationMethod": "native XML absence check plus execution-runner CANCEL observation",
+        "evidence": [
+          "cancelled.xml",
+          "held-pointer-results.json"
+        ],
+        "note": "CANCEL 후 선택 시각·값 접근성 설명이 사라짐. 기본 최고점 표시 복귀는 실행 담당자 관찰 기록."
+      },
+      {
+        "check": "selection-survives-real-data-refresh",
+        "result": "pass",
+        "verificationMethod": "private original-series and native XML comparison",
+        "evidence": [
+          "refresh-before.xml",
+          "refresh-after.xml",
+          "refresh-before-data.json",
+          "refresh-after-data.json",
+          "refresh-results.json"
+        ],
+        "note": "실제 시스템 시계열 배열이 갱신된 것을 확인하고 갱신 전후 선택 시각이 같음을 대조. 실제 값과 시각은 비공개."
+      }
+    ]
+  },
+  "privacy": {
+    "realMetricValuesPublished": false,
+    "actualSampleTimesPublished": false,
+    "projectsHostsPublished": false,
+    "serialsTokensPublished": false,
+    "rawScreenshotsXmlOrPointsPublished": false
+  },
+  "limitations": [
+    "검증 범위는 원본 시각을 가진 Grafana 그래프 8개이며 내 Mac의 별도 로컬 이력 그래프를 포함하지 않는다.",
+    "실제 지표·시각·프로젝트·호스트·기기 일련번호·토큰과 원본 PNG/XML/샘플 배열은 공개하지 않는다.",
+    "탭 변경 후 선택 해제 assertion과 실제 제스처 조작은 실행 담당자 기록이며, 문서 작성 단계에서는 저장된 원본 비교만 수행했다."
+  ],
+  "releaseChecks": {
+    "status": "pass",
+    "url": "https://github.com/Yaklede/open-deck/releases/tag/v0.11.1",
+    "tag": "v0.11.1",
+    "sourceCommit": "d432370b73485e64a40a7b499e4fde65a71a194b",
+    "latestRelease": true,
+    "version": "0.11.1",
+    "build": 20,
+    "assets": [
+      {
+        "name": "Open-Deck-Android.apk",
+        "sha256": "5056e2459d0c0b56c42acc4cb6d2a42124699503455b0e7427d7f5ee9079bc4b",
+        "remoteDigestMatches": true,
+        "downloadedDigestMatches": true
+      },
+      {
+        "name": "Open-Deck-macOS-arm64.zip",
+        "sha256": "4ac0fde0735ee9a27cfde13b0c8f230e94b8224f774b7012db5959a954d1da48",
+        "remoteDigestMatches": true,
+        "downloadedDigestMatches": true
+      },
+      {
+        "name": "SHA256SUMS.txt",
+        "sha256": "e16ffa5d3d68da46a9b7db27892467cb1a7702f3e536034c15b0154886dc1743",
+        "remoteDigestMatches": true,
+        "downloadedDigestMatches": true
+      }
+    ],
+    "androidSignerSha256": "15cfc6762d9b063abd2ce5b8cd665757f1e30b03707b921abb4619ff38aeba4a",
+    "installedApkMatchesDistribution": true,
+    "installedMacBuildMatchesDistribution": true
+  },
+  "performanceObservation": {
+    "scope": "One system-CPU detail view; eight horizontal swipes of 900 ms each after resetting gfxinfo",
+    "renderedFrames": 274,
+    "uiFrameDurationMs": {
+      "p50": 5,
+      "p95": 10,
+      "p99": 11
+    },
+    "verificationMethod": "private gfxinfo report with runner-provided test conditions",
+    "evidence": [
+      "private-drag-gfxinfo.txt"
+    ],
+    "limitations": [
+      "단일 실기기의 이 측정 구간에 한정된 참고 관찰이다.",
+      "이전 버전과의 비교, 개선율, 전체 앱 또는 모든 그래프 성능 보장을 주장하지 않는다."
+    ],
+    "rawLogPublished": false
+  },
+  "finalArtifactVerification": "pass"
+}

@@ -1,0 +1,20 @@
+{
+  "version": "0.10.2",
+  "deviceModel": "Samsung SM-T870",
+  "productionAndroid": {
+    "versionName": "0.10.2",
+    "versionCode": 18
+  },
+  "isolatedVerificationAndroid": {
+    "versionName": "0.10.2",
+    "versionCode": 18
+  },
+  "installedApkSha256": "e311a9dec0d88415ddeea1ce83010118f29a77fe1cb6dc94105a5fbe8dc458c8",
+  "matchesLocalApk": true,
+  "matchesPreviouslyDownloadedPublicRelease": true,
+  "releaseEvidence": "release-verification.json",
+  "mac": {
+    "version": "0.10.2",
+    "build": "18"
+  }
+}

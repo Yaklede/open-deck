@@ -22,7 +22,7 @@ The new host protocol is intentionally small:
 
 Daily time automations use the host's local clock. The engine uses per-button in-flight exclusion and a short debounce. A process timeout kills the whole process group; requests are not accumulated for later execution. Chrome commands choose the ordinary user browser process, excluding browsers started with an explicit automation user-data directory.
 
-The Android app requests only the Internet permission. It does not require accessibility, notification, camera, storage, or overlay access. Wake lock behavior uses a foreground window flag, and token backup is disabled.
+The Android app uses Internet access and, on Android 13+, asks for notification permission for the optional Jimin OS integration. It does not require accessibility, camera, storage, or overlay access. Wake lock behavior uses a foreground window flag, and token backup is disabled.
 
 Verification: Node integration tests cover pairing, permissions, invalid origins/configuration, revocation, token persistence across host instances, dropped duplicate taps, countdown state, and truncated Chrome session records. Android is built with release lint. Physical Samsung SM-T870 testing covers pairing, all configured app/site actions, routine completion, reconnect, live state, timer and volume controls.
 

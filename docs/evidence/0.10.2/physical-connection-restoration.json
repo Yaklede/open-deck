@@ -1,0 +1,16 @@
+{
+  "deviceModel": "Samsung SM-T870",
+  "transportBeforeTest": "wifi-only",
+  "transportAfterTest": "auto",
+  "reason": "Wi-Fi-only prevented USB fallback; auto reconnected the existing pairing",
+  "nativeUiAfterRestore": "auto",
+  "nativeUiAfterAppRestart": "auto",
+  "productionPlainHttpWifiAllowed": false,
+  "verificationAppUninstalled": true,
+  "verificationTunnelRemoved": true,
+  "syntheticHostStopped": true,
+  "productionReconnectedAfterFinalRestart": true,
+  "verificationAppAbsenceVerifiedForCurrentAndroidUser": true,
+  "verificationTunnelAbsenceVerified": true,
+  "syntheticHostStoppedVerified": true
+}

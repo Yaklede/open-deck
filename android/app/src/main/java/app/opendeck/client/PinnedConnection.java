@@ -41,15 +41,25 @@ final class PinnedConnection {
   }
 
   static HttpURLConnection open(String address, String pin) throws Exception {
+    return open(address, pin, false);
+  }
+
+  static HttpURLConnection open(String address, String pin, boolean allowInsecureWifi)
+      throws Exception {
     URL url = new URL(address);
     if ("http".equals(url.getProtocol())) {
-      if (!"127.0.0.1".equals(url.getHost()) || url.getPort() != 8840)
-        throw new IOException("USB 로컬 주소만 HTTP로 연결할 수 있습니다.");
-      return (HttpURLConnection) url.openConnection();
+      String origin = "http://" + url.getHost() + ":" + url.getPort();
+      boolean usb = "127.0.0.1".equals(url.getHost()) && url.getPort() == BuildConfig.USB_PORT;
+      if (!usb && !ClientSettingsPolicy.validWifiUrl(origin, allowInsecureWifi))
+        throw new IOException("HTTP Wi-Fi는 사설 네트워크에서 암호화하지 않는 연결을 직접 허용한 경우에만 사용할 수 있습니다.");
+      HttpURLConnection connection = (HttpURLConnection) url.openConnection();
+      connection.setInstanceFollowRedirects(false);
+      return connection;
     }
     if (!"https".equals(url.getProtocol()) || !pin.matches("[0-9a-f]{64}"))
       throw new IOException("USB로 맥의 Wi-Fi 인증서를 먼저 등록하세요.");
     HttpsURLConnection c = (HttpsURLConnection) url.openConnection();
+    c.setInstanceFollowRedirects(false);
     c.setSSLSocketFactory(factory(pin));
     // Identity is the USB-provisioned certificate, independent of changing DHCP hostnames/IPs.
     c.setHostnameVerifier(

@@ -1,0 +1,14 @@
+{
+  "checkedAt": "2026-10-22T09:24:23.262Z",
+  "environment": "isolated headless Chrome, synthetic localhost fixture",
+  "encryptedProfilePreview": true,
+  "confirmedProfileImport": true,
+  "existingProfilesPreserved": true,
+  "existingPagesPreserved": true,
+  "encryptedExportDownload": true,
+  "encryptedExportReimport": true,
+  "pageTitlesPreserved": true,
+  "recoveryEncryptedBackupImport": true,
+  "originalSourceRevision": "7089154cde506c0884bb39c4712863e0fef83d84",
+  "consoleErrors": 0
+}
