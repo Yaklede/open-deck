@@ -917,6 +917,7 @@ public class MainActivity extends Activity {
 
   private class GrafanaHistoryView extends MacHistoryView {
     final JSONObject widget;
+    final DashPathEffect peakDash = new DashPathEffect(new float[] {dp(3), dp(4)}, 0);
     String chartMetric;
 
     GrafanaHistoryView(JSONObject widget) {
@@ -1008,7 +1009,7 @@ public class MainActivity extends Activity {
         p.setAlpha(95);
         p.setStyle(Paint.Style.STROKE);
         p.setStrokeWidth(dp(1));
-        p.setPathEffect(new DashPathEffect(new float[] {dp(3), dp(4)}, 0));
+        p.setPathEffect(peakDash);
         c.drawLine(peakX, plot.top, peakX, plot.bottom, p);
         p.setPathEffect(null);
         p.setAlpha(255);
