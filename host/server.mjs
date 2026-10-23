@@ -71,6 +71,9 @@ export const deviceConfig = (c, d = null) => ({
             auth: undefined,
             cpuPanelId: undefined,
             tpsPanelId: undefined,
+            latencyPanelId: undefined,
+            errorRatePanelId: undefined,
+            rpsPanelId: undefined,
           }
         : {}),
       ...(w.provider === "jimin-os" &&
@@ -143,11 +146,73 @@ export function createHost({
       ...(d.appVersion ? { appVersion: d.appVersion } : {}),
       online: [...streams].some((s) => s.openDeckDeviceId === d.id),
     }));
+  const monitorScope = (d) =>
+    d
+      ? effectivePages(config, d).flatMap((p) => p.widgets.map((w) => w.id))
+      : null;
+  const scopedState = (state, d) => {
+    if (!d) return state;
+    const allowed = new Set(monitorScope(d));
+    const inbox = engine.monitorAlerts.inbox(config, allowed);
+    const records = new Map(inbox.incidents.map((r) => [r.id, r]));
+    const notification = (n) => {
+      if (n.kind !== "monitor") return n;
+      const record = records.get(n.incidentId);
+      if (!record) return null;
+      const conditions = (n.conditions || record.conditions).filter((c) =>
+        allowed.has(c.widgetId),
+      );
+      if (!conditions.length) return null;
+      const severity =
+        n.severity === "normal"
+          ? "normal"
+          : conditions.some((c) => c.level === "critical")
+            ? "critical"
+            : "warning";
+      return {
+        ...n,
+        conditions,
+        severity,
+        widgetId: conditions[0].widgetId,
+        pageId: record.pageIds[0],
+        title:
+          record.title +
+          " · " +
+          (severity === "normal"
+            ? "정상 복구"
+            : severity === "critical"
+              ? "위험"
+              : "주의"),
+        body:
+          n.synthetic || severity === "normal"
+            ? n.body
+            : conditions.map((c) => `${c.label} ${c.value ?? "—"}`).join(" · "),
+      };
+    };
+    return {
+      ...state,
+      monitoring: {
+        ...state.monitoring,
+        inbox,
+        widgets: Object.fromEntries(
+          Object.entries(state.monitoring?.widgets || {}).filter(([id]) =>
+            allowed.has(id),
+          ),
+        ),
+        notifications: (state.monitoring?.notifications || [])
+          .map(notification)
+          .filter(Boolean),
+      },
+      notifications: (state.notifications || [])
+        .map(notification)
+        .filter(Boolean),
+    };
+  };
   const snapshot = (d = null, admin = false) => ({
     config: deviceConfig(config, d),
     device: safeDevice(d),
     ...(admin ? { devices: adminDevices() } : {}),
-    state: engine.state(),
+    state: scopedState(engine.state(), d),
     network: network(),
   });
   const focusSessions = new Map();
@@ -181,7 +246,11 @@ export function createHost({
         continue;
       }
       const revision = configRevision + ":" + (d?.settingsRevision || 0);
-      const data = { ...common, device: safeDevice(d) };
+      const data = {
+        ...common,
+        state: scopedState(common.state, d),
+        device: safeDevice(d),
+      };
       if (!s.openDeckDeviceId && s.openDeckDevices !== deviceStamp) {
         data.devices = deviceList;
         s.openDeckDevices = deviceStamp;
@@ -193,7 +262,11 @@ export function createHost({
       s.write(`event: snapshot\ndata: ${JSON.stringify(data)}\n\n`);
     }
   };
-  const engine = new Engine(config, broadcast, runner);
+  const engine = new Engine(config, broadcast, runner, {
+    dir,
+    onError: (operation) =>
+      diagnostics.log("error", `monitor.history.${operation}_failed`),
+  });
   const connectors = new Connectors(
     () => config,
     (k, v) => engine.setVariable(k, v),
@@ -476,6 +549,9 @@ export function createHost({
             "/api/device/update",
           ].includes(u.pathname) &&
           !/^\/api\/assets\/[a-f0-9]{64}$/.test(u.pathname) &&
+          !/^\/api\/monitor\/incidents\/incident-[a-f0-9]{32}$/.test(
+            u.pathname,
+          ) &&
           !/^\/api\/extensions\/jimin-os\/mutations(?:\/[0-9a-f-]{36})?$/i.test(
             u.pathname,
           )
@@ -1085,16 +1161,36 @@ export function createHost({
           return send(res, 200, { ok: true });
         }
         if (req.method === "POST" && u.pathname === "/api/admin/monitor-test") {
-          const b = await body(req),
-            w = engine.widget(b.widgetId),
+          const b = await body(req);
+          if (
+            !b ||
+            typeof b !== "object" ||
+            Array.isArray(b) ||
+            Object.keys(b).some(
+              (k) => !["widgetId", "operation"].includes(k),
+            ) ||
+            typeof b.widgetId !== "string" ||
+            (b.operation !== undefined &&
+              !["trigger", "recover"].includes(b.operation))
+          )
+            throw Error("알림 테스트 작업을 확인하세요.");
+          const w = engine.widget(b.widgetId),
             page = config.pages.find((p) =>
               p.widgets.some((w) => w.id === b.widgetId),
             );
           if (!w || !["grafana", "system"].includes(w.type))
             throw Error("모니터 위젯을 선택하세요.");
-          engine.monitorAlerts.testNotification(page, w);
+          const incident = engine.monitorAlerts.testNotification(
+            page,
+            w,
+            b.operation || "trigger",
+          );
           broadcast();
-          return send(res, 200, { ok: true });
+          return send(res, 200, {
+            ok: true,
+            incident,
+            inbox: engine.monitorAlerts.inbox(config),
+          });
         }
         if (req.method === "POST" && u.pathname === "/api/admin/refresh") {
           const b = await body(req);
@@ -1111,6 +1207,38 @@ export function createHost({
           });
           res.end(asset.bytes);
           return;
+        }
+        if (
+          req.method === "POST" &&
+          /^\/api\/monitor\/incidents\/incident-[a-f0-9]{32}$/.test(u.pathname)
+        ) {
+          const input = await body(req),
+            paired = device(req);
+          // Body streaming can outlive a pairing/session revocation. Never turn a lost device into admin scope.
+          if (!admin && !paired)
+            return send(res, 401, { error: "태블릿 연결이 필요합니다." });
+          if (
+            admin &&
+            !account.authenticate(sessionToken(req), { touch: false })
+          )
+            return send(res, 401, {
+              error: "관리자 로그인이 필요합니다.",
+              code: "ACCOUNT_LOGIN_REQUIRED",
+            });
+          if (admin && editorLock.status().locked)
+            return send(res, 423, {
+              error: "편집기가 잠겨 있습니다. 비밀번호로 잠금을 해제하세요.",
+            });
+          engine.state();
+          const result = engine.monitorAlerts.act(
+            config,
+            u.pathname.split("/").pop(),
+            input,
+            admin ? null : monitorScope(paired),
+          );
+          diagnostics.log("info", "monitor.incident.action");
+          broadcast();
+          return send(res, 200, result);
         }
         if (req.method === "GET" && u.pathname === "/api/snapshot")
           return send(res, 200, snapshot(device(req), admin));
@@ -1242,6 +1370,8 @@ export function createHost({
             "/layout.mjs",
             "/monitor-layout.mjs",
             "/monitor-rules.mjs",
+            "/monitor-inbox.mjs",
+            "/monitor-inbox.css",
             "/settings-ui.mjs",
             "/device-drafts.mjs",
             "/editor-lock.mjs",
@@ -1389,6 +1519,7 @@ export function createHost({
     grafana.close();
     plugins.close();
     vault.lock();
+    engine.monitorAlerts.close();
     for (const s of streams) s.end();
   });
   return {

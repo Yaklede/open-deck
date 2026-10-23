@@ -324,6 +324,12 @@
     ]
   },
   {
+    "source": "{0} · 모니터",
+    "files": [
+      "host/monitor-alerts.mjs"
+    ]
+  },
+  {
     "source": "{0}개 선택됨",
     "files": [
       "host/public/app.js"
@@ -494,9 +500,41 @@
     ]
   },
   {
+    "source": "30분 알림 중지",
+    "files": [
+      "host/public/monitor-inbox.mjs"
+    ],
+    "english": "Snoozed for 30 minutes"
+  },
+  {
     "source": "30분 후",
     "files": [
       "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
+    "source": "30분간 알림 중지",
+    "files": [
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
+    "source": "5xx 오류 패널 ID",
+    "files": [
+      "host/public/app.js"
+    ]
+  },
+  {
+    "source": "5xx 오류율",
+    "files": [
+      "host/public/app.js",
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
+    "source": "5xx 오류율 (%)",
+    "files": [
+      "host/public/monitor-rules.mjs"
     ]
   },
   {
@@ -803,6 +841,12 @@
     "files": [
       "host/public/monitor-rules.mjs",
       "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
+    "source": "DB 준비 상태",
+    "files": [
+      "host/monitor-alerts.mjs"
     ]
   },
   {
@@ -1293,6 +1337,18 @@
     ]
   },
   {
+    "source": "P95 응답",
+    "files": [
+      "android/app/src/main/java/app/opendeck/client/MonitorPresentation.java"
+    ]
+  },
+  {
+    "source": "P95 응답시간",
+    "files": [
+      "host/public/app.js"
+    ]
+  },
+  {
     "source": "PEM 인증서와 개인 키를 확인하세요.",
     "files": [
       "host/network.mjs"
@@ -1700,6 +1756,13 @@
     ]
   },
   {
+    "source": "경고 발생",
+    "files": [
+      "host/public/monitor-inbox.mjs"
+    ],
+    "english": "Alert started"
+  },
+  {
     "source": "계속하려면 편집기 암호를 입력하세요. 연결된 태블릿은 계속 사용할 수 있어요.",
     "files": [
       "host/public/editor-lock.mjs"
@@ -2046,6 +2109,12 @@
     ]
   },
   {
+    "source": "기기 설정 요청 객체가 필요합니다.",
+    "files": [
+      "host/server.mjs"
+    ]
+  },
+  {
     "source": "기기 설정에서 알림과 소리를 관리합니다.",
     "files": [
       "android/app/src/main/java/app/opendeck/client/MainActivity.java"
@@ -2209,6 +2278,12 @@
   },
   {
     "source": "기억",
+    "files": [
+      "host/public/app.js"
+    ]
+  },
+  {
+    "source": "기존 대시보드 패널을 사용합니다. 사용하지 않는 항목은 0으로 설정하세요.",
     "files": [
       "host/public/app.js"
     ]
@@ -2470,10 +2545,12 @@
     "source": "닫기",
     "files": [
       "host/public/app.js",
+      "host/public/monitor-inbox.mjs",
       "host/public/settings-ui.mjs",
       "android/app/src/main/java/app/opendeck/client/ClientSettingsPanel.java",
       "android/app/src/main/java/app/opendeck/client/MainActivity.java"
-    ]
+    ],
+    "english": "Close"
   },
   {
     "source": "달력",
@@ -2861,6 +2938,13 @@
     ]
   },
   {
+    "source": "마지막 경고를 유지하고 있습니다. 새 정상 데이터가 확인되면 복구로 처리합니다.",
+    "files": [
+      "host/public/monitor-inbox.mjs"
+    ],
+    "english": "Keeping the last warning. Recovery requires fresh healthy data."
+  },
+  {
     "source": "마지막 수집 ",
     "files": [
       "android/app/src/main/java/app/opendeck/client/MainActivity.java"
@@ -3211,7 +3295,6 @@
     "files": [
       "host/public/app.js",
       "host/public/monitor-layout.mjs",
-      "host/monitor-alerts.mjs",
       "host/public/index.html"
     ]
   },
@@ -3236,6 +3319,7 @@
   {
     "source": "모니터 위젯을 선택하세요.",
     "files": [
+      "host/monitor-alerts.mjs",
       "host/server.mjs"
     ]
   },
@@ -3281,6 +3365,13 @@
     "files": [
       "host/public/app.js"
     ]
+  },
+  {
+    "source": "모든 프로젝트",
+    "files": [
+      "host/public/monitor-inbox.mjs"
+    ],
+    "english": "All projects"
   },
   {
     "source": "모든 프로필의 페이지",
@@ -3360,6 +3451,13 @@
     "files": [
       "host/public/app.js"
     ]
+  },
+  {
+    "source": "발생 횟수",
+    "files": [
+      "host/public/monitor-inbox.mjs"
+    ],
+    "english": "Occurrences"
   },
   {
     "source": "발열 높음",
@@ -3903,6 +4001,26 @@
     ]
   },
   {
+    "source": "복구",
+    "files": [
+      "host/public/monitor-inbox.mjs"
+    ],
+    "english": "Recovered"
+  },
+  {
+    "source": "복구 이력",
+    "files": [
+      "host/public/monitor-inbox.mjs",
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
+    "source": "복구 이력이 없어요.",
+    "files": [
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
     "source": "복구 키",
     "files": [
       "host/public/migration-ui.mjs",
@@ -3949,6 +4067,14 @@
       "host/public/security-ui.mjs"
     ],
     "english": "Store your recovery key safely"
+  },
+  {
+    "source": "복구됨",
+    "files": [
+      "host/public/monitor-inbox.mjs",
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ],
+    "english": "Resolved"
   },
   {
     "source": "복구에 사용한 키가 폐기되었습니다. 새 키를 생성하세요.",
@@ -4568,6 +4694,12 @@
     ]
   },
   {
+    "source": "서비스 응답 지표",
+    "files": [
+      "host/public/app.js"
+    ]
+  },
+  {
     "source": "서비스별 시스템 CPU",
     "files": [
       "android/app/src/main/java/app/opendeck/client/MainActivity.java"
@@ -4850,6 +4982,14 @@
   },
   {
     "source": "수집 지연",
+    "files": [
+      "host/public/monitor-inbox.mjs",
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ],
+    "english": "Collection delayed"
+  },
+  {
+    "source": "수집 지연 · 마지막 상태 유지",
     "files": [
       "android/app/src/main/java/app/opendeck/client/MainActivity.java"
     ]
@@ -5259,9 +5399,95 @@
     ]
   },
   {
+    "source": "알림 상세",
+    "files": [
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
+    "source": "알림 이력을 저장하지 못했습니다. 디스크 상태를 확인하세요.",
+    "files": [
+      "host/public/monitor-inbox.mjs",
+      "host/monitor-alerts.mjs"
+    ],
+    "english": "Could not save alert history. Check disk availability."
+  },
+  {
+    "source": "알림 일시 중지",
+    "files": [
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
+    "source": "알림 재개",
+    "files": [
+      "host/public/monitor-inbox.mjs",
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ],
+    "english": "Alerts resumed"
+  },
+  {
+    "source": "알림 중지",
+    "files": [
+      "host/public/monitor-inbox.mjs"
+    ],
+    "english": "Snoozed"
+  },
+  {
     "source": "알림 지속 시간과 재알림 간격을 확인하세요.",
     "files": [
       "host/public/monitor-rules.mjs"
+    ]
+  },
+  {
+    "source": "알림 처리 작업을 확인하세요.",
+    "files": [
+      "host/monitor-alerts.mjs"
+    ]
+  },
+  {
+    "source": "알림 처리를 저장했어요.",
+    "files": [
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
+    "source": "알림 처리함",
+    "files": [
+      "host/public/monitor-inbox.mjs"
+    ],
+    "english": "Alert inbox"
+  },
+  {
+    "source": "알림 테스트",
+    "files": [
+      "host/monitor-alerts.mjs",
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
+    "source": "알림 테스트 작업을 확인하세요.",
+    "files": [
+      "host/monitor-alerts.mjs",
+      "host/server.mjs"
+    ]
+  },
+  {
+    "source": "알림 확인",
+    "files": [
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
+    "source": "알림을 찾을 수 없습니다.",
+    "files": [
+      "host/monitor-alerts.mjs"
+    ]
+  },
+  {
+    "source": "알림함",
+    "files": [
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
     ]
   },
   {
@@ -5831,6 +6057,12 @@
     ]
   },
   {
+    "source": "연결이 복구되면 알림을 처리할 수 있어요.",
+    "files": [
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
     "source": "연결하고 OS 탭 추가",
     "files": [
       "host/public/app.js"
@@ -6054,9 +6286,41 @@
     ]
   },
   {
+    "source": "요청 수 (req/s)",
+    "files": [
+      "host/public/monitor-rules.mjs"
+    ]
+  },
+  {
+    "source": "요청/초",
+    "files": [
+      "host/public/app.js"
+    ]
+  },
+  {
+    "source": "요청/초 패널 ID",
+    "files": [
+      "host/public/app.js"
+    ]
+  },
+  {
+    "source": "요청을 완료하지 못했습니다.",
+    "files": [
+      "host/public/monitor-inbox.mjs"
+    ],
+    "english": "Could not complete the request."
+  },
+  {
     "source": "요청이 너무 큽니다.",
     "files": [
       "host/server.mjs"
+    ]
+  },
+  {
+    "source": "운영 알림함",
+    "files": [
+      "host/public/app.js",
+      "host/public/index.html"
     ]
   },
   {
@@ -6130,9 +6394,12 @@
     "source": "위험",
     "files": [
       "host/public/app.js",
+      "host/public/monitor-inbox.mjs",
       "host/monitor-alerts.mjs",
+      "host/server.mjs",
       "android/app/src/main/java/app/opendeck/client/MainActivity.java"
-    ]
+    ],
+    "english": "Critical"
   },
   {
     "source": "위험 색상 표시",
@@ -6171,6 +6438,20 @@
     ]
   },
   {
+    "source": "응답 시간",
+    "files": [
+      "host/public/app.js",
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java",
+      "android/app/src/main/java/app/opendeck/client/MonitorPresentation.java"
+    ]
+  },
+  {
+    "source": "응답 시간 (ms)",
+    "files": [
+      "host/public/monitor-rules.mjs"
+    ]
+  },
+  {
     "source": "응답 제한 시간을 넘겼습니다. 요청을 취소했습니다.",
     "files": [
       "host/engine.mjs"
@@ -6178,6 +6459,12 @@
   },
   {
     "source": "응답: ",
+    "files": [
+      "host/public/app.js"
+    ]
+  },
+  {
+    "source": "응답시간 패널 ID",
     "files": [
       "host/public/app.js"
     ]
@@ -6385,6 +6672,12 @@
     "source": "이미 등록된 플러그인입니다.",
     "files": [
       "host/plugins.mjs"
+    ]
+  },
+  {
+    "source": "이미 복구된 알림입니다.",
+    "files": [
+      "host/monitor-alerts.mjs"
     ]
   },
   {
@@ -6735,7 +7028,7 @@
     ]
   },
   {
-    "source": "임계치 알림이 태블릿에 정상적으로 도착했습니다. 실제 장애 알림이 아닙니다.",
+    "source": "임계치 알림 테스트입니다. 실제 장애 알림이 아닙니다.",
     "files": [
       "host/monitor-alerts.mjs"
     ]
@@ -6744,6 +7037,12 @@
     "source": "임계치 입력",
     "files": [
       "host/public/app.js"
+    ]
+  },
+  {
+    "source": "임계치 초과",
+    "files": [
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
     ]
   },
   {
@@ -7179,6 +7478,13 @@
     ]
   },
   {
+    "source": "저장했습니다.",
+    "files": [
+      "host/public/monitor-inbox.mjs"
+    ],
+    "english": "Saved."
+  },
+  {
     "source": "저전력 모드 꺼짐",
     "files": [
       "android/app/src/main/java/app/opendeck/client/MainActivity.java"
@@ -7207,6 +7513,12 @@
     "files": [
       "host/public/app.js",
       "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
+    "source": "전체",
+    "files": [
+      "host/public/monitor-inbox.mjs"
     ]
   },
   {
@@ -7262,8 +7574,10 @@
     "source": "정상",
     "files": [
       "host/public/app.js",
+      "host/public/monitor-inbox.mjs",
       "android/app/src/main/java/app/opendeck/client/MainActivity.java"
-    ]
+    ],
+    "english": "Healthy"
   },
   {
     "source": "정상 대상 / 전체 대상",
@@ -7274,8 +7588,12 @@
   {
     "source": "정상 복구",
     "files": [
-      "host/monitor-alerts.mjs"
-    ]
+      "host/public/monitor-inbox.mjs",
+      "host/monitor-alerts.mjs",
+      "host/server.mjs",
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ],
+    "english": "Recovered"
   },
   {
     "source": "정상 수집",
@@ -7409,9 +7727,12 @@
     "source": "주의",
     "files": [
       "host/public/app.js",
+      "host/public/monitor-inbox.mjs",
       "host/monitor-alerts.mjs",
+      "host/server.mjs",
       "android/app/src/main/java/app/opendeck/client/MainActivity.java"
-    ]
+    ],
+    "english": "Warning"
   },
   {
     "source": "주의·위험 임계치 순서를 확인하세요.",
@@ -7597,6 +7918,18 @@
     ]
   },
   {
+    "source": "지표 수집 ",
+    "files": [
+      "host/public/app.js"
+    ]
+  },
+  {
+    "source": "지표 수집 상태",
+    "files": [
+      "host/monitor-alerts.mjs"
+    ]
+  },
+  {
     "source": "지표 수집 실패 대상 있음",
     "files": [
       "host/monitor-alerts.mjs"
@@ -7705,6 +8038,14 @@
     ]
   },
   {
+    "source": "진행 중",
+    "files": [
+      "host/public/monitor-inbox.mjs",
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ],
+    "english": "Active"
+  },
+  {
     "source": "집중",
     "files": [
       "host/public/app.js",
@@ -7746,6 +8087,20 @@
     "files": [
       "android/app/src/main/java/app/opendeck/client/MainActivity.java"
     ]
+  },
+  {
+    "source": "처리 결과를 확인하지 못했어요. 다시 연결한 뒤 확인해 주세요.",
+    "files": [
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
+    "source": "처리 이력",
+    "files": [
+      "host/public/monitor-inbox.mjs",
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ],
+    "english": "Timeline"
   },
   {
     "source": "처리 확인 중…",
@@ -7812,6 +8167,13 @@
     ]
   },
   {
+    "source": "최근 확인",
+    "files": [
+      "host/public/monitor-inbox.mjs"
+    ],
+    "english": "Last seen"
+  },
+  {
     "source": "최소 간격 (초)",
     "files": [
       "host/public/app.js"
@@ -7864,6 +8226,13 @@
     "files": [
       "android/app/src/main/java/app/opendeck/client/MainActivity.java"
     ]
+  },
+  {
+    "source": "최초 발생",
+    "files": [
+      "host/public/monitor-inbox.mjs"
+    ],
+    "english": "First seen"
   },
   {
     "source": "추가",
@@ -8056,6 +8425,12 @@
     ]
   },
   {
+    "source": "태블릿 연결이 필요합니다.",
+    "files": [
+      "host/server.mjs"
+    ]
+  },
+  {
     "source": "태블릿 페어링 코드",
     "files": [
       "host/public/index.html"
@@ -8165,6 +8540,13 @@
     "files": [
       "android/app/src/main/java/app/opendeck/client/MainActivity.java"
     ]
+  },
+  {
+    "source": "테스트",
+    "files": [
+      "host/public/monitor-inbox.mjs"
+    ],
+    "english": "Test"
   },
   {
     "source": "텍스트",
@@ -8446,6 +8828,18 @@
     "english": "Editor locked"
   },
   {
+    "source": "평균 응답",
+    "files": [
+      "android/app/src/main/java/app/opendeck/client/MonitorPresentation.java"
+    ]
+  },
+  {
+    "source": "평균 응답시간",
+    "files": [
+      "host/public/app.js"
+    ]
+  },
+  {
     "source": "폴더 등록",
     "files": [
       "host/public/app.js"
@@ -8458,6 +8852,13 @@
     ]
   },
   {
+    "source": "표시할 알림이 없습니다.",
+    "files": [
+      "host/public/monitor-inbox.mjs"
+    ],
+    "english": "No alerts to show."
+  },
+  {
     "source": "표준 · 디자인 유지",
     "files": [
       "android/app/src/main/java/app/opendeck/client/MainActivity.java"
@@ -8467,9 +8868,11 @@
     "source": "프로젝트",
     "files": [
       "host/public/app.js",
+      "host/public/monitor-inbox.mjs",
       "host/public/monitor-layout.mjs",
       "android/app/src/main/java/app/opendeck/client/MainActivity.java"
-    ]
+    ],
+    "english": "Project"
   },
   {
     "source": "프로젝트 ",
@@ -8964,6 +9367,12 @@
     "english": "Current vault password"
   },
   {
+    "source": "현재 진행 중인 알림이 없어요.",
+    "files": [
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
     "source": "현재 창을 포함한 모든 로그인 세션을 종료할까요?",
     "files": [
       "host/public/security-ui.mjs"
@@ -8976,6 +9385,18 @@
       "host/public/settings-ui.mjs"
     ],
     "english": "Current editor password"
+  },
+  {
+    "source": "현재 프로젝트에서 알림을 찾을 수 없어요.",
+    "files": [
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
+    "source": "현재 프로젝트의 알림만 표시합니다.",
+    "files": [
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
   },
   {
     "source": "현재 프로필의 버튼이 아닙니다.",
@@ -9127,10 +9548,12 @@
   {
     "source": "확인",
     "files": [
+      "host/public/monitor-inbox.mjs",
       "host/public/settings-ui.mjs",
       "android/app/src/main/java/app/opendeck/client/MainActivity.java",
       "macos/OpenDeck.swift"
-    ]
+    ],
+    "english": "Acknowledge"
   },
   {
     "source": "확인 불가",
@@ -9138,6 +9561,13 @@
       "host/public/app.js",
       "android/app/src/main/java/app/opendeck/client/MainActivity.java"
     ]
+  },
+  {
+    "source": "확인 전",
+    "files": [
+      "host/public/monitor-inbox.mjs"
+    ],
+    "english": "Unacknowledged"
   },
   {
     "source": "확인 중",
@@ -9149,13 +9579,21 @@
   {
     "source": "확인 필요",
     "files": [
+      "host/public/monitor-inbox.mjs",
       "android/app/src/main/java/app/opendeck/client/MainActivity.java"
-    ]
+    ],
+    "english": "Needs attention"
   },
   {
     "source": "확인 후 가져오기",
     "files": [
       "host/public/migration-ui.mjs"
+    ]
+  },
+  {
+    "source": "확인됨",
+    "files": [
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
     ]
   },
   {
@@ -9171,9 +9609,28 @@
     ]
   },
   {
+    "source": "확인함",
+    "files": [
+      "host/public/monitor-inbox.mjs"
+    ],
+    "english": "Acknowledged"
+  },
+  {
+    "source": "활성 알림이 너무 많습니다. 복구된 뒤 다시 시도하세요.",
+    "files": [
+      "host/monitor-alerts.mjs"
+    ]
+  },
+  {
     "source": "활성화할 지표의 주의·위험 임계치를 입력하세요.",
     "files": [
       "host/public/monitor-rules.mjs"
+    ]
+  },
+  {
+    "source": "회 발생",
+    "files": [
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
     ]
   },
   {

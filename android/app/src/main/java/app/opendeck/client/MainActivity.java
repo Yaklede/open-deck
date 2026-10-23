@@ -929,8 +929,14 @@ public class MainActivity extends Activity {
     @Override
     protected void onDraw(Canvas c) {
       boolean percent =
-          chartMetric.equals("system") || chartMetric.equals("cpu") || chartMetric.equals("memory");
+          chartMetric.equals("system")
+              || chartMetric.equals("cpu")
+              || chartMetric.equals("memory")
+              || chartMetric.equals("errorRate");
       boolean system = chartMetric.equals("system");
+      boolean errorRate = chartMetric.equals("errorRate");
+      JSONObject data = grafanaData(widget);
+      boolean service = MonitorPresentation.serviceMetric(chartMetric);
       int accent = monitorColor(widget, system ? "cpu" : chartMetric),
           muted = Color.parseColor("#9bafbd");
       p.setStyle(Paint.Style.FILL);
@@ -938,29 +944,34 @@ public class MainActivity extends Activity {
       c.drawRoundRect(0, 0, getWidth(), getHeight(), dp(12), dp(12), p);
       text(
           c,
-          system
-              ? L10n.text("시스템 CPU 추이")
-              : chartMetric.equals("cpu")
-                  ? L10n.text("DB CPU 추이")
-                  : chartMetric.equals("memory")
-                      ? L10n.text("DB 메모리 추이")
-                      : chartMetric.equals("qps")
-                          ? L10n.text("QPS · 쿼리/초")
-                          : L10n.text("TPS · 커밋/초"),
+          service
+              ? serviceLabel(data, chartMetric)
+                  + " · "
+                  + MonitorPresentation.serviceUnit(chartMetric)
+              : system
+                  ? L10n.text("시스템 CPU 추이")
+                  : chartMetric.equals("cpu")
+                      ? L10n.text("DB CPU 추이")
+                      : chartMetric.equals("memory")
+                          ? L10n.text("DB 메모리 추이")
+                          : chartMetric.equals("qps")
+                              ? L10n.text("QPS · 쿼리/초")
+                              : L10n.text("TPS · 커밋/초"),
           dp(16),
           dp(29),
           14,
           Color.parseColor("#d9f4fa"),
           Paint.Align.LEFT);
       text(c, L10n.text("최근 1시간"), dp(16), dp(50), 10, muted, Paint.Align.LEFT);
-      JSONObject data = grafanaData(widget),
-          metric = data == null ? null : data.optJSONObject(chartMetric);
+      JSONObject metric = grafanaMetric(data, chartMetric);
       JSONArray points = metric == null ? null : metric.optJSONArray("points");
+      if (service && !Double.isFinite(serviceValue(data, chartMetric))) points = null;
       plot.set(dp(45), dp(76), getWidth() - dp(16), getHeight() - dp(39));
-      double max = percent ? 100 : 1;
-      if (!percent && points != null)
+      double max = percent && !errorRate ? 100 : 1;
+      if ((!percent || errorRate) && points != null)
         for (int i = 0; i < points.length(); i++)
-          max = Math.max(max, points.optJSONArray(i).optDouble(1));
+          if (points.optJSONArray(i) != null)
+            max = Math.max(max, points.optJSONArray(i).optDouble(1));
       for (int i = 0; i < 3; i++) {
         float y = plot.top + plot.height() * i / 2;
         p.setColor(Color.parseColor("#2b414f"));
@@ -968,7 +979,10 @@ public class MainActivity extends Activity {
         c.drawLine(plot.left, y, plot.right, y, p);
         text(
             c,
-            String.format(L10n.locale(), percent ? "%.0f%%" : "%.1f", max * (2 - i) / 2),
+            String.format(
+                L10n.locale(),
+                errorRate && max < 10 ? "%.2f%%" : percent ? "%.0f%%" : "%.1f",
+                max * (2 - i) / 2),
             plot.left - dp(6),
             y + dp(3),
             9,
@@ -984,7 +998,7 @@ public class MainActivity extends Activity {
             12,
             muted,
             Paint.Align.CENTER);
-      else if (deck != null) deck.grafanaTrend(c, points, plot, accent, percent);
+      else if (deck != null) deck.grafanaTrend(c, points, plot, accent, percent && !errorRate);
       text(c, L10n.text("이전"), plot.left, getHeight() - dp(16), 9, muted, Paint.Align.LEFT);
       text(c, L10n.text("최근"), plot.right, getHeight() - dp(16), 9, muted, Paint.Align.RIGHT);
     }
@@ -1078,6 +1092,37 @@ public class MainActivity extends Activity {
     JSONObject data =
         projects == null ? null : projects.optJSONObject(grafanaProject(widget).optString("value"));
     return data;
+  }
+
+  private JSONObject grafanaMetric(JSONObject data, String key) {
+    if (data == null) return null;
+    JSONObject owner =
+        MonitorPresentation.serviceMetric(key) ? data.optJSONObject("service") : data;
+    return owner == null ? null : owner.optJSONObject(key);
+  }
+
+  private String serviceLabel(JSONObject data, String key) {
+    JSONObject reading = grafanaMetric(data, key);
+    return key.equals("latency")
+        ? L10n.text(
+            MonitorPresentation.latencyLabel(
+                reading == null ? "" : reading.optString("aggregation")))
+        : key.equals("errorRate") ? L10n.text("5xx 오류율") : "RPS";
+  }
+
+  private double serviceValue(JSONObject data, String key) {
+    return MonitorPresentation.visibleServiceValue(
+        key, metric(grafanaMetric(data, key), "value"), queryFresh(data), sourceState(data, key));
+  }
+
+  private String serviceNumber(JSONObject data, String key) {
+    return MonitorPresentation.serviceNumber(key, serviceValue(data, key), L10n.locale());
+  }
+
+  private int serviceInk(JSONObject widget, String key) {
+    double value = serviceValue(grafanaData(widget), key);
+    int ink = grafanaReadingColor(widget, key, value);
+    return ink == monitorColor("normal") ? color("#a8b5c5") : ink;
   }
 
   private boolean streamFresh() {
@@ -1314,6 +1359,27 @@ public class MainActivity extends Activity {
             firstRow,
             system ? L10n.text("보고 서비스") : "QPS",
             system ? L10n.text("CPU 보고 job 수") : L10n.text("쿼리/초 · 전체 노드 합계"));
+    TextView[] serviceValues = new TextView[system ? 3 : 0];
+    TextView[] serviceHeadings = new TextView[serviceValues.length];
+    String[] serviceKeys = {"latency", "errorRate", "rps"};
+    if (system) {
+      values[0].setTextSize(38);
+      values[0].setAutoSizeTextTypeUniformWithConfiguration(
+          24, 38, 1, android.util.TypedValue.COMPLEX_UNIT_SP);
+      LinearLayout serviceRow = new LinearLayout(this);
+      layout.addView(serviceRow);
+      for (int i = 0; i < serviceKeys.length; i++) {
+        serviceValues[i] =
+            grafanaStat(
+                serviceRow,
+                serviceLabel(grafanaData(widget), serviceKeys[i]),
+                MonitorPresentation.serviceUnit(serviceKeys[i]));
+        serviceValues[i].setTextSize(22);
+        serviceValues[i].setAutoSizeTextTypeUniformWithConfiguration(
+            16, 22, 1, android.util.TypedValue.COMPLEX_UNIT_SP);
+        serviceHeadings[i] = (TextView) ((LinearLayout) serviceValues[i].getParent()).getChildAt(0);
+      }
+    }
     if (!system) {
       LinearLayout secondRow = new LinearLayout(this);
       layout.addView(secondRow);
@@ -1322,8 +1388,7 @@ public class MainActivity extends Activity {
       values[5] = grafanaStat(secondRow, L10n.text("DB 상태"), L10n.text("준비 상태 · 수집 대상 확인"));
     }
     LinearLayout lower = new LinearLayout(this);
-    LinearLayout.LayoutParams lowerParams =
-        new LinearLayout.LayoutParams(-1, (int) dp(system ? 280 : 230));
+    LinearLayout.LayoutParams lowerParams = new LinearLayout.LayoutParams(-1, (int) dp(230));
     lowerParams.setMargins((int) dp(3), (int) dp(9), (int) dp(3), 0);
     layout.addView(lower, lowerParams);
     ScrollView nodesScroll = new ScrollView(this);
@@ -1338,10 +1403,16 @@ public class MainActivity extends Activity {
     chartsParams.setMargins((int) dp(9), 0, 0, 0);
     lower.addView(charts, chartsParams);
     GrafanaHistoryView graph = new GrafanaHistoryView(widget);
-    if (!system) {
+    {
       LinearLayout chartTabs = new LinearLayout(this);
-      String[] keys = {"tps", "qps", "cpu", "memory"};
-      String[] labels = {"TPS", "QPS", "CPU", L10n.text("메모리")};
+      String[] keys =
+          system
+              ? new String[] {"system", "latency", "errorRate", "rps"}
+              : new String[] {"tps", "qps", "cpu", "memory"};
+      String[] labels =
+          system
+              ? new String[] {"CPU", L10n.text("응답 시간"), L10n.text("5xx 오류율"), "RPS"}
+              : new String[] {"TPS", "QPS", "CPU", L10n.text("메모리")};
       Button[] buttons = new Button[keys.length];
       for (int i = 0; i < keys.length; i++) {
         final int index = i;
@@ -1388,6 +1459,18 @@ public class MainActivity extends Activity {
           nodes.removeAllViews();
           boolean ready = queryFresh(data);
           for (TextView value : values) value.setText("—");
+          for (int i = 0; i < serviceValues.length; i++) {
+            serviceValues[i].setText(serviceNumber(data, serviceKeys[i]));
+            serviceValues[i].setTextColor(serviceInk(widget, serviceKeys[i]));
+            serviceHeadings[i].setText(serviceLabel(data, serviceKeys[i]));
+            ((TextView) serviceValues[i].getTag())
+                .setText(
+                    MonitorPresentation.serviceUnit(serviceKeys[i])
+                        + " · "
+                        + (Double.isFinite(serviceValue(data, serviceKeys[i]))
+                            ? sourceStamp(data, serviceKeys[i])
+                            : L10n.text("수집 데이터 없음")));
+          }
           if (!ready) {
             updated.setText(
                 data == null
@@ -1507,6 +1590,7 @@ public class MainActivity extends Activity {
                     + widget.optString("label", system ? L10n.text("시스템 상태") : L10n.text("DB 상태")))
             .setView(layout)
             .setPositiveButton(L10n.text("프로젝트 변경"), (d, x) -> grafanaChoose(widget))
+            .setNeutralButton(L10n.text("알림함"), (d, x) -> monitorInbox(widget))
             .setNegativeButton(L10n.text("닫기"), null)
             .show();
     Runnable refresh =
@@ -1520,6 +1604,439 @@ public class MainActivity extends Activity {
     dialog.setOnDismissListener(d -> ui.removeCallbacks(refresh));
     render.run();
     ui.postDelayed(refresh, 2000);
+  }
+
+  private JSONObject monitorInboxData() {
+    JSONObject monitoring = state.optJSONObject("monitoring");
+    return monitoring == null ? null : monitoring.optJSONObject("inbox");
+  }
+
+  private JSONObject monitorIncident(String id, String project) {
+    JSONObject inbox = monitorInboxData();
+    JSONArray incidents = inbox == null ? null : inbox.optJSONArray("incidents");
+    if (incidents != null)
+      for (int i = 0; i < incidents.length(); i++) {
+        JSONObject row = incidents.optJSONObject(i);
+        if (row != null
+            && id.equals(row.optString("id"))
+            && project.equals(row.optString("project"))) return row;
+      }
+    return null;
+  }
+
+  private int monitorIncidentCount(String project, boolean unacknowledged) {
+    JSONObject inbox = monitorInboxData();
+    JSONArray incidents = inbox == null ? null : inbox.optJSONArray("incidents");
+    int count = 0;
+    if (incidents != null)
+      for (int i = 0; i < incidents.length(); i++) {
+        JSONObject row = incidents.optJSONObject(i);
+        if (row != null
+            && MonitorPresentation.incidentMatches(
+                row.optString("project"), project, row.optString("status"), false)
+            && (!unacknowledged || row.optLong("acknowledgedAt") <= 0)) count++;
+      }
+    return count;
+  }
+
+  private String incidentStatus(JSONObject row) {
+    if (row.optString("status").equals("resolved")) return L10n.text("복구됨");
+    if (row.optLong("snoozedUntil") > hostNow())
+      return L10n.text("알림 일시 중지") + " · " + osDate(row.optLong("snoozedUntil"), "HH:mm");
+    return row.optLong("acknowledgedAt") > 0 ? L10n.text("확인됨") : L10n.text("확인 필요");
+  }
+
+  private TextView incidentText(String text, int size, int ink) {
+    TextView view = new TextView(this);
+    view.setText(text);
+    view.setTextSize(size);
+    view.setTypeface(font);
+    view.setTextColor(ink);
+    view.setIncludeFontPadding(false);
+    view.setPadding((int) dp(12), (int) dp(7), (int) dp(12), (int) dp(7));
+    return view;
+  }
+
+  private Button incidentButton(String text) {
+    Button button = new Button(this);
+    button.setText(text);
+    button.setTextSize(13);
+    button.setAllCaps(false);
+    button.setMinWidth(0);
+    button.setMinimumWidth(0);
+    button.setTypeface(font);
+    return button;
+  }
+
+  private void monitorInbox(JSONObject widget) {
+    final String project = grafanaProject(widget).optString("value");
+    if (project.isEmpty()) return;
+    final long generation = pairingGeneration;
+    final boolean[] history = {false};
+    LinearLayout layout = new LinearLayout(this);
+    layout.setOrientation(LinearLayout.VERTICAL);
+    layout.setPadding((int) dp(12), 0, (int) dp(12), 0);
+    LinearLayout filters = new LinearLayout(this);
+    Button active = incidentButton(L10n.text("진행 중")),
+        recovered = incidentButton(L10n.text("복구 이력"));
+    filters.addView(active, new LinearLayout.LayoutParams(0, (int) dp(48), 1));
+    filters.addView(recovered, new LinearLayout.LayoutParams(0, (int) dp(48), 1));
+    layout.addView(filters);
+    TextView summary = incidentText("", 12, color("#9faec1"));
+    layout.addView(summary);
+    ScrollView scroll = new ScrollView(this);
+    LinearLayout list = new LinearLayout(this);
+    list.setOrientation(LinearLayout.VERTICAL);
+    scroll.addView(list);
+    layout.addView(scroll, new LinearLayout.LayoutParams(-1, (int) dp(330)));
+    AlertDialog dialog =
+        osDialog()
+            .setTitle(
+                grafanaProject(widget).optString("label", L10n.text("프로젝트"))
+                    + " · "
+                    + L10n.text("알림함"))
+            .setView(layout)
+            .setNegativeButton(L10n.text("닫기"), null)
+            .show();
+    String[] last = {""};
+    Runnable render =
+        () -> {
+          boolean sameProject = project.equals(grafanaProject(widget).optString("value"));
+          JSONObject inbox = monitorInboxData();
+          String signature =
+              String.valueOf(inbox)
+                  + ":"
+                  + history[0]
+                  + ":"
+                  + streamFresh()
+                  + ":"
+                  + generation
+                  + ":"
+                  + pairingGeneration
+                  + ":"
+                  + sameProject
+                  + ":"
+                  + hostNow() / 60000;
+          if (signature.equals(last[0])) return;
+          last[0] = signature;
+          int scrollY = scroll.getScrollY();
+          list.removeAllViews();
+          active.setAlpha(history[0] ? .5f : 1f);
+          recovered.setAlpha(history[0] ? 1f : .5f);
+          summary.setText(
+              !streamFresh() || generation != pairingGeneration || !sameProject
+                  ? L10n.text("연결이 복구되면 알림을 처리할 수 있어요.")
+                  : L10n.text("현재 프로젝트의 알림만 표시합니다."));
+          JSONArray rows = inbox == null ? null : inbox.optJSONArray("incidents");
+          int shown = 0;
+          if (rows != null)
+            for (int i = 0; i < rows.length() && shown < 80; i++) {
+              JSONObject row = rows.optJSONObject(i);
+              if (row == null
+                  || !MonitorPresentation.incidentMatches(
+                      row.optString("project"), project, row.optString("status"), history[0]))
+                continue;
+              shown++;
+              String id = row.optString("id");
+              LinearLayout card = new LinearLayout(this);
+              card.setOrientation(LinearLayout.VERTICAL);
+              android.graphics.drawable.GradientDrawable background =
+                  new android.graphics.drawable.GradientDrawable();
+              background.setColor(color("#172631"));
+              background.setCornerRadius(dp(10));
+              card.setBackground(background);
+              TextView title =
+                  incidentText(
+                      row.optBoolean("synthetic")
+                          ? L10n.text("알림 테스트")
+                          : row.optString("title", row.optString("label")),
+                      15,
+                      history[0] ? color("#a7bbb4") : monitorColor(row.optString("severity")));
+              card.addView(title);
+              String when =
+                  osDate(row.optLong(history[0] ? "resolvedAt" : "firstSeenAt"), "M/d HH:mm");
+              card.addView(
+                  incidentText(
+                      incidentStatus(row)
+                          + " · "
+                          + when
+                          + " · "
+                          + row.optInt("count", 1)
+                          + L10n.text("회 발생")
+                          + (row.optBoolean("stale") ? "\n" + L10n.text("수집 지연 · 마지막 상태 유지") : ""),
+                      11,
+                      color("#93a4b8")));
+              card.setFocusable(true);
+              card.setContentDescription(title.getText() + ", " + incidentStatus(row));
+              card.setOnClickListener(v -> monitorIncidentDetails(widget, project, id));
+              LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(-1, -2);
+              params.setMargins(0, 0, 0, (int) dp(7));
+              list.addView(card, params);
+            }
+          if (shown == 0)
+            list.addView(
+                incidentText(
+                    history[0] ? L10n.text("복구 이력이 없어요.") : L10n.text("현재 진행 중인 알림이 없어요."),
+                    14,
+                    color("#93a4b8")));
+          scroll.post(() -> scroll.scrollTo(0, scrollY));
+        };
+    active.setOnClickListener(
+        v -> {
+          history[0] = false;
+          scroll.scrollTo(0, 0);
+          render.run();
+        });
+    recovered.setOnClickListener(
+        v -> {
+          history[0] = true;
+          scroll.scrollTo(0, 0);
+          render.run();
+        });
+    Runnable refresh =
+        new Runnable() {
+          public void run() {
+            if (!dialog.isShowing() || isFinishing() || isDestroyed()) return;
+            if (foreground) render.run();
+            ui.postDelayed(this, 1000);
+          }
+        };
+    dialog.setOnDismissListener(d -> ui.removeCallbacks(refresh));
+    render.run();
+    ui.postDelayed(refresh, 1000);
+  }
+
+  private String incidentEventLabel(String type) {
+    switch (type) {
+      case "acknowledge":
+        return L10n.text("알림 확인");
+      case "snooze":
+        return L10n.text("30분간 알림 중지");
+      case "resume":
+        return L10n.text("알림 재개");
+      case "recovery":
+        return L10n.text("정상 복구");
+      default:
+        return L10n.text("임계치 초과");
+    }
+  }
+
+  private void monitorIncidentDetails(JSONObject widget, String project, String id) {
+    new IncidentDetails(widget, project, id).show();
+  }
+
+  private final class IncidentDetails {
+    final JSONObject widget;
+    final String project, id, pairedToken;
+    final long generation;
+    AlertDialog dialog;
+    TextView heading, status;
+    LinearLayout body;
+    ScrollView scroll;
+    Button acknowledge, snooze;
+    boolean busy;
+    long actionCooldownUntil;
+    String signature = "";
+
+    IncidentDetails(JSONObject widget, String project, String id) {
+      this.widget = widget;
+      this.project = project;
+      this.id = id;
+      this.pairedToken = token;
+      this.generation = pairingGeneration;
+    }
+
+    boolean sameContext() {
+      return generation == pairingGeneration
+          && pairedToken.equals(token)
+          && project.equals(grafanaProject(widget).optString("value"));
+    }
+
+    boolean allowed(JSONObject row, String action) {
+      return row != null
+          && !busy
+          && foreground
+          && hostNow() >= actionCooldownUntil
+          && MonitorPresentation.actionAllowed(
+              streamFresh(),
+              sameContext(),
+              row.optString("project"),
+              project,
+              row.optString("status"),
+              action,
+              row.optLong("acknowledgedAt"),
+              row.optLong("snoozedUntil"),
+              hostNow());
+    }
+
+    void show() {
+      LinearLayout layout = new LinearLayout(MainActivity.this);
+      layout.setOrientation(LinearLayout.VERTICAL);
+      layout.setPadding((int) dp(12), 0, (int) dp(12), 0);
+      heading = incidentText("", 16, color("#e0e9fa"));
+      status = incidentText("", 12, color("#93a4b8"));
+      layout.addView(heading);
+      layout.addView(status);
+      scroll = new ScrollView(MainActivity.this);
+      body = new LinearLayout(MainActivity.this);
+      body.setOrientation(LinearLayout.VERTICAL);
+      scroll.addView(body);
+      layout.addView(scroll, new LinearLayout.LayoutParams(-1, (int) dp(240)));
+      LinearLayout actions = new LinearLayout(MainActivity.this);
+      acknowledge = incidentButton(L10n.text("알림 확인"));
+      snooze = incidentButton(L10n.text("30분간 알림 중지"));
+      actions.addView(acknowledge, new LinearLayout.LayoutParams(0, (int) dp(48), 1));
+      actions.addView(snooze, new LinearLayout.LayoutParams(0, (int) dp(48), 1));
+      layout.addView(actions);
+      acknowledge.setOnClickListener(v -> act("acknowledge"));
+      snooze.setOnClickListener(
+          v -> {
+            JSONObject row = monitorIncident(id, project);
+            act(row != null && row.optLong("snoozedUntil") > hostNow() ? "resume" : "snooze");
+          });
+      dialog =
+          osDialog()
+              .setTitle(L10n.text("알림 상세"))
+              .setView(layout)
+              .setNegativeButton(L10n.text("닫기"), null)
+              .show();
+      Runnable refresh =
+          new Runnable() {
+            public void run() {
+              if (!dialog.isShowing() || isFinishing() || isDestroyed()) return;
+              if (foreground) render();
+              ui.postDelayed(this, 1000);
+            }
+          };
+      dialog.setOnDismissListener(d -> ui.removeCallbacks(refresh));
+      render();
+      ui.postDelayed(refresh, 1000);
+    }
+
+    void render() {
+      JSONObject row = monitorIncident(id, project);
+      boolean resume = row != null && row.optLong("snoozedUntil") > hostNow();
+      acknowledge.setEnabled(allowed(row, "acknowledge"));
+      snooze.setEnabled(allowed(row, resume ? "resume" : "snooze"));
+      snooze.setText(resume ? L10n.text("알림 재개") : L10n.text("30분간 알림 중지"));
+      String next =
+          String.valueOf(row)
+              + ":"
+              + streamFresh()
+              + ":"
+              + sameContext()
+              + ":"
+              + busy
+              + ":"
+              + resume;
+      if (next.equals(signature)) return;
+      signature = next;
+      int y = scroll.getScrollY();
+      body.removeAllViews();
+      if (row == null) {
+        heading.setText(L10n.text("현재 프로젝트에서 알림을 찾을 수 없어요."));
+        status.setText("");
+        return;
+      }
+      heading.setText(
+          row.optBoolean("synthetic")
+              ? L10n.text("알림 테스트")
+              : row.optString("title", row.optString("label")));
+      heading.setTextColor(
+          row.optString("status").equals("resolved")
+              ? color("#a7bbb4")
+              : monitorColor(row.optString("severity")));
+      status.setText(
+          !streamFresh() || !sameContext()
+              ? L10n.text("연결이 복구되면 알림을 처리할 수 있어요.")
+              : busy
+                  ? L10n.text("처리 확인 중…")
+                  : incidentStatus(row)
+                      + (row.optBoolean("stale") ? " · " + L10n.text("수집 지연 · 마지막 상태 유지") : ""));
+      JSONArray conditions = row.optJSONArray("conditions");
+      if (conditions != null)
+        for (int i = 0; i < Math.min(conditions.length(), 24); i++) {
+          JSONObject condition = conditions.optJSONObject(i);
+          if (condition == null) continue;
+          double value = metric(condition, "value");
+          body.addView(
+              incidentText(
+                  condition.optString("label", condition.optString("key"))
+                      + "  "
+                      + (Double.isFinite(value)
+                          ? String.format(L10n.locale(), "%,.2f", value)
+                          : "—"),
+                  13,
+                  monitorColor(condition.optString("level"))));
+        }
+      body.addView(incidentText(L10n.text("처리 이력"), 12, color("#93a4b8")));
+      JSONArray events = row.optJSONArray("timeline");
+      if (events != null)
+        for (int i = events.length() - 1; i >= Math.max(0, events.length() - 40); i--) {
+          JSONObject event = events.optJSONObject(i);
+          if (event == null) continue;
+          body.addView(
+              incidentText(
+                  osDate(event.optLong("at"), "M/d HH:mm:ss")
+                      + "  "
+                      + incidentEventLabel(event.optString("type")),
+                  12,
+                  color("#b2bfce")));
+        }
+      scroll.post(() -> scroll.scrollTo(0, y));
+    }
+
+    void act(String action) {
+      JSONObject row = monitorIncident(id, project);
+      if (!allowed(row, action)) {
+        render();
+        return;
+      }
+      busy = true;
+      render();
+      try {
+        commands.execute(
+            () -> {
+              try {
+                // Re-check identity at dispatch; delayed requests must never target a replacement
+                // pairing.
+                if (!sameContext() || !streamFresh()) throw new IOException(L10n.text("연결 끊김"));
+                JSONObject request = new JSONObject().put("action", action);
+                if (action.equals("snooze")) request.put("minutes", 30);
+                requestWithToken(
+                    "/api/monitor/incidents/" + URLEncoder.encode(id, "UTF-8"),
+                    "POST",
+                    request,
+                    pairedToken);
+                ui.post(
+                    () -> {
+                      if (generation != pairingGeneration || !pairedToken.equals(token)) return;
+                      busy = false;
+                      actionCooldownUntil = hostNow() + 2000;
+                      if (!dialog.isShowing()) return;
+                      signature = "";
+                      render();
+                      Toast.makeText(
+                              MainActivity.this, L10n.text("알림 처리를 저장했어요."), Toast.LENGTH_SHORT)
+                          .show();
+                    });
+              } catch (Exception error) {
+                ui.post(
+                    () -> {
+                      busy = false;
+                      if (!dialog.isShowing() || generation != pairingGeneration) return;
+                      signature = "";
+                      render();
+                      status.setText(L10n.text("처리 결과를 확인하지 못했어요. 다시 연결한 뒤 확인해 주세요."));
+                    });
+              }
+            });
+      } catch (RejectedExecutionException error) {
+        busy = false;
+        render();
+        status.setText(L10n.text("다른 요청이 진행 중이에요. 잠시 후 상태를 확인해 주세요."));
+      }
+    }
   }
 
   private void osAction(JSONObject widget, String operation, String itemId) {
@@ -4491,6 +5008,8 @@ public class MainActivity extends Activity {
       String grafanaSignature =
           String.valueOf(state.optJSONObject("grafana"))
               + ":"
+              + String.valueOf(monitorInboxData())
+              + ":"
               + streamFresh()
               + ":"
               + hostNow() / 5000;
@@ -4552,7 +5071,24 @@ public class MainActivity extends Activity {
                                 + grafanaNumber(data, "tps", false)
                                 + ", QPS "
                                 + grafanaNumber(data, "qps", false))
-                        + (server ? "" : grafanaNodeDescription(data))
+                        + (server
+                            ? ", "
+                                + serviceLabel(data, "latency")
+                                + " "
+                                + serviceNumber(data, "latency")
+                                + " ms"
+                                + ", "
+                                + L10n.text("5xx 오류율")
+                                + " "
+                                + serviceNumber(data, "errorRate")
+                                + ", RPS "
+                                + serviceNumber(data, "rps")
+                                + ", "
+                                + L10n.text("알림함")
+                                + " "
+                                + monitorIncidentCount(
+                                    grafanaProject(tile.widget).optString("value"), true)
+                            : grafanaNodeDescription(data))
                         + ", "
                         + sourceStamp(data, server ? "system" : "cpu")
                         + ", "
@@ -4697,6 +5233,25 @@ public class MainActivity extends Activity {
       protected void onSizeChanged(int w, int h, int oldW, int oldH) {
         bounds.set(0, 0, w, h);
         invalidateOutline();
+      }
+
+      @Override
+      public void onInitializeAccessibilityNodeInfo(
+          android.view.accessibility.AccessibilityNodeInfo info) {
+        super.onInitializeAccessibilityNodeInfo(info);
+        if (type.equals("grafana"))
+          info.addAction(
+              new android.view.accessibility.AccessibilityNodeInfo.AccessibilityAction(
+                  0x01030001, L10n.text("알림함")));
+      }
+
+      @Override
+      public boolean performAccessibilityAction(int action, Bundle arguments) {
+        if (action == 0x01030001 && type.equals("grafana")) {
+          monitorInbox(widget);
+          return true;
+        }
+        return super.performAccessibilityAction(action, arguments);
       }
 
       @Override
@@ -5554,21 +6109,50 @@ public class MainActivity extends Activity {
             monitorLevel(widget, "collection").equals("critical")
                 ? monitorColor("critical")
                 : muted);
-        monitorText(c, L10n.text("CPU 추이 · %"), r, r.top + dp(329), 11, muted);
+        String[] serviceKeys = {"latency", "errorRate", "rps"};
+        float serviceWidth = (r.width() - dp(24)) / 3;
+        for (int i = 0; i < serviceKeys.length; i++) {
+          String key = serviceKeys[i];
+          RectF cell =
+              new RectF(
+                  r.left + dp(12) + i * serviceWidth,
+                  r.top,
+                  r.left + dp(12) + (i + 1) * serviceWidth,
+                  r.bottom);
+          monitorText(c, serviceLabel(data, key), cell, r.top + dp(326), 10, muted);
+          monitorNumber(
+              c,
+              serviceNumber(data, key),
+              cell,
+              r.top + dp(352),
+              Math.min(22, base * .4f),
+              serviceInk(widget, key));
+          monitorText(
+              c,
+              key.equals("errorRate") ? "5xx / requests" : MonitorPresentation.serviceUnit(key),
+              cell,
+              r.top + dp(369),
+              9,
+              muted);
+          if (i > 0)
+            line(c, cell.left, r.top + dp(311), cell.left, r.top + dp(373), lineColor, dp(.5f));
+        }
+        monitorText(c, L10n.text("CPU 추이 · %"), r, r.top + dp(397), 11, muted);
         RectF plot =
-            new RectF(r.left + dp(43), r.top + dp(347), r.right - dp(20), r.bottom - dp(84));
+            new RectF(r.left + dp(43), r.top + dp(411), r.right - dp(20), r.bottom - dp(66));
         long to = data.optLong("capturedAt");
-        monitorPlotGrid(c, plot, to, 100);
-        monitorSeries(
-            c,
-            cpu == null ? null : cpu.optJSONArray("points"),
-            plot,
-            to - 3600000,
-            to,
-            100,
-            monitorLevel(widget, "cpu").equals("normal")
-                ? color("#8fb5e7")
-                : monitorColor(widget, "cpu"));
+        if (plot.height() > dp(32)) monitorPlotGrid(c, plot, to, 100);
+        if (plot.height() > dp(32))
+          monitorSeries(
+              c,
+              cpu == null ? null : cpu.optJSONArray("points"),
+              plot,
+              to - 3600000,
+              to,
+              100,
+              monitorLevel(widget, "cpu").equals("normal")
+                  ? color("#8fb5e7")
+                  : monitorColor(widget, "cpu"));
       } else {
         JSONObject database = data.optJSONObject("database");
         JSONArray nodes = database == null ? null : database.optJSONArray("nodes");
@@ -5739,10 +6323,21 @@ public class MainActivity extends Activity {
           server
               ? L10n.text("CPU 상세 보기 ›")
               : grafanaProject(widget).optString("label", L10n.text("프로젝트 선택")) + "   ▾",
-          r,
+          server ? new RectF(r.left, r.top, r.centerX(), r.bottom) : r,
           r.bottom - dp(21),
           13,
           muted);
+      if (server) {
+        int unread = monitorIncidentCount(grafanaProject(widget).optString("value"), true);
+        label(
+            c,
+            L10n.text("알림함") + (unread > 0 ? " " + unread : "") + " ›",
+            r.right - dp(20),
+            r.bottom - dp(21),
+            12,
+            unread > 0 ? color("#efbd73") : muted,
+            Paint.Align.RIGHT);
+      }
     }
 
     boolean widgetActive(JSONObject widget) {
@@ -6645,6 +7240,12 @@ public class MainActivity extends Activity {
             else if (type.equals("page")) navigate(w.optString("targetPage"));
             else if (type.equals("system")) systemDetails(w);
             else if (type.equals("grafana")) {
+              if (w.optString("metric").equals("system")
+                  && y > rects.get(downIndex).bottom - dp(51)
+                  && x > rects.get(downIndex).centerX()) {
+                monitorInbox(w);
+                return true;
+              }
               if ((!w.optString("metric").equals("system")
                       && y > rects.get(downIndex).bottom - dp(51))
                   || System.currentTimeMillis() - downAt > 650) grafanaChoose(w);

@@ -1,10 +1,19 @@
-import { t, tf, localizedObject, locale as uiLocale, translateError } from "./i18n.mjs";
+import {
+  t,
+  tf,
+  localizedObject,
+  locale as uiLocale,
+  translateError,
+} from "./i18n.mjs";
 export const monitorRuleNames = localizedObject({
   cpu: "CPU (%)",
   memory: "MEM (%)",
   tps: "TPS (커밋/초)",
   qps: "QPS (쿼리/초)",
   connections: "DB 연결 수",
+  latency: "응답 시간 (ms)",
+  errorRate: "5xx 오류율 (%)",
+  rps: "요청 수 (req/s)",
 });
 export function monitorSettings(widget) {
   const saved = widget.alerts || {};
@@ -13,6 +22,19 @@ export function monitorSettings(widget) {
     memory: { enabled: true, direction: "above", warning: 85, critical: 95 },
     tps: { enabled: false, direction: "above", warning: null, critical: null },
     qps: { enabled: false, direction: "above", warning: null, critical: null },
+    latency: {
+      enabled: false,
+      direction: "above",
+      warning: null,
+      critical: null,
+    },
+    errorRate: {
+      enabled: false,
+      direction: "above",
+      warning: null,
+      critical: null,
+    },
+    rps: { enabled: false, direction: "above", warning: null, critical: null },
     connections: {
       enabled: false,
       direction: "above",
@@ -24,8 +46,8 @@ export function monitorSettings(widget) {
     widget.type === "system"
       ? ["cpu", "memory"]
       : widget.metric === "system"
-        ? ["cpu"]
-        : Object.keys(defaults);
+        ? ["cpu", "latency", "errorRate", "rps"]
+        : ["cpu", "memory", "tps", "qps", "connections"];
   return {
     enabled: saved.enabled !== false,
     notify: saved.notify !== false,
@@ -76,7 +98,7 @@ export function validateMonitorSettings(widget) {
       !["above", "below"].includes(rule.direction)
     )
       throw Error(t("임계치 방향을 확인하세요."));
-    const upper = ["cpu", "memory"].includes(key) ? 100 : 1e12;
+    const upper = ["cpu", "memory", "errorRate"].includes(key) ? 100 : 1e12;
     const valid = (v) => Number.isFinite(v) && v >= 0 && v <= upper;
     if (
       [rule.warning, rule.critical].some((v) => v !== null && !valid(v)) ||

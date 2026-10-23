@@ -1,4 +1,10 @@
-import { t, tf, localizedObject, locale as uiLocale, translateError } from "./i18n.mjs";
+import {
+  t,
+  tf,
+  localizedObject,
+  locale as uiLocale,
+  translateError,
+} from "./i18n.mjs";
 import {
   ensureEditorUnlocked,
   showEditorLock,
@@ -6,7 +12,10 @@ import {
   startEditorLockMonitor,
 } from "./editor-lock.mjs";
 import { effectivePages } from "./profiles.mjs";
-import { createSettingsCenter, applyAppearanceVariables } from "./settings-ui.mjs";
+import {
+  createSettingsCenter,
+  applyAppearanceVariables,
+} from "./settings-ui.mjs";
 import {
   activeProfile,
   profilePages,
@@ -17,6 +26,7 @@ import {
 import { migrate, place, overlaps, themes } from "./layout.mjs";
 import { monitorPage } from "./monitor-layout.mjs";
 import { monitorSettings, monitorRuleNames } from "./monitor-rules.mjs";
+import { createMonitorInbox } from "./monitor-inbox.mjs";
 const $ = (s) => document.querySelector(s),
   uid = () => crypto.randomUUID();
 let config,
@@ -31,6 +41,7 @@ let config,
 const selectedWidgets = new Set();
 let widgetClipboard = [],
   styleClipboard;
+let hostConnected = false;
 let renderedWidgets = new Map(),
   renderedTheme = themes.midnight;
 const undo = [],
@@ -98,8 +109,7 @@ const n = (tag, text, cls) => {
   if (cls) e.className = cls;
   return e;
 };
-const editorLocale = () =>
-  uiLocale();
+const editorLocale = () => uiLocale();
 const editorHour12 = () => document.body.dataset.timeFormat === "12h";
 const page = () => config.pages.find((p) => p.id === pageId) || config.pages[0],
   widget = () => page().widgets.find((w) => w.id === selected);
@@ -114,7 +124,8 @@ async function api(url, method = "GET", body) {
     body: body ? JSON.stringify(body) : undefined,
   });
   const d = await r.json();
-  if (r.status === 401 && d.code === "ACCOUNT_LOGIN_REQUIRED") showAccountLogin();
+  if (r.status === 401 && d.code === "ACCOUNT_LOGIN_REQUIRED")
+    showAccountLogin();
   if (r.status === 423 && d.code !== "VAULT_LOCKED") showEditorLock();
   if (!r.ok) throw Error(translateError(d.error || r.statusText));
   return d;
@@ -304,7 +315,20 @@ function renderBoard() {
       } else if (["button", "page"].includes(w.type)) body.append(icon(w.icon));
       else if (w.type === "clock") body.append(n("div", "—", "clock"));
       else if (w.type === "gauges") body.append(n("div", "—", "gauges"));
-      else if (["system", "grafana"].includes(w.type))
+      else if (w.type === "grafana" && w.metric === "system") {
+        body.classList.add("grafana-system-preview");
+        body.append(n("small", "", "grafana-project"));
+        const primary = n("div", undefined, "grafana-primary");
+        primary.append(n("small", "CPU"), n("strong", "—"));
+        const services = n("div", undefined, "grafana-services");
+        for (const key of ["latency", "errorRate", "rps"]) {
+          const metric = n("div");
+          metric.dataset.metric = key;
+          metric.append(n("small"), n("strong", "—"));
+          services.append(metric);
+        }
+        body.append(primary, services, n("div", "—", "system-reading"));
+      } else if (["system", "grafana"].includes(w.type))
         body.append(n("div", "—", "system-reading"));
       else if (w.type === "timer") body.append(n("div", "25:00", "clock"));
       else if (w.type === "volume" || w.type === "slider") {
@@ -319,7 +343,9 @@ function renderBoard() {
       else if (["agenda", "inbox", "notification-feed"].includes(w.type))
         body.append(n("div", t("연결을 기다리고 있어요."), "os-reading"));
       else if (w.type === "todo")
-        body.append(n("div", t("할 일을 태블릿에서 추가하세요."), "todo-reading"));
+        body.append(
+          n("div", t("할 일을 태블릿에서 추가하세요."), "todo-reading"),
+        );
       else if (w.type === "graph") {
         const plot = n("div", undefined, "graph-bars");
         for (let i = 0; i < 40; i++) plot.append(n("i"));
@@ -432,7 +458,10 @@ function move(w, next) {
     next.y + next.h > p.rows ||
     p.widgets.some((x) => x.id !== w.id && overlaps(x, next))
   )
-    return notice(t("빈 공간에 배치하세요. 위젯은 서로 겹칠 수 없습니다."), true);
+    return notice(
+      t("빈 공간에 배치하세요. 위젯은 서로 겹칠 수 없습니다."),
+      true,
+    );
   change(() => Object.assign(w, next));
   if (selected) inspect();
 }
@@ -647,6 +676,62 @@ function updateLive() {
           : source?.status === "stale"
             ? t(" · 오래된 데이터")
             : "");
+      if (w.metric === "system") {
+        const visible = (key) =>
+          !disconnected &&
+          data?.status === "ready" &&
+          ["fresh", "delayed"].includes(data?.freshness?.[key]?.status);
+        c.querySelector(".grafana-project").textContent =
+          p?.label || t("프로젝트 선택");
+        c.querySelector(".grafana-primary strong").textContent =
+          visible("system") && Number.isFinite(data?.system?.value)
+            ? pct(data.system.value)
+            : "—";
+        const labels = {
+          latency:
+            data?.service?.latency?.aggregation === "p95"
+              ? t("P95 응답시간")
+              : data?.service?.latency?.aggregation === "mean"
+                ? t("평균 응답시간")
+                : t("응답 시간"),
+          errorRate: t("5xx 오류율"),
+          rps: t("요청/초"),
+        };
+        for (const key of ["latency", "errorRate", "rps"]) {
+          const metric = c.querySelector(`[data-metric="${key}"]`),
+            value = visible(key) ? data?.service?.[key]?.value : null;
+          metric.querySelector("small").textContent = labels[key];
+          metric.querySelector("strong").textContent = Number.isFinite(value)
+            ? value.toFixed(
+                key === "latency" ? 0 : key === "errorRate" ? 2 : 1,
+              ) + (key === "latency" ? " ms" : key === "errorRate" ? "%" : "")
+            : "—";
+          metric.classList.toggle(
+            "metric-stale",
+            disconnected ||
+              data?.status !== "ready" ||
+              ["delayed", "stale", "missing"].includes(
+                data?.freshness?.[key]?.status,
+              ),
+          );
+          metric.title = Number.isFinite(value) ? labels[key] : t("수집 없음");
+        }
+        c.querySelector(".system-reading").textContent =
+          (disconnected
+            ? t("연결 끊김 · 자동 재연결 중")
+            : data?.status !== "ready"
+              ? data?.message || t("지표 조회 대기")
+              : t("지표 수집 ") +
+                (data.collection?.healthy ?? 0) +
+                "/" +
+                (data.collection?.total ?? 0)) +
+          t("\n원본 수집 ") +
+          stamp +
+          (age == null ? "" : " · " + age + t("초 전")) +
+          (["delayed", "stale", "missing"].includes(source?.status)
+            ? t(" · 오래된 데이터")
+            : "");
+      }
       c.classList.toggle(
         "data-stale",
         disconnected ||
@@ -699,13 +784,20 @@ function updateLive() {
         if (!data) target.textContent = t("Jimin OS 연결을 기다리고 있어요.");
         else if (w.type === "inbox")
           target.textContent =
-            tf("새 업무 요청 {0} · 업데이트 {1}\n", data.counts.requests, data.counts.updates) +
+            tf(
+              "새 업무 요청 {0} · 업데이트 {1}\n",
+              data.counts.requests,
+              data.counts.updates,
+            ) +
             data.inbox
               .slice(0, 3)
               .map((x) => x.title)
               .join("\n");
         else if (w.type === "notification-feed")
-          target.textContent = tf("알림 {0}개", (state.notifications || []).length);
+          target.textContent = tf(
+            "알림 {0}개",
+            (state.notifications || []).length,
+          );
         else
           target.textContent =
             (data.events || [])
@@ -998,7 +1090,8 @@ function inspect() {
     button(box, w.image ? t("이미지 변경") : t("이미지 선택"), () =>
       upload((id) => change(() => (w.image = id))),
     );
-    if (w.image) button(box, t("이미지 제거"), () => change(() => delete w.image));
+    if (w.image)
+      button(box, t("이미지 제거"), () => change(() => delete w.image));
   }
   if (["calendar", "agenda", "inbox", "notification-feed"].includes(w.type))
     field(
@@ -1059,9 +1152,15 @@ function inspect() {
       (v) => edit("enabled", v),
       { type: "checkbox" },
     );
-    field(alertBox, t("태블릿 알림"), settings.notify, (v) => edit("notify", v), {
-      type: "checkbox",
-    });
+    field(
+      alertBox,
+      t("태블릿 알림"),
+      settings.notify,
+      (v) => edit("notify", v),
+      {
+        type: "checkbox",
+      },
+    );
     field(
       alertBox,
       t("지속 시간 (초)"),
@@ -1079,7 +1178,9 @@ function inspect() {
     alertBox.append(
       n(
         "p",
-        t("초록 정상 · 주황 주의 · 빨강 위험. 설정한 시간 이상 유지되면 알림을 보내고 정상 복구도 알려드려요."),
+        t(
+          "초록 정상 · 주황 주의 · 빨강 위험. 설정한 시간 이상 유지되면 알림을 보내고 정상 복구도 알려드려요.",
+        ),
       ),
     );
     for (const [key, rule] of Object.entries(settings.rules)) {
@@ -1093,9 +1194,15 @@ function inspect() {
           w.alerts.rules[key] ??= { ...rule };
           w.alerts.rules[key][name] = value;
         });
-      field(group, t("임계치 사용"), rule.enabled, (v) => setRule("enabled", v), {
-        type: "checkbox",
-      });
+      field(
+        group,
+        t("임계치 사용"),
+        rule.enabled,
+        (v) => setRule("enabled", v),
+        {
+          type: "checkbox",
+        },
+      );
       field(group, t("기준"), rule.direction, (v) => setRule("direction", v), {
         choices: { above: t("이상일 때"), below: t("이하일 때") },
       });
@@ -1129,7 +1236,9 @@ function inspect() {
       alertBox.append(
         n(
           "p",
-          t("TPS·QPS·연결 수는 임계치를 입력한 뒤 켜세요. 처리량 감소를 감지하려면 ‘이하일 때’를 선택하세요."),
+          t(
+            "TPS·QPS·연결 수는 임계치를 입력한 뒤 켜세요. 처리량 감소를 감지하려면 ‘이하일 때’를 선택하세요.",
+          ),
         ),
       );
   }
@@ -1149,9 +1258,15 @@ function inspect() {
     field(box, t("Grafana HTTPS 대시보드 주소"), w.url || "", (v) =>
       change(() => (w.url = v)),
     );
-    field(box, t("조회 토큰 사용"), !!w.auth, (v) => change(() => (w.auth = v)), {
-      type: "checkbox",
-    });
+    field(
+      box,
+      t("조회 토큰 사용"),
+      !!w.auth,
+      (v) => change(() => (w.auth = v)),
+      {
+        type: "checkbox",
+      },
+    );
     field(
       box,
       t("CPU 패널 ID"),
@@ -1166,6 +1281,29 @@ function inspect() {
       (v) => change(() => (w.tpsPanelId = v)),
       { type: "number", min: 1 },
     );
+    const serviceFields = n("details", undefined, "service-panel-settings");
+    serviceFields.append(n("summary", t("서비스 응답 지표")));
+    serviceFields.append(
+      n(
+        "p",
+        t(
+          "기존 대시보드 패널을 사용합니다. 사용하지 않는 항목은 0으로 설정하세요.",
+        ),
+      ),
+    );
+    for (const [key, label, defaultId] of [
+      ["latencyPanelId", t("응답시간 패널 ID"), 12],
+      ["errorRatePanelId", t("5xx 오류 패널 ID"), 13],
+      ["rpsPanelId", t("요청/초 패널 ID"), 11],
+    ])
+      field(
+        serviceFields,
+        label,
+        w[key] ?? defaultId,
+        (v) => change(() => (w[key] = v)),
+        { type: "number", min: 0 },
+      );
+    box.append(serviceFields);
     const token = n("input");
     token.type = "password";
     token.autocomplete = "off";
@@ -1230,11 +1368,17 @@ function inspect() {
     );
   }
   if (w.type === "timer")
-    field(box, t("타이머 (분)"), w.minutes, (v) => change(() => (w.minutes = v)), {
-      type: "number",
-      min: 1,
-      max: 1440,
-    });
+    field(
+      box,
+      t("타이머 (분)"),
+      w.minutes,
+      (v) => change(() => (w.minutes = v)),
+      {
+        type: "number",
+        min: 1,
+        max: 1440,
+      },
+    );
   if (w.type === "page")
     field(
       box,
@@ -1295,14 +1439,23 @@ function inspect() {
       [
         "labelPosition",
         t("글자 위치"),
-        { top: t("위"), center: t("가운데"), bottom: t("아래"), hidden: t("숨김") },
+        {
+          top: t("위"),
+          center: t("가운데"),
+          bottom: t("아래"),
+          hidden: t("숨김"),
+        },
       ],
       [
         "align",
         t("글자 정렬"),
         { left: t("왼쪽"), center: t("가운데"), right: t("오른쪽") },
       ],
-      ["font", t("글꼴"), { sans: t("기본"), mono: t("고정폭"), serif: t("세리프") }],
+      [
+        "font",
+        t("글꼴"),
+        { sans: t("기본"), mono: t("고정폭"), serif: t("세리프") },
+      ],
     ])
       field(
         style,
@@ -1496,18 +1649,23 @@ function renderActions() {
         a.actionId = v;
         changed();
       });
-      field(row, t("매개변수 (JSON)"), JSON.stringify(a.parameters || {}), (v) => {
-        try {
-          const parsed = JSON.parse(v);
-          if (!parsed || Array.isArray(parsed) || typeof parsed !== "object")
-            throw Error();
-          checkpoint();
-          a.parameters = parsed;
-          changed();
-        } catch {
-          notice(t("JSON 객체를 입력하세요."), true);
-        }
-      });
+      field(
+        row,
+        t("매개변수 (JSON)"),
+        JSON.stringify(a.parameters || {}),
+        (v) => {
+          try {
+            const parsed = JSON.parse(v);
+            if (!parsed || Array.isArray(parsed) || typeof parsed !== "object")
+              throw Error();
+            checkpoint();
+            a.parameters = parsed;
+            changed();
+          } catch {
+            notice(t("JSON 객체를 입력하세요."), true);
+          }
+        },
+      );
     }
     const actions = n("div", undefined, "two");
     row.append(actions);
@@ -1750,7 +1908,9 @@ function variables() {
         "text-muted",
       ),
     );
-    button(row, t("삭제"), () => change(() => delete config.variables[key], true));
+    button(row, t("삭제"), () =>
+      change(() => delete config.variables[key], true),
+    );
     box.append(row);
   }
 }
@@ -1892,7 +2052,8 @@ function renderPlugins() {
             : t("연결 후 확인")),
       ),
     );
-    if (rejected.length) row.append(n("p", t("미지원: ") + rejected.join(", ")));
+    if (rejected.length)
+      row.append(n("p", t("미지원: ") + rejected.join(", ")));
     for (const op of [p.enabled ? "stop" : "start", "remove"])
       button(
         row,
@@ -2094,21 +2255,22 @@ function automations() {
     );
     const days = n("div", undefined, "days");
     if (!a.trigger || a.trigger === "time") row.append(days);
-    [t("일"), t("월"), t("화"), t("수"), t("목"), t("금"), t("토")].forEach((d, i) =>
-      field(
-        days,
-        d,
-        !a.days || a.days.includes(i),
-        (on) => {
-          checkpoint();
-          a.days ??= [0, 1, 2, 3, 4, 5, 6];
-          a.days = on
-            ? [...new Set([...a.days, i])]
-            : a.days.filter((x) => x !== i);
-          changed();
-        },
-        { type: "checkbox" },
-      ),
+    [t("일"), t("월"), t("화"), t("수"), t("목"), t("금"), t("토")].forEach(
+      (d, i) =>
+        field(
+          days,
+          d,
+          !a.days || a.days.includes(i),
+          (on) => {
+            checkpoint();
+            a.days ??= [0, 1, 2, 3, 4, 5, 6];
+            a.days = on
+              ? [...new Set([...a.days, i])]
+              : a.days.filter((x) => x !== i);
+            changed();
+          },
+          { type: "checkbox" },
+        ),
     );
     button(row, t("삭제"), () =>
       change(
@@ -2133,7 +2295,9 @@ $("#rows").onchange = () => {
   const rows = Number($("#rows").value);
   if (page().widgets.some((w) => w.y + w.h > rows)) {
     notice(
-      t("위젯이 놓인 행은 제거할 수 없습니다. 먼저 이동하거나 자동 정렬하세요."),
+      t(
+        "위젯이 놓인 행은 제거할 수 없습니다. 먼저 이동하거나 자동 정렬하세요.",
+      ),
       true,
     );
     $("#rows").value = page().rows;
@@ -2148,18 +2312,26 @@ $("#pack").onclick = () =>
   );
 $("#orientation").onclick = () => {
   portrait = !portrait;
-  $("#orientation").textContent = portrait ? t("세로 미리보기") : t("가로 미리보기");
+  $("#orientation").textContent = portrait
+    ? t("세로 미리보기")
+    : t("가로 미리보기");
   $("#previewHint").textContent = portrait
     ? t("세로 배치는 자동으로 정렬됩니다. 가로 미리보기에서 위젯을 편집하세요.")
-    : t("드래그로 이동 · 오른쪽 아래 모서리로 크기 조절 · 방향키 이동 / Alt+방향키 크기 조절");
+    : t(
+        "드래그로 이동 · 오른쪽 아래 모서리로 크기 조절 · 방향키 이동 / Alt+방향키 크기 조절",
+      );
   renderBoard();
 };
 function renderPalette() {
   $("#palette").replaceChildren();
-  for (const type of Object.keys(names)) button($("#palette"), "+ " + names[type], () => addWidget(type));
+  for (const type of Object.keys(names))
+    button($("#palette"), "+ " + names[type], () => addWidget(type));
 }
 renderPalette();
-window.addEventListener("opendeck:languagechange", () => { renderPalette(); if (config && pageId) render(); });
+window.addEventListener("opendeck:languagechange", () => {
+  renderPalette();
+  if (config && pageId) render();
+});
 $("#addPage").onclick = () => {
   const name = prompt(t("페이지 이름"), t("새 페이지"));
   if (name) addPage(name);
@@ -2356,7 +2528,9 @@ $("#file").onchange = async () => {
       changed();
       render();
       notice(
-        t("프로필을 가져왔습니다. 자동화와 앱 자동 전환은 꺼진 상태로 시작합니다."),
+        t(
+          "프로필을 가져왔습니다. 자동화와 앱 자동 전환은 꺼진 상태로 시작합니다.",
+        ),
       );
       return;
     }
@@ -2434,6 +2608,15 @@ const settingsCenter = createSettingsCenter({
   exportFile,
 });
 $("#settingsToggle").onclick = () => settingsCenter.open();
+const monitorInbox = createMonitorInbox({
+  api,
+  getSnapshot: () => state,
+  notify: notice,
+  isConnected: () =>
+    hostConnected && !!state.at && Date.now() - state.at < 8000,
+});
+document.body.append(monitorInbox.element);
+$("#monitorInboxToggle").onclick = () => monitorInbox.open();
 try {
   await ensureEditorUnlocked();
   startEditorLockMonitor();
@@ -2447,6 +2630,7 @@ try {
   render();
   const events = new EventSource("/api/events");
   events.onopen = () => {
+    hostConnected = true;
     if ($("#notice").textContent === t("맥 호스트 연결을 기다리는 중입니다."))
       notice(dirty ? t("저장하지 않은 변경") : t("다시 연결됨"));
   };
@@ -2454,6 +2638,10 @@ try {
     const snapshot = JSON.parse(e.data);
     settingsCenter.receiveSnapshot(snapshot);
     state = snapshot.state;
+    monitorInbox.update(state);
+    const unread = state.monitoring?.inbox?.unacknowledgedCount || 0;
+    $("#monitorInboxToggle").textContent =
+      t("운영 알림함") + (unread ? ` · ${unread}` : "");
     applyAppearanceVariables(state.variables);
     if (
       snapshot.config &&
@@ -2474,7 +2662,11 @@ try {
     updateLive();
     updateEcosystemStatus();
   });
-  events.onerror = () => notice(t("맥 호스트 연결을 기다리는 중입니다."), true);
+  events.onerror = () => {
+    hostConnected = false;
+    monitorInbox.update(state);
+    notice(t("맥 호스트 연결을 기다리는 중입니다."), true);
+  };
 } catch (e) {
   notice(e.message, true);
 }
@@ -2491,7 +2683,9 @@ function updateEcosystemStatus() {
           new Date(p.data.updatedAt).toLocaleTimeString(editorLocale()) +
           t(" 수집 · 자동으로 다시 연결하고 있어요.")
         : p?.enabled
-          ? t("자동으로 다시 연결하고 있어요. 맥에서 Jimin OS 앱과 로그인을 확인해 주세요.")
+          ? t(
+              "자동으로 다시 연결하고 있어요. 맥에서 Jimin OS 앱과 로그인을 확인해 주세요.",
+            )
           : t("연결 전");
 }
 function renderEcosystem() {
@@ -2559,7 +2753,10 @@ function renderEcosystem() {
 }
 
 setInterval(() => {
-  if (config && !document.hidden) updateLive();
+  if (config && !document.hidden) {
+    updateLive();
+    monitorInbox.update(state);
+  }
 }, 5000);
 
 function renderProfiles() {
@@ -2623,7 +2820,9 @@ function profileManager() {
     title,
     n(
       "p",
-      t("프로필마다 페이지 구성을 분리하고, 태블릿의 시작 프로필을 지정할 수 있어요."),
+      t(
+        "프로필마다 페이지 구성을 분리하고, 태블릿의 시작 프로필을 지정할 수 있어요.",
+      ),
     ),
   );
   const body = n("div");
@@ -2750,7 +2949,9 @@ function profileManager() {
           row,
           t("프로필 삭제 · 페이지 보존"),
           () => {
-            if (!confirm(t("프로필을 삭제하고 페이지를 다른 프로필로 옮길까요?")))
+            if (
+              !confirm(t("프로필을 삭제하고 페이지를 다른 프로필로 옮길까요?"))
+            )
               return;
             change(() => {
               const target = config.profiles.find((p) => p.id !== profile.id);
@@ -2891,7 +3092,8 @@ $("#moveWidgets").onclick = () => {
   const ids = selectedIds();
   if (!ids.size) return;
   const choices = config.pages.filter((p) => p.id !== pageId);
-  if (!choices.length) return notice(t("이동할 페이지를 먼저 추가하세요."), true);
+  if (!choices.length)
+    return notice(t("이동할 페이지를 먼저 추가하세요."), true);
   const dialog = n("dialog", undefined, "profile-dialog");
   dialog.append(n("h2", t("선택한 위젯 이동")));
   let targetId = choices[0].id;

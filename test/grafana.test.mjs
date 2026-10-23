@@ -11,9 +11,10 @@ import {
   grafanaSecretId,
   sourceTimestampQuery,
   freshnessStatus,
+  grafanaServicePlan,
 } from "../host/grafana.mjs";
 import { createHost, deviceConfig } from "../host/server.mjs";
-import { defaultConfig } from "../host/config.mjs";
+import { defaultConfig, validateConfig } from "../host/config.mjs";
 const now = 1792627861000;
 const frame = (name, values, labels = {}) => ({
   schema: {
@@ -69,6 +70,243 @@ const settle = async (predicate) => {
   }
   throw Error("Timed out");
 };
+const countExpr = 'sum by (job) (rate(http_server_requests_seconds_count{namespace="${project}"}[5m]))';
+const sumExpr = 'sum by (job) (rate(http_server_requests_seconds_sum{namespace="${project}"}[5m]))';
+const errorExpr = 'sum by (job) (rate(http_server_requests_seconds_count{namespace="${project}",status=~"5.."}[5m]))';
+const servicePanels = () => [
+  { id: 11, title: "HTTP requests", datasource: { uid: "mimir", type: "prometheus" }, fieldConfig: { defaults: { unit: "reqps" } }, targets: [{ expr: countExpr }] },
+  { id: 12, title: "HTTP mean latency", datasource: { uid: "mimir", type: "prometheus" }, fieldConfig: { defaults: { unit: "s" } }, targets: [{ expr: `${sumExpr} / ${countExpr}` }] },
+  { id: 13, title: "HTTP 5xx/s", datasource: { uid: "mimir", type: "prometheus" }, fieldConfig: { defaults: { unit: "reqps" } }, targets: [{ expr: errorExpr }] },
+];
+const serviceResponse = () => {
+  const raw = response();
+  raw.results.J = { frames: [frame("Value", [.1, .2, .1], { job: "api" }), frame("Value", [.4, .4, .4], { job: "web" })] };
+  raw.results.K = { frames: [frame("Value", [1, 2, 1], { job: "api" }), frame("Value", [3, 3, 3], { job: "web" })] };
+  // Deliberately reverse query frame order; joining by index would be wrong.
+  raw.results.L = { frames: [frame("Value", [30, 30, 30], { job: "web" }), frame("Value", [10, 10, 10], { job: "api" })] };
+  for (const ref of ["TJ", "TK", "TL"]) raw.results[ref] = { frames: [frame("scrape", Array(3).fill((now - 15000) / 1000))] };
+  return raw;
+};
+const parseService = (raw = serviceResponse(), panels = servicePanels()) =>
+  parseGrafanaMetrics(raw, now, grafanaServicePlan(panels).metrics);
+
+test("service mean latency is request-weighted milliseconds, 5xx is percent, and job/time joins ignore frame order", () => {
+  const data = parseService();
+  assert.equal(data.service.latency.value, 325);
+  assert.equal(data.service.latency.aggregation, "mean");
+  assert.equal(data.service.latency.unit, "ms");
+  assert.deepEqual(data.service.latency.points, [[now - 120000, 325], [now - 60000, 350], [now, 325]]);
+  assert.equal(data.service.errorRate.value, 10);
+  assert.equal(data.service.errorRate.unit, "percent");
+  assert.equal(data.service.rps.value, 40);
+  assert.equal(data.service.rps.unit, "req/s");
+  assert.equal(data.freshness.latency.sampleAt, now - 15000);
+  assert.equal(data.cpu.value, 40);
+  assert.equal(data.tps.value, 0);
+});
+
+test("missing 5xx is unknown, observed zero is zero, and zero total requests never invents latency or an error percentage", () => {
+  const raw = serviceResponse();
+  raw.results.K.frames = [];
+  assert.equal(parseService(raw).service.errorRate.value, null);
+  raw.results.K = { frames: [frame("Value", [0, 0, 0], { job: "api" }), frame("Value", [0, 0, 0], { job: "web" })] };
+  assert.equal(parseService(raw).service.errorRate.value, 0);
+  for (const frame of raw.results.L.frames) frame.data.values[1] = [0, 0, 0];
+  const data = parseService(raw);
+  assert.equal(data.service.rps.value, 0);
+  assert.equal(data.service.latency.value, null);
+  assert.equal(data.service.errorRate.value, null);
+});
+
+test("partial jobs, duplicate jobs, and missing latest points are not published as complete service aggregates", () => {
+  let raw = serviceResponse();
+  raw.results.K.frames.pop();
+  assert.equal(parseService(raw).service.errorRate.value, null);
+  raw = serviceResponse();
+  raw.results.J.frames[1].data.values[0][2] -= 1000;
+  const skewed = parseService(raw).service.latency;
+  assert.equal(skewed.value, null);
+  assert.equal(skewed.at, null);
+  assert.equal(skewed.points.length, 2);
+  raw = serviceResponse();
+  raw.results.J.frames[0].data.values[1][2] = null;
+  assert.equal(parseService(raw).service.latency.value, null);
+  raw = serviceResponse();
+  raw.results.L.frames.push(structuredClone(raw.results.L.frames[0]));
+  const duplicate = parseService(raw);
+  assert.equal(duplicate.service.rps.value, null);
+  assert.equal(duplicate.service.latency.value, null);
+  assert.equal(duplicate.service.errorRate.value, null);
+});
+
+test("service source freshness includes every contributing counter and never substitutes an evaluation timestamp", () => {
+  const raw = serviceResponse();
+  raw.results.TJ.frames[0].data.values[1] = Array(3).fill((now - 301000) / 1000);
+  let data = parseService(raw);
+  assert.equal(data.service.latency.value, null);
+  assert.equal(data.service.latency.reason, "stale");
+  assert.equal(data.freshness.latency.sampleAt, now - 301000);
+  assert.equal(data.service.rps.value, 40);
+  delete raw.results.TJ;
+  data = parseService(raw);
+  assert.equal(data.service.latency.value, null);
+  assert.equal(data.freshness.latency.kind, "unavailable");
+  raw.results.TL.frames[0].data.values[1] = Array(3).fill((now - 100000) / 1000);
+  data = parseService(raw);
+  assert.equal(data.freshness.errorRate.sampleAt, now - 100000);
+  assert.equal(freshnessStatus(data.freshness.errorRate.sampleAt, now, 90000, 300000), "delayed");
+});
+
+test("explicit percentage panels are weighted once and ambiguous units/counts/percentages are rejected", () => {
+  const panels = servicePanels(), raw = serviceResponse();
+  panels[2].targets[0].expr = `${errorExpr} / ${countExpr}`;
+  panels[2].fieldConfig.defaults.unit = "percentunit";
+  raw.results.K.frames[0].data.values[1] = [.1, .1, .1];
+  raw.results.K.frames[1].data.values[1] = [.2, .2, .2];
+  assert.equal(parseService(raw, panels).service.errorRate.value, 17.5);
+  panels[2].targets[0].expr = `100 * (${errorExpr} / ${countExpr})`;
+  panels[2].fieldConfig.defaults.unit = "percent";
+  raw.results.K.frames[0].data.values[1] = [10, 10, 10];
+  raw.results.K.frames[1].data.values[1] = [20, 20, 20];
+  assert.equal(parseService(raw, panels).service.errorRate.value, 17.5);
+  raw.results.K.frames[0].data.values[1][2] = 101;
+  assert.equal(parseService(raw, panels).service.errorRate.value, null);
+  panels[2].targets[0].expr = errorExpr;
+  assert.equal(grafanaServicePlan(panels).metrics.errorRate, undefined);
+  panels[2].fieldConfig.defaults.unit = "reqps";
+  panels[2].targets[0].expr = errorExpr.replace('status=~"5.."', 'status=~"4.."');
+  assert.equal(grafanaServicePlan(panels).metrics.errorRate, undefined);
+});
+
+test("P95 requires an actual 0.95 histogram quantile and a single aggregate; per-job percentiles are never summed or averaged", () => {
+  const panels = servicePanels(), raw = serviceResponse();
+  panels[1].title = "P95";
+  assert.equal(grafanaServicePlan(panels).metrics.latency.aggregation, "mean");
+  panels[1].targets[0].expr = 'histogram_quantile(0.95, sum by (le) (rate(http_server_requests_seconds_bucket{namespace="${project}"}[5m])))';
+  raw.results.J.frames = [frame("Value", [.1, .1, .1])];
+  let data = parseService(raw, panels);
+  assert.equal(data.service.latency.aggregation, "p95");
+  assert.equal(data.service.latency.value, 100);
+  panels[1].targets[0].expr = panels[1].targets[0].expr.replace("by (le)", "by (job, le)");
+  raw.results.J = serviceResponse().results.J;
+  data = parseService(raw, panels);
+  assert.equal(data.service.latency.value, null);
+  assert.equal(data.service.latency.reason, "ambiguous");
+  panels[1].targets[0].expr = panels[1].targets[0].expr.replace("0.95", "0.99");
+  assert.equal(grafanaServicePlan(panels).metrics.latency, undefined);
+});
+
+test("service panels require matching source scopes and one visible target; unknown panels stay optional", () => {
+  let panels = servicePanels();
+  panels[1].targets[0].expr = panels[1].targets[0].expr.replaceAll("[5m]", "[1m]");
+  assert.equal(grafanaServicePlan(panels).metrics.latency, undefined);
+  panels = servicePanels();
+  panels[2].datasource.uid = "other";
+  assert.equal(grafanaServicePlan(panels).metrics.errorRate, undefined);
+  panels = servicePanels();
+  panels[2].targets[0].expr = panels[2].targets[0].expr.replace("${project}", "other-project");
+  assert.equal(grafanaServicePlan(panels).metrics.errorRate, undefined);
+  panels = servicePanels();
+  panels[1].targets.push({ expr: "up" });
+  assert.equal(grafanaServicePlan(panels).metrics.latency, undefined);
+  panels[1].targets[1].hide = true;
+  assert.equal(grafanaServicePlan(panels).metrics.latency.aggregation, "mean");
+  panels[1].fieldConfig.overrides = [{ properties: [{ id: "unit", value: "ms" }] }];
+  assert.equal(grafanaServicePlan(panels).metrics.latency, undefined);
+  assert.deepEqual(grafanaServicePlan(servicePanels(), { latencyPanelId: 0, errorRatePanelId: 0, rpsPanelId: 0 }).selected, []);
+});
+
+test("malformed or over-limit optional frames do not hide valid CPU/DB metrics or publish truncated service totals", () => {
+  for (const frames of [{ unexpected: true }, Array(65).fill(frame("Value", [1, 1, 1], { job: "api" })), [{ schema: { fields: {} } }]]) {
+    const raw = serviceResponse();
+    raw.results.J.frames = frames;
+    const data = parseService(raw);
+    assert.equal(data.service.latency.value, null);
+    assert.equal(data.cpu.value, 40);
+    assert.equal(data.tps.value, 0);
+  }
+  const panels = servicePanels();
+  panels[1].targets = { invalid: true };
+  assert.equal(grafanaServicePlan(panels).metrics.latency, undefined);
+});
+
+test("service panel IDs validate bounded integers including explicit disable and preserve other Grafana settings", () => {
+  const config = defaultConfig();
+  config.pages.push({ id: "service-metrics", name: "Service", columns: 2, rows: 2, widgets: [
+    { ...widget(), label: "Service", x: 0, y: 0, w: 2, h: 2, latencyPanelId: 12, errorRatePanelId: 13, rpsPanelId: 11 },
+  ] });
+  assert.equal(validateConfig(config).pages.at(-1).widgets[0].latencyPanelId, 12);
+  for (const key of ["latencyPanelId", "errorRatePanelId", "rpsPanelId"]) {
+    config.pages.at(-1).widgets[0][key] = 0;
+    validateConfig(config);
+    for (const value of [-1, 1.2, 100001, "12", null]) {
+      config.pages.at(-1).widgets[0][key] = value;
+      assert.throws(() => validateConfig(config));
+    }
+    config.pages.at(-1).widgets[0][key] = 12;
+  }
+});
+
+test("service collection reuses project queries, substitutes project variables, and isolates different optional panel selections", async (t) => {
+  const base = { ...widget(), projects: [{ label: "A", value: "alpha" }] };
+  const other = { ...base, id: "system", metric: "system" };
+  const config = { pages: [{ widgets: [base, other] }] }, posts = [];
+  const monitor = new GrafanaMonitor(() => config, () => {}, {
+    clock: () => now, secret: async () => "TOKEN",
+    fetcher: async (url, init) => {
+      if (url.includes("dashboards")) return Response.json({ dashboard: { panels: [...dashboard.panels, ...servicePanels()] } });
+      const body = JSON.parse(init.body); posts.push(body);
+      return Response.json(serviceResponse());
+    },
+  });
+  t.after(() => monitor.close());
+  monitor.tick();
+  await settle(() => monitor.active === 0);
+  assert.equal(posts.length, 1);
+  for (const ref of ["J", "K", "L", "TJ", "TK", "TL"]) assert.ok(posts[0].queries.some((query) => query.refId === ref));
+  assert.equal(JSON.stringify(posts).includes("${project}"), false);
+  assert.match(posts[0].queries.find((query) => query.refId === "TJ").expr, /and on\(\)/);
+  assert.equal(monitor.state().widgets.system.projects.alpha.service.latency.value, 325);
+  other.latencyPanelId = 0;
+  monitor.tick();
+  await settle(() => monitor.active === 0);
+  assert.equal(posts.length, 2);
+  assert.equal(posts[1].queries.some((query) => query.refId === "J"), false);
+  assert.equal(monitor.state().widgets.system.projects.alpha.service.latency.value, null);
+  assert.equal(monitor.state().widgets.db.projects.alpha.service.latency.value, 325);
+});
+
+test("HTTP 400 mixed query batches keep valid CPU/DB data while optional errors remain unknown; core failures still fail", async (t) => {
+  const w = { ...widget(), projects: [{ value: "alpha", label: "A" }] };
+  let time = now, coreFailure = false;
+  const monitor = new GrafanaMonitor(() => ({ pages: [{ widgets: [w] }] }), () => {}, {
+    clock: () => time, secret: async () => "PRIVATE_TOKEN",
+    fetcher: async (url) => {
+      if (url.includes("dashboards")) return Response.json({ dashboard: { panels: [...dashboard.panels, ...servicePanels()] } });
+      const raw = serviceResponse();
+      raw.results.J = { status: 400, error: "PRIVATE_INTERNAL_QUERY_ERROR" };
+      if (coreFailure) raw.results.B = { status: 400, error: "PRIVATE_CORE_ERROR" };
+      return Response.json(raw, { status: 400 });
+    },
+  });
+  t.after(() => monitor.close());
+  monitor.tick();
+  await settle(() => monitor.active === 0);
+  let state = monitor.state().widgets.db.projects.alpha;
+  assert.equal(state.status, "ready");
+  assert.equal(state.cpu.value, 40);
+  assert.equal(state.tps.value, 0);
+  assert.equal(state.service.latency.value, null);
+  assert.equal(state.service.errorRate.value, 10);
+  assert.equal(state.service.rps.value, 40);
+  coreFailure = true; time += 30001;
+  monitor.tick();
+  await settle(() => monitor.active === 0);
+  state = monitor.state().widgets.db.projects.alpha;
+  assert.equal(state.status, "error");
+  assert.equal(state.cpu.value, 40);
+  assert.equal(JSON.stringify(state).includes("PRIVATE"), false);
+});
 test("freshness uses source scrape timestamps rather than query evaluation time and cannot invent unavailable times", () => {
   const raw = response();
   raw.results.TB = {
@@ -103,13 +341,14 @@ test("freshness uses source scrape timestamps rather than query evaluation time 
   );
   assert.equal(query.expr, 'min(timestamp(commits{namespace="alpha"}))');
   assert.equal(query.instant, true);
-  assert.equal(
-    sourceTimestampQuery(
+  const combined = sourceTimestampQuery(
       { datasource: { type: "prometheus" }, expr: 'a{x="y"} + b{x="y"}' },
       "T",
-    ),
-    null,
   );
+  assert.match(combined.expr, /min\(label_replace\(min\(timestamp\(a\{x="y"\}\)\)/);
+  assert.match(combined.expr, /or label_replace\(min\(timestamp\(b\{x="y"\}\)\)/);
+  assert.ok(combined.expr.endsWith('and on() (min(timestamp(a{x="y"})) and on() min(timestamp(b{x="y"})))'));
+  assert.equal(sourceTimestampQuery({ datasource: { type: "prometheus" }, expr: Array.from({ length: 9 }, (_, i) => `m${i}{job="a"}`).join("+") }, "T"), null);
 });
 test("wake recovery supersedes in-flight queries and late old results cannot consume slots or overwrite fresh data", async (t) => {
   const w = { ...widget(), projects: [{ value: "alpha", label: "A" }] };

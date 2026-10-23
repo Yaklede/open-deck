@@ -6,7 +6,7 @@ A local macro deck with a **macOS host and a native Android app**. Build your co
 
 ![Native monitor page on Android](assets/screenshots/monitor.png)
 
-> Version 0.8.5 is a working USB + encrypted Wi-Fi alpha for Apple Silicon Macs (macOS 13+) and Android 8+. It implements the core desk-control workflow; it does not claim full feature or plugin compatibility with Macro Deck or Touch Portal.
+> Version 0.11.0 supports USB + encrypted Wi-Fi on Apple Silicon Macs (macOS 13+) and Android 8+. It implements the core desk-control workflow; it does not claim full feature or plugin compatibility with Macro Deck or Touch Portal.
 
 ## Download
 
@@ -29,6 +29,8 @@ The macOS download is an ad-hoc signed developer build, not Apple notarized. You
 | Live widgets                         | CPU/memory, clock, timer, volume, text, toggle, slider, graph, monthly calendar, todos and images |
 | Mac system monitor                   | Per-core CPU, memory pressure/compression/swap, storage and I/O, network, power/thermal state and top apps |
 | Grafana                              | Native system CPU, collection and DB status cards, CPU/MEM/TPS/QPS, actual GiB, configurable risk colors/tablet alerts and shared project selection |
+| Service health                       | Response time, 5xx error percentage and RPS below the primary CPU readout, with native history charts |
+| Monitoring inbox                     | Project-grouped incidents, acknowledge, 30-minute snooze/resume and persistent recovery history on Mac and Android |
 | Pairing                              | Expiring single-use PIN, per-device scoped tokens, device revocation                              |
 | Backup                               | Deck JSON with image assets; theme presets                                                        |
 | HTTP connectors                      | GET polling, manual webhooks, scalar JSON binding, Keychain Bearer tokens                         |

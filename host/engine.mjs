@@ -37,7 +37,7 @@ export function command(executable, args, timeout = 3000) {
   });
 }
 export class Engine {
-  constructor(config, onChange = () => {}, runner = command) {
+  constructor(config, onChange = () => {}, runner = command, options = {}) {
     this.config = config;
     this.onChange = onChange;
     this.runner = runner;
@@ -54,7 +54,7 @@ export class Engine {
     this.todos = {};
     this.history = { cpu: [], memory: [] };
     this.integrations = {};
-    this.monitorAlerts = new MonitorAlerts();
+    this.monitorAlerts = new MonitorAlerts(options);
     this.navigation = null;
     this.volumeWrite = Promise.resolve();
     this.volumeRevision = 0;

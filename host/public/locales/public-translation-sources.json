@@ -7942,5 +7942,447 @@
       "host/public/app.js",
       "host/extensions.mjs"
     ]
+  },
+  {
+    "source": "{0} · 모니터",
+    "files": [
+      "host/monitor-alerts.mjs"
+    ]
+  },
+  {
+    "source": "30분 알림 중지",
+    "files": [
+      "host/public/monitor-inbox.mjs"
+    ],
+    "english": "Snoozed for 30 minutes"
+  },
+  {
+    "source": "30분간 알림 중지",
+    "files": [
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
+    "source": "5xx 오류 패널 ID",
+    "files": [
+      "host/public/app.js"
+    ]
+  },
+  {
+    "source": "5xx 오류율",
+    "files": [
+      "host/public/app.js",
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
+    "source": "5xx 오류율 (%)",
+    "files": [
+      "host/public/monitor-rules.mjs"
+    ]
+  },
+  {
+    "source": "DB 준비 상태",
+    "files": [
+      "host/monitor-alerts.mjs"
+    ]
+  },
+  {
+    "source": "P95 응답",
+    "files": [
+      "android/app/src/main/java/app/opendeck/client/MonitorPresentation.java"
+    ]
+  },
+  {
+    "source": "P95 응답시간",
+    "files": [
+      "host/public/app.js"
+    ]
+  },
+  {
+    "source": "경고 발생",
+    "files": [
+      "host/public/monitor-inbox.mjs"
+    ],
+    "english": "Alert started"
+  },
+  {
+    "source": "기기 설정 요청 객체가 필요합니다.",
+    "files": [
+      "host/server.mjs"
+    ]
+  },
+  {
+    "source": "기존 대시보드 패널을 사용합니다. 사용하지 않는 항목은 0으로 설정하세요.",
+    "files": [
+      "host/public/app.js"
+    ]
+  },
+  {
+    "source": "마지막 경고를 유지하고 있습니다. 새 정상 데이터가 확인되면 복구로 처리합니다.",
+    "files": [
+      "host/public/monitor-inbox.mjs"
+    ],
+    "english": "Keeping the last warning. Recovery requires fresh healthy data."
+  },
+  {
+    "source": "모든 프로젝트",
+    "files": [
+      "host/public/monitor-inbox.mjs"
+    ],
+    "english": "All projects"
+  },
+  {
+    "source": "발생 횟수",
+    "files": [
+      "host/public/monitor-inbox.mjs"
+    ],
+    "english": "Occurrences"
+  },
+  {
+    "source": "복구",
+    "files": [
+      "host/public/monitor-inbox.mjs"
+    ],
+    "english": "Recovered"
+  },
+  {
+    "source": "복구 이력",
+    "files": [
+      "host/public/monitor-inbox.mjs",
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
+    "source": "복구 이력이 없어요.",
+    "files": [
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
+    "source": "복구됨",
+    "files": [
+      "host/public/monitor-inbox.mjs",
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ],
+    "english": "Resolved"
+  },
+  {
+    "source": "서비스 응답 지표",
+    "files": [
+      "host/public/app.js"
+    ]
+  },
+  {
+    "source": "수집 지연 · 마지막 상태 유지",
+    "files": [
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
+    "source": "알림 상세",
+    "files": [
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
+    "source": "알림 일시 중지",
+    "files": [
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
+    "source": "알림 재개",
+    "files": [
+      "host/public/monitor-inbox.mjs",
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ],
+    "english": "Alerts resumed"
+  },
+  {
+    "source": "알림 중지",
+    "files": [
+      "host/public/monitor-inbox.mjs"
+    ],
+    "english": "Snoozed"
+  },
+  {
+    "source": "알림 처리 작업을 확인하세요.",
+    "files": [
+      "host/monitor-alerts.mjs"
+    ]
+  },
+  {
+    "source": "알림 처리를 저장했어요.",
+    "files": [
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
+    "source": "알림 처리함",
+    "files": [
+      "host/public/monitor-inbox.mjs"
+    ],
+    "english": "Alert inbox"
+  },
+  {
+    "source": "알림 테스트",
+    "files": [
+      "host/monitor-alerts.mjs",
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
+    "source": "알림 테스트 작업을 확인하세요.",
+    "files": [
+      "host/monitor-alerts.mjs",
+      "host/server.mjs"
+    ]
+  },
+  {
+    "source": "알림 확인",
+    "files": [
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
+    "source": "알림을 찾을 수 없습니다.",
+    "files": [
+      "host/monitor-alerts.mjs"
+    ]
+  },
+  {
+    "source": "알림함",
+    "files": [
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
+    "source": "연결이 복구되면 알림을 처리할 수 있어요.",
+    "files": [
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
+    "source": "요청 수 (req/s)",
+    "files": [
+      "host/public/monitor-rules.mjs"
+    ]
+  },
+  {
+    "source": "요청/초",
+    "files": [
+      "host/public/app.js"
+    ]
+  },
+  {
+    "source": "요청/초 패널 ID",
+    "files": [
+      "host/public/app.js"
+    ]
+  },
+  {
+    "source": "요청을 완료하지 못했습니다.",
+    "files": [
+      "host/public/monitor-inbox.mjs"
+    ],
+    "english": "Could not complete the request."
+  },
+  {
+    "source": "운영 알림함",
+    "files": [
+      "host/public/app.js",
+      "host/public/index.html"
+    ]
+  },
+  {
+    "source": "응답 시간",
+    "files": [
+      "host/public/app.js",
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java",
+      "android/app/src/main/java/app/opendeck/client/MonitorPresentation.java"
+    ]
+  },
+  {
+    "source": "응답 시간 (ms)",
+    "files": [
+      "host/public/monitor-rules.mjs"
+    ]
+  },
+  {
+    "source": "응답시간 패널 ID",
+    "files": [
+      "host/public/app.js"
+    ]
+  },
+  {
+    "source": "이미 복구된 알림입니다.",
+    "files": [
+      "host/monitor-alerts.mjs"
+    ]
+  },
+  {
+    "source": "임계치 알림 테스트입니다. 실제 장애 알림이 아닙니다.",
+    "files": [
+      "host/monitor-alerts.mjs"
+    ]
+  },
+  {
+    "source": "임계치 초과",
+    "files": [
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
+    "source": "저장했습니다.",
+    "files": [
+      "host/public/monitor-inbox.mjs"
+    ],
+    "english": "Saved."
+  },
+  {
+    "source": "전체",
+    "files": [
+      "host/public/monitor-inbox.mjs"
+    ]
+  },
+  {
+    "source": "지표 수집 ",
+    "files": [
+      "host/public/app.js"
+    ]
+  },
+  {
+    "source": "지표 수집 상태",
+    "files": [
+      "host/monitor-alerts.mjs"
+    ]
+  },
+  {
+    "source": "진행 중",
+    "files": [
+      "host/public/monitor-inbox.mjs",
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ],
+    "english": "Active"
+  },
+  {
+    "source": "처리 결과를 확인하지 못했어요. 다시 연결한 뒤 확인해 주세요.",
+    "files": [
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
+    "source": "처리 이력",
+    "files": [
+      "host/public/monitor-inbox.mjs",
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ],
+    "english": "Timeline"
+  },
+  {
+    "source": "최근 확인",
+    "files": [
+      "host/public/monitor-inbox.mjs"
+    ],
+    "english": "Last seen"
+  },
+  {
+    "source": "최초 발생",
+    "files": [
+      "host/public/monitor-inbox.mjs"
+    ],
+    "english": "First seen"
+  },
+  {
+    "source": "테스트",
+    "files": [
+      "host/public/monitor-inbox.mjs"
+    ],
+    "english": "Test"
+  },
+  {
+    "source": "평균 응답",
+    "files": [
+      "android/app/src/main/java/app/opendeck/client/MonitorPresentation.java"
+    ]
+  },
+  {
+    "source": "평균 응답시간",
+    "files": [
+      "host/public/app.js"
+    ]
+  },
+  {
+    "source": "표시할 알림이 없습니다.",
+    "files": [
+      "host/public/monitor-inbox.mjs"
+    ],
+    "english": "No alerts to show."
+  },
+  {
+    "source": "현재 진행 중인 알림이 없어요.",
+    "files": [
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
+    "source": "현재 프로젝트에서 알림을 찾을 수 없어요.",
+    "files": [
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
+    "source": "현재 프로젝트의 알림만 표시합니다.",
+    "files": [
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
+    "source": "확인 전",
+    "files": [
+      "host/public/monitor-inbox.mjs"
+    ],
+    "english": "Unacknowledged"
+  },
+  {
+    "source": "확인됨",
+    "files": [
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
+    "source": "확인함",
+    "files": [
+      "host/public/monitor-inbox.mjs"
+    ],
+    "english": "Acknowledged"
+  },
+  {
+    "source": "회 발생",
+    "files": [
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
+    "source": "활성 알림이 너무 많습니다. 복구된 뒤 다시 시도하세요.",
+    "files": [
+      "host/monitor-alerts.mjs"
+    ],
+    "english": "There are too many active alerts. Try again after some have recovered."
+  },
+  {
+    "source": "알림 이력을 저장하지 못했습니다. 디스크 상태를 확인하세요.",
+    "files": [
+      "host/public/monitor-inbox.mjs",
+      "host/monitor-alerts.mjs"
+    ],
+    "english": "Could not save alert history. Check disk availability."
+  },
+  {
+    "source": "태블릿 연결이 필요합니다.",
+    "files": [
+      "host/server.mjs"
+    ]
   }
 ]

@@ -26,6 +26,27 @@ The Android app renders Grafana values and trends directly with Canvas. It does 
 
 Grafana detail dialogs also put the metric summary beside its native one-hour chart. The monitor and detail views contain no embedded webpage.
 
+### Service health
+
+System CPU remains the largest reading. A quieter secondary row shows response time in milliseconds, HTTP 5xx error percentage and requests per second (RPS). Tap the card to switch its history chart between CPU, response time, 5xx errors and RPS. RPS is HTTP request throughput, separate from database TPS and QPS.
+
+The standard dashboard uses panel 11 for request rate, panel 12 for mean response time and panel 13 for 5xx requests per second. The editor exposes these optional panel IDs; setting an ID to `0` disables that metric. Queries come from those dashboard panels, with no new exporter or instrumentation installed.
+
+Mean response times are converted from seconds to milliseconds and combined using matching request-rate weights. A 5xx-per-second panel is divided by the matching total request rate to produce a percentage. Series must match by job and evaluation time; unsupported expressions, missing series, zero request denominators and ambiguous aggregations remain unavailable. Missing errors are never invented as zero. A supported single-series P95 panel is labeled P95; averages and multiple per-job percentiles are never presented as an overall P95.
+
+The oldest contributing source collection time determines freshness. A successful query does not reset source age. Response-time, error-rate and RPS thresholds are available in the widget editor but are disabled until the user configures suitable limits.
+
+### Monitoring inbox
+
+Open **운영 알림함** in the Mac sidebar or **알림함** on the tablet's system card. CPU and database conditions from the same dashboard and project share one incident. The tablet shows the selected project's active incidents and recovery history; the Mac also provides project filtering.
+
+- **확인** records acknowledgment and stops repeated notifications for that incident.
+- **30분간 알림 중지** pauses notifications for 30 minutes; **알림 재개** ends the pause early.
+- Occurrence, acknowledgment, snooze/resume and recovery are recorded locally. Recovery changes the incident's state without deleting its history.
+- Missing or delayed data retains an active incident with a stale-data indication; it does not count as recovery. Reopening either app preserves acknowledgments and snoozes. Previously delivered notifications are not replayed when the host restarts.
+
+Actions are limited to monitoring widgets available to the paired device. These controls update Open Deck's local inbox only; Grafana remains read-only. History is stored privately on the Mac in `monitor-incidents.json`, with up to 100 grouped incidents and 40 events per incident. Up to 80 resolved incidents are retained for 30 days; the oldest resolved records are removed first when the size bound is reached. Offline clients can view their last snapshot but cannot submit inbox actions until reconnected.
+
 The Mac editor configures the HTTPS dashboard URL, CPU/TPS panel IDs, project labels/values, default and optional token use. The source dashboard supplies the queries; project values are validated before substitution. Standard Open Deck dashboards also provide readiness, system CPU, scrape status and connection panels. Missing optional panels remain unavailable.
 
 The Mac host queries Grafana every 30 seconds with at most two concurrent project requests and shares results between cards. It keeps 60 trend points per metric, bounds HTTP bodies/timeouts, rejects redirects, excludes source samples older than five minutes and hides results whose query timestamp is older than 90 seconds. Connection failures show an error instead of stale values or invented zeros. Source collection intervals can delay the latest CPU point even when a query just succeeded.

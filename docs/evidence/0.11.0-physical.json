@@ -1,0 +1,301 @@
+{
+  "version": "0.11.0",
+  "build": 19,
+  "artifactStage": "candidate",
+  "finalArtifactVerification": "pending-root-release-validation",
+  "deviceModel": "SM-T870",
+  "result": "pass",
+  "checksPassed": 16,
+  "checksTotal": 16,
+  "scope": {
+    "android": "physical native Android app",
+    "mac": "actual native Mac app; UI action/confirmation attribution comes from the execution runner",
+    "applicationTransport": "UI-reported encrypted Wi-Fi",
+    "controlTransport": "ADB over an attached USB cable",
+    "incidentData": "synthetic test incident",
+    "rawArtifactsPublished": false
+  },
+  "checks": [
+    {
+      "check": "cpu-primary-layout",
+      "description": "CPU를 가장 큰 숫자로 표시하고 서비스 지표는 작은 보조 행으로 분리",
+      "result": "pass",
+      "verificationMethod": "independent-visual-review",
+      "evidence": [
+        "01-tablet-monitor.png",
+        "08-service-details.png"
+      ],
+      "note": "DB 노드별 배치와 CPU 그래프가 함께 보이며 보조 지표가 CPU보다 작음. 검토한 화면에서 글자 겹침 없음."
+    },
+    {
+      "check": "latency-aggregation",
+      "description": "평균 응답시간 표기 및 ms 단위",
+      "result": "pass",
+      "verificationMethod": "json-and-native-ui",
+      "evidence": [
+        "first-live.json",
+        "08-service-details.xml"
+      ],
+      "note": "실제 수집 집계는 mean이며 P95로 표시하지 않음."
+    },
+    {
+      "check": "service-labels-units",
+      "description": "5xx 오류율과 RPS의 이름·단위 구분",
+      "result": "pass",
+      "verificationMethod": "json-and-native-ui",
+      "evidence": [
+        "first-live.json",
+        "08-service-details.xml"
+      ]
+    },
+    {
+      "check": "grafana-exact-latency",
+      "description": "평균 응답시간의 Grafana 직접 조회 결과 일치",
+      "result": "pass",
+      "verificationMethod": "independent-numeric-comparison",
+      "evidence": [
+        "first-live.json",
+        "direct-grafana-comparison.json"
+      ],
+      "note": "동일 서비스 데이터 평가 시각을 사용한 두 수치가 정확히 일치함. 실측 값과 평가 시각은 비공개."
+    },
+    {
+      "check": "grafana-exact-errorRate",
+      "description": "5xx 오류율의 Grafana 직접 조회 결과 일치",
+      "result": "pass",
+      "verificationMethod": "independent-numeric-comparison",
+      "evidence": [
+        "first-live.json",
+        "direct-grafana-comparison.json"
+      ],
+      "note": "동일 서비스 데이터 평가 시각을 사용한 두 수치가 정확히 일치함. 실측 값과 평가 시각은 비공개."
+    },
+    {
+      "check": "grafana-exact-rps",
+      "description": "RPS의 Grafana 직접 조회 결과 일치",
+      "result": "pass",
+      "verificationMethod": "independent-numeric-comparison",
+      "evidence": [
+        "first-live.json",
+        "direct-grafana-comparison.json"
+      ],
+      "note": "동일 서비스 데이터 평가 시각을 사용한 두 수치가 정확히 일치함. 실측 값과 평가 시각은 비공개."
+    },
+    {
+      "check": "detail-graph-controls",
+      "description": "상세 화면의 CPU·응답 시간·5xx 오류율·RPS 그래프 선택 컨트롤",
+      "result": "pass",
+      "verificationMethod": "native-ui-and-visual-review",
+      "evidence": [
+        "08-service-details.xml",
+        "08-service-details.png"
+      ],
+      "note": "컨트롤과 기본 CPU 그래프 표시를 확인함. 이 증거만으로 모든 그래프 탭의 실제 터치 동작을 검증했다고 주장하지 않음."
+    },
+    {
+      "check": "android-ack-to-mac",
+      "description": "태블릿에서 알림 확인 후 호스트와 Mac UI 반영",
+      "result": "pass",
+      "verificationMethod": "host-state-and-runner-observation",
+      "evidence": [
+        "ack-snooze.json",
+        "02-tablet-ack-snooze.xml"
+      ],
+      "note": "태블릿 클릭 및 Mac 실제 UI 확인은 실행 담당자의 직접 관찰 기록. 보존된 JSON/XML은 확인 상태와 처리 이력을 독립적으로 입증함."
+    },
+    {
+      "check": "mac-snooze-to-android",
+      "description": "Mac에서 30분 알림 중지 후 태블릿에 재개 버튼 표시",
+      "result": "pass",
+      "verificationMethod": "host-state-native-ui-and-runner-observation",
+      "evidence": [
+        "ack-snooze.json",
+        "02-tablet-ack-snooze.xml"
+      ],
+      "note": "Mac UI 조작은 실행 담당자 관찰 기록이며 태블릿 상태는 XML에서 확인함."
+    },
+    {
+      "check": "offline-history-retained",
+      "description": "연결 중단 중 발생·확인·중지 이력 유지",
+      "result": "pass",
+      "verificationMethod": "native-ui-comparison",
+      "evidence": [
+        "02-tablet-ack-snooze.xml",
+        "03-tablet-offline-inbox.xml"
+      ]
+    },
+    {
+      "check": "offline-actions-disabled",
+      "description": "연결 중단 안내와 확인·재개 버튼 비활성화",
+      "result": "pass",
+      "verificationMethod": "native-control-state",
+      "evidence": [
+        "03-tablet-offline-inbox.xml"
+      ]
+    },
+    {
+      "check": "host-restart-persistence",
+      "description": "Mac 호스트 재시작 후 같은 알림의 확인·중지 상태와 이력 유지",
+      "result": "pass",
+      "verificationMethod": "host-state-native-ui-and-runner-observation",
+      "evidence": [
+        "ack-snooze.json",
+        "after-host-restart.json",
+        "04-tablet-after-host-restart.xml"
+      ],
+      "note": "재시작 조작은 실행 담당자 기록. 사건 식별자의 동일성은 비공개 원본끼리 비교했으며 문서에는 내보내지 않음."
+    },
+    {
+      "check": "both-apps-restart-persistence",
+      "description": "호스트 재시작에 이어 태블릿 앱을 재시작해도 확인·중지 이력 복원",
+      "result": "pass",
+      "verificationMethod": "native-ui-comparison-and-runner-observation",
+      "evidence": [
+        "04-tablet-after-host-restart.xml",
+        "05-tablet-app-restarted.xml",
+        "06-tablet-restored-inbox.xml"
+      ],
+      "note": "앱 종료·실행은 실행 담당자 기록. 재실행 후 열린 알림 상세의 버튼 상태와 이력을 독립 비교함."
+    },
+    {
+      "check": "resume-state-and-timeline",
+      "description": "알림 재개 후 중지 해제와 재개 이력 보존",
+      "result": "pass",
+      "verificationMethod": "host-state-and-native-ui",
+      "evidence": [
+        "after-resume.json",
+        "07-tablet-recovered.xml"
+      ]
+    },
+    {
+      "check": "recovery-history",
+      "description": "정상 복구 후 이전 처리 이력 유지 및 처리 버튼 비활성화",
+      "result": "pass",
+      "verificationMethod": "native-control-state-and-timeline",
+      "evidence": [
+        "07-tablet-recovered.xml"
+      ],
+      "note": "합성 알림의 복구 경로 시험이며 실제 서비스 장애를 만들지 않음."
+    },
+    {
+      "check": "application-wifi-indicator",
+      "description": "태블릿 앱의 암호화 Wi-Fi 연결 표시",
+      "result": "pass",
+      "verificationMethod": "independent-visual-review",
+      "evidence": [
+        "01-tablet-monitor.png",
+        "08-service-details.png"
+      ],
+      "note": "USB 케이블은 ADB 조작·증거 수집용으로 연결됨. 앱 화면은 암호화 Wi-Fi 연결을 표시함. 케이블을 분리한 시험 또는 패킷 캡처 시험으로 표현하지 않음."
+    }
+  ],
+  "originalEvidence": [
+    {
+      "filename": "01-tablet-monitor.png",
+      "sha256": "de53dac845f29a3a2c20584e3e626eaae7bc7e4bbdf7d41b250b1adbdf2bc53b",
+      "published": false
+    },
+    {
+      "filename": "02-tablet-ack-snooze.xml",
+      "sha256": "57c272cc1ce8aee42e5f6b226c67518561c0ede9e80e07db3a0b29a97b4ac3b8",
+      "published": false
+    },
+    {
+      "filename": "03-tablet-offline-inbox.xml",
+      "sha256": "bb394634019b10c35db50b3904da4a361ce1a341b5d8cee0052d3af9b435a727",
+      "published": false
+    },
+    {
+      "filename": "04-tablet-after-host-restart.xml",
+      "sha256": "ea7adf4aaccb4b132424c55c2e01308df13fc9e2b0c0cc476f45a302e32952ec",
+      "published": false
+    },
+    {
+      "filename": "05-tablet-app-restarted.xml",
+      "sha256": "39944eb2b322bcf4b584c761c356cf278761933c8bd89f7d832fbffa9cba38e8",
+      "published": false
+    },
+    {
+      "filename": "06-tablet-restored-inbox.xml",
+      "sha256": "ea7adf4aaccb4b132424c55c2e01308df13fc9e2b0c0cc476f45a302e32952ec",
+      "published": false
+    },
+    {
+      "filename": "07-tablet-recovered.xml",
+      "sha256": "bbb1d90aa73c1a59940eb4d374d40fdb7436a2eb66f4ca158c4e0964fcec234b",
+      "published": false
+    },
+    {
+      "filename": "08-service-details.png",
+      "sha256": "04d9ebd3ef326fb7ec3cd0a035b32636086597cd2895a93f558ed39dd15b8115",
+      "published": false
+    },
+    {
+      "filename": "08-service-details.xml",
+      "sha256": "84afed9a986a757993108530bd4caec3bf4df35670e02e1fd84cf099149e976d",
+      "published": false
+    },
+    {
+      "filename": "ack-snooze.json",
+      "sha256": "e6dec83bb8e65029369a7ae118ac6d98eae010a606e9355b0af271f94e06dc36",
+      "published": false
+    },
+    {
+      "filename": "after-host-restart.json",
+      "sha256": "042eaf1852537dbaeb0404cbf5cfac47f1c1b3deb556dd0970819f811f11d0c3",
+      "published": false
+    },
+    {
+      "filename": "after-resume.json",
+      "sha256": "1c9d4ec68f10feef31946afc291f65bf7106280bd9755735a4ed27cbbc82307c",
+      "published": false
+    },
+    {
+      "filename": "direct-grafana-comparison.json",
+      "sha256": "8fba2d5e9b5fd900e17f336dd45a7cb6ab70521d45760d1b8d967c4f7a338114",
+      "published": false
+    },
+    {
+      "filename": "first-live.json",
+      "sha256": "49a5cd51a486a73230b6434630257398a5fb05d3e602a22f6297d507ffa2e975",
+      "published": false
+    }
+  ],
+  "privacy": {
+    "realMetricValuesPublished": false,
+    "projectNamesPublished": false,
+    "hostsPublished": false,
+    "userConfigurationPublished": false,
+    "deviceSerialsPublished": false,
+    "credentialsPublished": false,
+    "incidentIdentifiersPublished": false,
+    "personalApplicationListsPublished": false
+  },
+  "limitations": [
+    "The installed candidate was tested; final packaged release source identity, signatures, checksums and installation verification are pending the release runner.",
+    "Mac UI action attribution and application restart operations are recorded observations of the execution runner, distinguished from independent JSON/XML state checks.",
+    "Actual service metrics were compared with Grafana at identical evaluation timestamps; real values, timestamps and business identifiers are intentionally omitted.",
+    "The alert lifecycle used a synthetic incident, not a real production outage.",
+    "Raw screenshots, UI trees and captured snapshots remain private. Hashes identify the originals without publishing their contents.",
+    "All graph selector controls and the default CPU graph were inspected, but this evidence set alone does not prove taps on every graph selector."
+  ],
+  "tests": {
+    "host": {
+      "passed": 247,
+      "failed": 0
+    },
+    "androidPresentation": {
+      "passed": 38,
+      "failed": 0
+    },
+    "localization": {
+      "languages": 19,
+      "keys": 1556,
+      "missing": 0,
+      "invalidPlaceholders": 0
+    }
+  },
+  "releaseChecks": {
+    "status": "pending-root-entry"
+  }
+}

@@ -409,7 +409,10 @@ export function validateConfig(input) {
         if (
           (w.auth !== undefined && typeof w.auth !== "boolean") ||
           (w.cpuPanelId !== undefined && !integer(w.cpuPanelId, 1, 100000)) ||
-          (w.tpsPanelId !== undefined && !integer(w.tpsPanelId, 1, 100000))
+          (w.tpsPanelId !== undefined && !integer(w.tpsPanelId, 1, 100000)) ||
+          ["latencyPanelId", "errorRatePanelId", "rpsPanelId"].some(
+            (key) => w[key] !== undefined && !integer(w[key], 0, 100000),
+          )
         )
           throw Error("Grafana 조회 설정을 확인하세요.");
         if (w.url !== undefined && typeof w.url !== "string")
