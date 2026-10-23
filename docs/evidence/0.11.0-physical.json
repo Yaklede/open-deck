@@ -1,12 +1,12 @@
 {
   "version": "0.11.0",
   "build": 19,
-  "artifactStage": "candidate",
-  "finalArtifactVerification": "pending-root-release-validation",
+  "artifactStage": "released",
+  "finalArtifactVerification": "pass",
   "deviceModel": "SM-T870",
   "result": "pass",
-  "checksPassed": 29,
-  "checksTotal": 29,
+  "checksPassed": 33,
+  "checksTotal": 33,
   "scope": {
     "android": "physical native Android app",
     "mac": "actual native Mac app; UI action/confirmation attribution comes from the execution runner",
@@ -368,6 +368,50 @@
       "note": "비공개 보존 검사 deviceSettingsUnchanged=true 확인. 식별 목록이나 설정값 자체는 공개하지 않음.",
       "phase": "post-hardening",
       "sourceCommit": "dba6382aba8631cd9bc8703a2519b7ea12a65f61"
+    },
+    {
+      "check": "actual-time-axis-CPU",
+      "description": "실제 시작·중간·끝 시각과 최고점 시각·위치 표시: CPU",
+      "result": "pass",
+      "phase": "actual-time-axis",
+      "verificationMethod": "runner-tap-and-independent-visual-review",
+      "evidence": [
+        "20-time-cpu.png"
+      ],
+      "note": "Raw business metrics and displayed times remain private."
+    },
+    {
+      "check": "actual-time-axis-response",
+      "description": "실제 시작·중간·끝 시각과 최고점 시각·위치 표시: response",
+      "result": "pass",
+      "phase": "actual-time-axis",
+      "verificationMethod": "runner-tap-and-independent-visual-review",
+      "evidence": [
+        "21-time-response.png"
+      ],
+      "note": "Raw business metrics and displayed times remain private."
+    },
+    {
+      "check": "actual-time-axis-5xx-error",
+      "description": "실제 시작·중간·끝 시각과 최고점 시각·위치 표시: 5xx-error",
+      "result": "pass",
+      "phase": "actual-time-axis",
+      "verificationMethod": "runner-tap-and-independent-visual-review",
+      "evidence": [
+        "22-time-error.png"
+      ],
+      "note": "Raw business metrics and displayed times remain private."
+    },
+    {
+      "check": "actual-time-axis-RPS",
+      "description": "실제 시작·중간·끝 시각과 최고점 시각·위치 표시: RPS",
+      "result": "pass",
+      "phase": "actual-time-axis",
+      "verificationMethod": "runner-tap-and-independent-visual-review",
+      "evidence": [
+        "23-time-rps.png"
+      ],
+      "note": "Raw business metrics and displayed times remain private."
     }
   ],
   "originalEvidence": [
@@ -518,6 +562,41 @@
       "sha256": "5935bb6156088641ed991a74bb5b4771375284af103136435122f815ff605669",
       "published": false,
       "phase": "post-hardening"
+    },
+    {
+      "filename": "20-time-cpu.png",
+      "sha256": "e8a831ece8bf3845a3633ff0d56916502da93fb54fb84e329b96ddd84c7114c6",
+      "published": false
+    },
+    {
+      "filename": "21-time-response.png",
+      "sha256": "8b738377dfefa9540bb49f0938fa1967f3fb7717bcbdbf21e3f204b7a0c0174b",
+      "published": false
+    },
+    {
+      "filename": "22-time-error.png",
+      "sha256": "0ccc48444a8183ae9f1ac272570d681b627241211e4c310252d609a4613f258c",
+      "published": false
+    },
+    {
+      "filename": "23-time-rps.png",
+      "sha256": "7508049bf79ace5f466e0ee92a8fddfb4eb23d4c55f2d6d294340b65bbe1fdc9",
+      "published": false
+    },
+    {
+      "filename": "24-release-final.png",
+      "sha256": "6d609f9ba2e9078f1b1f50efbc2f3455b9dc0497fdc6813b751eb6df6da04fd1",
+      "published": false
+    },
+    {
+      "filename": "25-release-time-cpu.png",
+      "sha256": "f798832ab100cabaf50fae1926a0edc24a99c4e585b989d40745aea7bb637760",
+      "published": false
+    },
+    {
+      "filename": "release-installed-verification.json",
+      "sha256": "a67b240ae73ee5de874c411555095e9ed7684701395706976bfe793c0543d0d9",
+      "published": false
     }
   ],
   "privacy": {
@@ -531,13 +610,12 @@
     "personalApplicationListsPublished": false
   },
   "limitations": [
-    "The installed candidate was tested; final packaged release source identity, signatures, checksums and installation verification are pending the release runner.",
     "Mac UI action attribution and application restart operations are recorded observations of the execution runner, distinguished from independent JSON/XML state checks.",
     "Actual service metrics were compared with Grafana at identical evaluation timestamps; real values, timestamps and business identifiers are intentionally omitted.",
     "The alert lifecycle used a synthetic incident, not a real production outage.",
     "Raw screenshots, UI trees and captured snapshots remain private. Hashes identify the originals without publishing their contents.",
     "Initial candidate graph evidence proves controls and the default CPU view only; post-hardening evidence separately records displayed response-time, 5xx-error and RPS charts after runner-selected tabs.",
-    "Post-hardening app restart checks are not Mac operating-system reboot checks. The later actual chart-time-axis change and final release artifact identity remain pending the final release run."
+    "App restart checks do not constitute a Mac operating-system reboot test."
   ],
   "tests": {
     "host": {
@@ -553,10 +631,58 @@
       "keys": 1556,
       "missing": 0,
       "invalidPlaceholders": 0
+    },
+    "androidChartTime": {
+      "passed": 14,
+      "failed": 0
+    },
+    "releaseBuild": {
+      "macOS": "pass",
+      "android": "pass",
+      "androidLint": {
+        "errors": 0,
+        "warnings": 22
+      }
     }
   },
   "releaseChecks": {
-    "status": "pending-root-entry"
+    "status": "pass",
+    "tag": "v0.11.0",
+    "url": "https://github.com/Yaklede/open-deck/releases/tag/v0.11.0",
+    "latestRelease": true,
+    "sourceCommit": "0afaa36a8df99d3aafedf97757147a91427148bb",
+    "version": "0.11.0",
+    "build": 19,
+    "macInstalledBuildMatches": true,
+    "androidInstalledApkMatches": true,
+    "existingAndroidSignerPreserved": true,
+    "androidSignerSha256": "15cfc6762d9b063abd2ce5b8cd665757f1e30b03707b921abb4619ff38aeba4a",
+    "assets": [
+      {
+        "name": "Open-Deck-Android.apk",
+        "sha256": "d947a23ea2f70cd2a99dcd40a244b71a66b7843c11be1be2500684d44eac6945",
+        "remoteDigestMatches": true,
+        "downloadedDigestMatches": true
+      },
+      {
+        "name": "Open-Deck-macOS-arm64.zip",
+        "sha256": "fe81cd4330b07e8a7d674713d3fdb15d4231a162b0c61063bf0d7e066fdfdb21",
+        "remoteDigestMatches": true,
+        "downloadedDigestMatches": true
+      },
+      {
+        "name": "SHA256SUMS.txt",
+        "sha256": "e38830f595d67b062accb68db12c53a255a3d3ec80ad838fbc724c060c90344e",
+        "remoteDigestMatches": true,
+        "downloadedDigestMatches": true
+      }
+    ],
+    "configurationPreserved": true,
+    "evidence": [
+      "24-release-final.png",
+      "25-release-time-cpu.png",
+      "release-installed-verification.json"
+    ]
   },
   "verificationPhases": [
     {
@@ -575,6 +701,13 @@
       "checksTotal": 13,
       "attribution": "Independent JSON/XML comparisons plus explicitly attributed visual and execution-runner observations.",
       "restartScope": "Mac host app and Android app stop/start; no Mac operating-system reboot."
+    },
+    {
+      "id": "actual-time-axis",
+      "sourceCommit": "a4e8f20ae42e0f9fce82dbf4bd0bea38c86d908c",
+      "checksPassed": 4,
+      "checksTotal": 4,
+      "attribution": "Four native graph tabs tapped and visually inspected; independent reviewer confirmed time labels and marker alignment. Final build only reuses the marker resource; final CPU graph and installed package identity were checked again."
     }
   ],
   "postHardeningBuildReport": {
