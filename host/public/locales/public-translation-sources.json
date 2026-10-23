@@ -8392,5 +8392,17 @@
   {
     "source": "선택 해제",
     "english": "Clear selection"
+  },
+  {
+    "source": "두 손가락으로 확대",
+    "english": "Pinch to zoom"
+  },
+  {
+    "source": "확대됨 · 좌우로 이동",
+    "english": "Zoomed · drag to pan"
+  },
+  {
+    "source": "전체 보기",
+    "english": "Show full range"
   }
 ]

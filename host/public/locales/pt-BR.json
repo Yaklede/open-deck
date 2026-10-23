@@ -1560,5 +1560,8 @@
   "알림 이력을 저장하지 못했습니다. 디스크 상태를 확인하세요.": "Falha ao salvar o histórico de notificações. Verifique o status do disco.",
   "태블릿 연결이 필요합니다.": "É necessária conexão com tablet.",
   "터치·드래그로 값 확인": "Verifique o valor tocando e arrastando",
-  "선택 해제": "Desmarcar"
+  "선택 해제": "Desmarcar",
+  "두 손가락으로 확대": "Amplie com dois dedos",
+  "확대됨 · 좌우로 이동": "Ampliado · Mover para a esquerda ou para a direita",
+  "전체 보기": "Ver tudo"
 }

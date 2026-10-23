@@ -918,6 +918,9 @@ public class MainActivity extends Activity {
   private class GrafanaHistoryView extends MacHistoryView {
     final JSONObject widget;
     final DashPathEffect peakDash = new DashPathEffect(new float[] {dp(3), dp(4)}, 0);
+    final ChartViewport viewport = new ChartViewport();
+    final RectF resetBounds = new RectF();
+    final int touchSlop = ViewConfiguration.get(MainActivity.this).getScaledTouchSlop();
     String chartMetric;
 
     GrafanaHistoryView(JSONObject widget) {
@@ -946,6 +949,14 @@ public class MainActivity extends Activity {
       p.setStyle(Paint.Style.FILL);
       p.setColor(Color.parseColor("#172631"));
       c.drawRoundRect(0, 0, getWidth(), getHeight(), dp(12), dp(12), p);
+      resetBounds.setEmpty();
+      if (viewport.isZoomed()) {
+        p.setTextSize(dp(10));
+        float width = Math.max(dp(88), p.measureText(L10n.text("전체 보기")) + dp(24));
+        resetBounds.set(getWidth() - width - dp(8), 0, getWidth() - dp(4), dp(44));
+      }
+      c.save();
+      if (!resetBounds.isEmpty()) c.clipRect(0, 0, resetBounds.left - dp(4), dp(39));
       text(
           c,
           service
@@ -966,22 +977,35 @@ public class MainActivity extends Activity {
           14,
           Color.parseColor("#d9f4fa"),
           Paint.Align.LEFT);
-      text(c, L10n.text("최근 1시간"), dp(16), dp(50), 10, muted, Paint.Align.LEFT);
-      if (!inspecting) {
-        String hint = L10n.text("터치·드래그로 값 확인");
+      c.restore();
+      if (!resetBounds.isEmpty()) {
+        p.setColor(Color.parseColor("#294454"));
+        c.drawRoundRect(resetBounds.left, dp(8), resetBounds.right, dp(37), dp(8), dp(8), p);
+        text(
+            c,
+            L10n.text("전체 보기"),
+            resetBounds.centerX(),
+            dp(27),
+            10,
+            Color.parseColor("#d9f4fa"),
+            Paint.Align.CENTER);
+      }
+      String subtitle = L10n.text(viewport.isZoomed() ? "확대됨 · 좌우로 이동" : "최근 1시간");
+      text(c, subtitle, dp(16), dp(50), 10, muted, Paint.Align.LEFT);
+      if (!inspecting && !viewport.isZoomed()) {
+        String hint = L10n.text("두 손가락으로 확대");
         p.setTextSize(dp(8));
         float hintWidth = p.measureText(hint);
         p.setTextSize(dp(10));
-        if (hintWidth + p.measureText(L10n.text("최근 1시간")) + dp(40) < getWidth())
+        if (hintWidth + p.measureText(subtitle) + dp(40) < getWidth())
           text(c, hint, getWidth() - dp(16), dp(50), 8, muted, Paint.Align.RIGHT);
       }
-      JSONArray points = displayPoints;
       ChartTimeRange time = sampleRange;
       plot.set(dp(45), dp(82), getWidth() - dp(16), getHeight() - dp(39));
       double max =
           percent && !errorRate
               ? 100
-              : Math.max(1, Double.isFinite(time.peakValue) ? time.peakValue : 1);
+              : Math.max(1, Double.isFinite(visibleScalePeak) ? visibleScalePeak : 1);
       for (int i = 0; i < 3; i++) {
         float y = plot.top + plot.height() * i / 2;
         p.setColor(Color.parseColor("#2b414f"));
@@ -999,7 +1023,7 @@ public class MainActivity extends Activity {
             muted,
             Paint.Align.RIGHT);
       }
-      if (time.samples == 0)
+      if (!visibleGeometry)
         text(
             c,
             L10n.text("수집 데이터 없음"),
@@ -1009,14 +1033,16 @@ public class MainActivity extends Activity {
             muted,
             Paint.Align.CENTER);
       else {
-        if (deck != null && time.hasRange()) deck.grafanaTrend(c, points, plot, accent, max, time);
+        drawViewportTrend(c, accent, max);
         drawTimeAxis(c, time, muted);
-        if (!inspecting) {
+        if (!inspecting && visibleSampleCount > 0) {
           float peakX =
               plot.left
-                  + plot.width() * (time.hasRange() ? (float) time.fraction(time.peakAt) : .5f);
+                  + plot.width()
+                      * (viewport.hasRange() ? (float) viewport.fraction(visiblePeakAt) : .5f);
           float peakY =
-              plot.bottom - (float) Math.max(0, Math.min(1, time.peakValue / max)) * plot.height();
+              plot.bottom
+                  - (float) Math.max(0, Math.min(1, visiblePeakValue / max)) * plot.height();
           p.setColor(accent);
           p.setAlpha(95);
           p.setStyle(Paint.Style.STROKE);
@@ -1041,6 +1067,10 @@ public class MainActivity extends Activity {
                 : defaultDescription;
         if (!description.contentEquals(getContentDescription())) setContentDescription(description);
       }
+      if (!visibleGeometry && time.samples > 0) {
+        drawTimeAxis(c, time, muted);
+        setContentDescription(L10n.text("수집 데이터 없음") + ", " + firstLabel + " · " + lastLabel);
+      }
       if (time.samples == 0) {
         text(c, L10n.text("이전"), plot.left, getHeight() - dp(16), 9, muted, Paint.Align.LEFT);
         text(c, L10n.text("최근"), plot.right, getHeight() - dp(16), 9, muted, Paint.Align.RIGHT);
@@ -1048,7 +1078,7 @@ public class MainActivity extends Activity {
       }
     }
 
-    private JSONArray displayPoints, cachedPoints;
+    private JSONArray cachedPoints;
     private long[] sampleTimes = new long[0];
     private double[] sampleValues = new double[0];
     private ChartTimeRange sampleRange = ChartTimeRange.from(null, null);
@@ -1062,7 +1092,22 @@ public class MainActivity extends Activity {
     private String selectedTimeLabel = "", selectedValueLabel = "", selectedDescription = "";
     private long selectedAt;
     private double selectedValue = Double.NaN;
-    private int selectedIndex = -1, activePointerId = -1;
+    private int selectedIndex = -1, activePointerId = -1, secondaryPointerId = -1;
+    private int visibleSampleCount;
+    private long visiblePeakAt,
+        axisFirstMinute = -1,
+        axisMiddleMinute = -1,
+        axisLastMinute = -1,
+        axisPeakMinute = -1;
+    private double visiblePeakValue = Double.NaN, visibleScalePeak = Double.NaN;
+    private boolean visibleGeometry,
+        downZoomed,
+        panningGesture,
+        pinchGesture,
+        gestureHadPinch,
+        resettingGesture;
+    private float downX, downY, lastDragX, pinchDistance, pinchFocus;
+    private long downAt;
     private boolean inspecting,
         inspectionEnabled,
         capturedGesture,
@@ -1074,6 +1119,7 @@ public class MainActivity extends Activity {
     void selectMetric(String metric) {
       // Re-tapping the current graph tab is also the touch route back to the peak view.
       clearInspection();
+      viewport.clear();
       chartMetric = metric;
       cachedMetric = "";
       invalidate();
@@ -1096,7 +1142,6 @@ public class MainActivity extends Activity {
               && freshness != DataFreshness.MISSING;
       if (contextChanged || !inspectionEnabled) clearInspectionState();
       boolean changed = contextChanged || points != cachedPoints;
-      displayPoints = points;
       if (changed) {
         int count = points == null ? 0 : points.length();
         sampleTimes = new long[count];
@@ -1107,10 +1152,13 @@ public class MainActivity extends Activity {
           sampleValues[i] = point == null ? Double.NaN : point.optDouble(1, Double.NaN);
         }
         sampleRange = ChartTimeRange.from(sampleTimes, sampleValues);
+        if (contextChanged) viewport.clear();
+        viewport.updateBounds(sampleRange.first, sampleRange.last);
         cachedPoints = points;
         if (selectedAt > 0) {
           selectedIndex = ChartScrubber.exactIndex(sampleTimes, sampleValues, selectedAt);
-          if (selectedIndex < 0) clearInspectionState();
+          if (selectedIndex < 0 || selectedAt < viewport.start() || selectedAt > viewport.end())
+            clearInspectionState();
         }
       }
       cachedMetric = chartMetric;
@@ -1118,10 +1166,91 @@ public class MainActivity extends Activity {
       cachedTimeFormat = timeFormat;
       cachedLocale = locale;
       if (changed || formatChanged) {
-        firstLabel = sampleRange.samples > 0 ? chartTime(sampleRange.first) : "";
-        middleLabel = sampleRange.samples > 0 ? chartTime(sampleRange.middle) : "";
-        lastLabel = sampleRange.samples > 0 ? chartTime(sampleRange.last) : "";
-        peakLabel = sampleRange.samples > 0 ? "▲ " + chartTime(sampleRange.peakAt) : "";
+        updateVisibleRange(formatChanged);
+        if (selectedIndex >= 0) updateSelectedLabels(formatChanged);
+      }
+    }
+
+    private boolean validSample(int index) {
+      return index >= 0
+          && index < sampleTimes.length
+          && sampleTimes[index] > 0
+          && Double.isFinite(sampleValues[index])
+          && sampleValues[index] >= 0;
+    }
+
+    private void updateVisibleRange(boolean forceLabels) {
+      visibleSampleCount = 0;
+      visiblePeakAt = 0;
+      visiblePeakValue = visibleScalePeak = Double.NaN;
+      visibleGeometry = false;
+      int previous = -1;
+      for (int i = 0; i < sampleTimes.length; i++) {
+        if (!validSample(i)) {
+          previous = -1;
+          continue;
+        }
+        long at = sampleTimes[i];
+        double value = sampleValues[i];
+        if (at >= viewport.start() && at <= viewport.end()) {
+          visibleSampleCount++;
+          visibleGeometry = true;
+          if (!Double.isFinite(visiblePeakValue)
+              || value > visiblePeakValue
+              || value == visiblePeakValue && at < visiblePeakAt) {
+            visiblePeakValue = value;
+            visiblePeakAt = at;
+          }
+          visibleScalePeak =
+              Double.isFinite(visibleScalePeak) ? Math.max(visibleScalePeak, value) : value;
+        }
+        if (previous >= 0
+            && at > sampleTimes[previous]
+            && at - sampleTimes[previous] <= 120000
+            && at >= viewport.start()
+            && sampleTimes[previous] <= viewport.end()) {
+          // Boundary values affect line geometry and its scale only; tooltips still use actual
+          // samples.
+          long left = Math.max(viewport.start(), sampleTimes[previous]);
+          long right = Math.min(viewport.end(), at);
+          double span = at - sampleTimes[previous];
+          double leftValue =
+              sampleValues[previous]
+                  + (value - sampleValues[previous]) * (left - sampleTimes[previous]) / span;
+          double rightValue =
+              sampleValues[previous]
+                  + (value - sampleValues[previous]) * (right - sampleTimes[previous]) / span;
+          double edgePeak = Math.max(leftValue, rightValue);
+          visibleScalePeak =
+              Double.isFinite(visibleScalePeak) ? Math.max(visibleScalePeak, edgePeak) : edgePeak;
+          visibleGeometry = true;
+        }
+        previous = i;
+      }
+      if (inspecting
+          && (selectedAt <= 0 || selectedAt < viewport.start() || selectedAt > viewport.end()))
+        clearInspectionState();
+      long first = viewport.start() / 60000,
+          middle = (viewport.start() + viewport.span() / 2) / 60000,
+          last = viewport.end() / 60000,
+          peak = visiblePeakAt / 60000;
+      if (forceLabels
+          || first != axisFirstMinute
+          || middle != axisMiddleMinute
+          || last != axisLastMinute
+          || peak != axisPeakMinute) {
+        if (forceLabels || first != axisFirstMinute)
+          firstLabel = viewport.hasData() ? chartTime(viewport.start()) : "";
+        if (forceLabels || middle != axisMiddleMinute)
+          middleLabel = viewport.hasData() ? chartTime(viewport.start() + viewport.span() / 2) : "";
+        if (forceLabels || last != axisLastMinute)
+          lastLabel = viewport.hasData() ? chartTime(viewport.end()) : "";
+        if (forceLabels || peak != axisPeakMinute)
+          peakLabel = visibleSampleCount > 0 ? "▲ " + chartTime(visiblePeakAt) : "";
+        axisFirstMinute = first;
+        axisMiddleMinute = middle;
+        axisLastMinute = last;
+        axisPeakMinute = peak;
         defaultDescription =
             L10n.text("Grafana 최근 1시간 추이 그래프")
                 + ", "
@@ -1133,9 +1262,53 @@ public class MainActivity extends Activity {
                 + ", "
                 + peakLabel
                 + ", "
-                + L10n.text("터치·드래그로 값 확인");
-        if (selectedIndex >= 0) updateSelectedLabels(formatChanged);
+                + L10n.text(viewport.isZoomed() ? "확대됨 · 좌우로 이동" : "터치·드래그로 값 확인")
+                + ", "
+                + L10n.text("두 손가락으로 확대");
       }
+    }
+
+    private void viewportChanged() {
+      updateVisibleRange(false);
+      invalidate();
+    }
+
+    private void resetViewport() {
+      clearInspection();
+      viewport.reset();
+      updateVisibleRange(true);
+      invalidate();
+    }
+
+    private void drawViewportTrend(Canvas c, int accent, double max) {
+      if (!viewport.hasRange() || plot.height() < dp(8)) return;
+      line.rewind();
+      boolean started = false;
+      long previous = 0;
+      for (int i = 0; i < sampleTimes.length; i++) {
+        if (!validSample(i)) {
+          started = false;
+          continue;
+        }
+        long at = sampleTimes[i];
+        float x =
+            plot.left + plot.width() * (float) ((at - viewport.start()) / (double) viewport.span());
+        // Keep raw Y geometry as well as raw X; clipping an offscreen endpoint before
+        // drawing would bend the segment where it enters the visible time window.
+        float y = plot.bottom - (float) (sampleValues[i] / max) * plot.height();
+        if (started && at >= previous && at - previous <= 120000) line.lineTo(x, y);
+        else line.moveTo(x, y);
+        started = true;
+        previous = at;
+      }
+      p.setColor(accent);
+      p.setStrokeWidth(dp(2));
+      p.setStyle(Paint.Style.STROKE);
+      c.save();
+      c.clipRect(plot);
+      c.drawPath(line, p);
+      c.restore();
+      p.setStyle(Paint.Style.FILL);
     }
 
     private void updateSelectedLabels(boolean force) {
@@ -1161,8 +1334,9 @@ public class MainActivity extends Activity {
     }
 
     private void releaseGesture() {
-      activePointerId = -1;
+      activePointerId = secondaryPointerId = -1;
       capturedGesture = false;
+      pinchGesture = gestureHadPinch = panningGesture = resettingGesture = false;
       clearingGesture = false;
       if (getParent() != null) getParent().requestDisallowInterceptTouchEvent(false);
     }
@@ -1177,10 +1351,22 @@ public class MainActivity extends Activity {
       if (!inspectionEnabled || sampleRange.samples == 0 || plot.width() <= 0) return;
       float clamped = Math.max(plot.left, Math.min(plot.right, x));
       long at =
-          sampleRange.hasRange()
-              ? ChartScrubber.targetTime(sampleRange, (clamped - plot.left) / plot.width())
+          viewport.hasRange()
+              ? viewport.timestampAt((clamped - plot.left) / plot.width())
               : sampleRange.first;
-      int next = ChartScrubber.nearestIndex(sampleTimes, sampleValues, at);
+      int next = -1;
+      long distance = Long.MAX_VALUE;
+      for (int i = 0; i < sampleTimes.length; i++) {
+        if (!validSample(i) || sampleTimes[i] < viewport.start() || sampleTimes[i] > viewport.end())
+          continue;
+        long delta = Math.abs(sampleTimes[i] - at);
+        if (delta < distance
+            || delta == distance && next >= 0 && sampleTimes[i] < sampleTimes[next]) {
+          distance = delta;
+          next = i;
+        }
+      }
+      if (distance > ChartScrubber.MAX_SNAP_DISTANCE_MS) next = -1;
       boolean changed = !inspecting || next != selectedIndex;
       inspecting = true;
       cursorX = clamped;
@@ -1194,11 +1380,63 @@ public class MainActivity extends Activity {
       if (changed || next < 0) invalidate();
     }
 
+    private void captureGesture() {
+      capturedGesture = true;
+      if (getParent() != null) getParent().requestDisallowInterceptTouchEvent(true);
+    }
+
+    private boolean beginPinch(MotionEvent event) {
+      if (!viewport.hasRange() || clearingGesture || resettingGesture || activePointerId < 0)
+        return false;
+      int first = event.findPointerIndex(activePointerId), second = event.getActionIndex();
+      if (first < 0 || first == second || !plot.contains(event.getX(second), event.getY(second)))
+        return false;
+      secondaryPointerId = event.getPointerId(second);
+      pinchDistance =
+          (float)
+              Math.hypot(
+                  event.getX(first) - event.getX(second), event.getY(first) - event.getY(second));
+      pinchFocus = (event.getX(first) + event.getX(second)) / 2;
+      pinchGesture = gestureHadPinch = true;
+      panningGesture = false;
+      clearInspectionState();
+      invalidate();
+      return true;
+    }
+
+    private void movePinch(MotionEvent event) {
+      int first = event.findPointerIndex(activePointerId),
+          second = event.findPointerIndex(secondaryPointerId);
+      if (first < 0 || second < 0) {
+        pinchGesture = false;
+        activePointerId = secondaryPointerId = -1;
+        return;
+      }
+      float distance =
+          (float)
+              Math.hypot(
+                  event.getX(first) - event.getX(second), event.getY(first) - event.getY(second));
+      float focus = (event.getX(first) + event.getX(second)) / 2;
+      if (pinchDistance >= dp(12) && distance >= dp(12)) {
+        boolean changed =
+            viewport.zoomAbout(distance / pinchDistance, (pinchFocus - plot.left) / plot.width());
+        changed |= viewport.panByFraction((focus - pinchFocus) / plot.width());
+        if (changed) viewportChanged();
+      }
+      pinchDistance = distance;
+      pinchFocus = focus;
+    }
+
     @Override
     public boolean onTouchEvent(MotionEvent event) {
       switch (event.getActionMasked()) {
         case MotionEvent.ACTION_DOWN:
           refreshSamples(grafanaData(widget));
+          if (viewport.isZoomed() && resetBounds.contains(event.getX(), event.getY())) {
+            resettingGesture = true;
+            captureGesture();
+            return true;
+          }
           if (!inspectionEnabled
               || sampleRange.samples == 0
               || plot.width() <= 0
@@ -1208,41 +1446,80 @@ public class MainActivity extends Activity {
           clearingGesture = !inPlot;
           if (clearingGesture) clearInspectionState();
           activePointerId = event.getPointerId(0);
-          capturedGesture = true;
-          if (getParent() != null) getParent().requestDisallowInterceptTouchEvent(true);
-          if (!clearingGesture) selectAt(event.getX());
+          downX = lastDragX = event.getX();
+          downY = event.getY();
+          downAt = event.getEventTime();
+          downZoomed = viewport.isZoomed();
+          captureGesture();
+          if (!clearingGesture && !downZoomed) selectAt(event.getX());
           else invalidate();
           return true;
         case MotionEvent.ACTION_MOVE:
           if (!capturedGesture) return false;
-          if (activePointerId >= 0 && !clearingGesture) {
-            int index = event.findPointerIndex(activePointerId);
-            if (index < 0) {
-              clearInspection();
-              return true;
-            }
-            selectAt(event.getX(index));
+          if (resettingGesture || clearingGesture) return true;
+          if (pinchGesture) {
+            movePinch(event);
+            return true;
           }
+          if (gestureHadPinch || activePointerId < 0) return true;
+          int index = event.findPointerIndex(activePointerId);
+          if (index < 0) {
+            clearInspection();
+            return true;
+          }
+          float currentX = event.getX(index);
+          if (downZoomed) {
+            if (!panningGesture
+                && Math.hypot(currentX - downX, event.getY(index) - downY) > touchSlop) {
+              panningGesture = true;
+              clearInspectionState();
+              invalidate();
+            }
+            if (panningGesture) {
+              if (viewport.panByFraction((currentX - lastDragX) / plot.width())) viewportChanged();
+              lastDragX = currentX;
+            }
+          } else selectAt(currentX);
           return true;
         case MotionEvent.ACTION_POINTER_DOWN:
-          return capturedGesture;
+          if (!capturedGesture) return false;
+          if (!pinchGesture && !gestureHadPinch) beginPinch(event);
+          return true;
         case MotionEvent.ACTION_POINTER_UP:
           if (!capturedGesture) return false;
-          if (event.getPointerId(event.getActionIndex()) == activePointerId) {
-            if (!clearingGesture) selectAt(event.getX(event.getActionIndex()));
-            // Do not jump to another finger. Keep consuming this gesture until its final UP.
-            activePointerId = -1;
+          int lifted = event.getPointerId(event.getActionIndex());
+          if (lifted == activePointerId || lifted == secondaryPointerId) {
+            if (!gestureHadPinch && !downZoomed && !clearingGesture && !resettingGesture)
+              selectAt(event.getX(event.getActionIndex()));
+            // The remaining finger never becomes a fresh pan or scrub: require a new DOWN.
+            activePointerId = secondaryPointerId = -1;
+            pinchGesture = false;
           }
           return true;
         case MotionEvent.ACTION_UP:
           if (!capturedGesture) return false;
-          if (activePointerId >= 0 && !clearingGesture) {
-            int index = event.findPointerIndex(activePointerId);
-            if (index >= 0) selectAt(event.getX(index));
+          boolean click = false;
+          if (resettingGesture) {
+            if (resetBounds.contains(event.getX(), event.getY())) {
+              resetViewport();
+              click = true;
+            }
+          } else if (!gestureHadPinch && activePointerId >= 0 && !clearingGesture) {
+            int upIndex = event.findPointerIndex(activePointerId);
+            if (upIndex >= 0
+                && (!downZoomed
+                    || !panningGesture
+                        && event.getEventTime() - downAt
+                            <= ViewConfiguration.getLongPressTimeout())) {
+              selectAt(event.getX(upIndex));
+              click = true;
+            }
+          } else if (clearingGesture) click = true;
+          if (click) {
+            completingTouch = true;
+            performClick();
+            completingTouch = false;
           }
-          completingTouch = true;
-          performClick();
-          completingTouch = false;
           releaseGesture();
           if (inspecting)
             announceForAccessibility(
@@ -1280,6 +1557,10 @@ public class MainActivity extends Activity {
             android.view.accessibility.AccessibilityNodeInfo.AccessibilityAction
                 .ACTION_SCROLL_BACKWARD);
       }
+      if (viewport.isZoomed())
+        info.addAction(
+            new android.view.accessibility.AccessibilityNodeInfo.AccessibilityAction(
+                0x01030003, L10n.text("전체 보기")));
       if (inspecting)
         info.addAction(
             new android.view.accessibility.AccessibilityNodeInfo.AccessibilityAction(
@@ -1288,6 +1569,11 @@ public class MainActivity extends Activity {
 
     @Override
     public boolean performAccessibilityAction(int action, Bundle arguments) {
+      if (action == 0x01030003) {
+        resetViewport();
+        announceForAccessibility(L10n.text("전체 보기"));
+        return true;
+      }
       if (action == 0x01030002) {
         clearInspection();
         return true;
@@ -1303,6 +1589,13 @@ public class MainActivity extends Activity {
                 selectedAt,
                 action == android.view.accessibility.AccessibilityNodeInfo.ACTION_SCROLL_FORWARD);
         if (next < 0) return false;
+        if (sampleTimes[next] < viewport.start() || sampleTimes[next] > viewport.end()) {
+          // Accessibility stepping may leave the visible window; reveal the actual sample first.
+          viewport.panByFraction(
+              (viewport.start() + viewport.span() / 2.0 - sampleTimes[next])
+                  / Math.max(1, viewport.span()));
+          viewportChanged();
+        }
         inspecting = true;
         selectedIndex = next;
         updateSelectedLabels(false);
@@ -1324,7 +1617,8 @@ public class MainActivity extends Activity {
           selectedIndex < 0
               ? cursorX
               : plot.left
-                  + plot.width() * (time.hasRange() ? (float) time.fraction(selectedAt) : .5f);
+                  + plot.width()
+                      * (viewport.hasRange() ? (float) viewport.fraction(selectedAt) : .5f);
       p.setColor(accent);
       p.setAlpha(150);
       p.setStrokeWidth(dp(1));
@@ -1390,7 +1684,7 @@ public class MainActivity extends Activity {
     }
 
     private void drawTimeAxis(Canvas c, ChartTimeRange time, int muted) {
-      if (!time.hasRange()) {
+      if (!viewport.hasRange()) {
         text(c, firstLabel, plot.centerX(), getHeight() - dp(16), 9, muted, Paint.Align.CENTER);
         return;
       }

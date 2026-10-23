@@ -2,7 +2,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { writeJson } from "./config.mjs";
 
-export const APP_VERSION = "0.11.1";
+export const APP_VERSION = "0.12.0";
 export const defaultSettings = () => ({
   appearance: {
     themeMode: "dark",

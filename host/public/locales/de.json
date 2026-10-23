@@ -1560,5 +1560,8 @@
   "알림 이력을 저장하지 못했습니다. 디스크 상태를 확인하세요.": "Der Benachrichtigungsverlauf konnte nicht gespeichert werden. Überprüfen Sie den Festplattenstatus.",
   "태블릿 연결이 필요합니다.": "Tablet-Verbindung erforderlich.",
   "터치·드래그로 값 확인": "Überprüfen Sie den Wert durch Berühren und Ziehen",
-  "선택 해제": "Abwählen"
+  "선택 해제": "Abwählen",
+  "두 손가락으로 확대": "Mit zwei Fingern heranzoomen",
+  "확대됨 · 좌우로 이동": "Vergrößert · Nach links oder rechts bewegen",
+  "전체 보기": "Alle anzeigen"
 }

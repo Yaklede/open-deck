@@ -1560,5 +1560,8 @@
   "알림 이력을 저장하지 못했습니다. 디스크 상태를 확인하세요.": "Nie udało się zapisać historii powiadomień. Sprawdź stan dysku.",
   "태블릿 연결이 필요합니다.": "Wymagane połączenie z tabletem.",
   "터치·드래그로 값 확인": "Sprawdź wartość, dotykając i przeciągając",
-  "선택 해제": "Odznacz"
+  "선택 해제": "Odznacz",
+  "두 손가락으로 확대": "Powiększ dwoma palcami",
+  "확대됨 · 좌우로 이동": "Powiększony · Przesuń w lewo lub w prawo",
+  "전체 보기": "Zobacz wszystko"
 }

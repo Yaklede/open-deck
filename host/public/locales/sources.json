@@ -2686,6 +2686,12 @@
     ]
   },
   {
+    "source": "두 손가락으로 확대",
+    "files": [
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
     "source": "드래그로 이동 · 오른쪽 아래 모서리로 크기 조절 · 방향키 이동 / Alt+방향키 크기 조절",
     "files": [
       "host/public/app.js",
@@ -7564,6 +7570,12 @@
     ]
   },
   {
+    "source": "전체 보기",
+    "files": [
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
     "source": "전체 화면",
     "files": [
       "host/public/settings-ui.mjs",
@@ -9553,6 +9565,12 @@
   },
   {
     "source": "화면을 터치하면 돌아갑니다",
+    "files": [
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
+    "source": "확대됨 · 좌우로 이동",
     "files": [
       "android/app/src/main/java/app/opendeck/client/MainActivity.java"
     ]

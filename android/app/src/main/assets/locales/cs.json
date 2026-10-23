@@ -1560,5 +1560,8 @@
   "알림 이력을 저장하지 못했습니다. 디스크 상태를 확인하세요.": "Historii oznámení se nepodařilo uložit. Zkontrolujte stav disku.",
   "태블릿 연결이 필요합니다.": "Je vyžadováno připojení tabletu.",
   "터치·드래그로 값 확인": "Zkontrolujte hodnotu dotykem a tažením",
-  "선택 해제": "Zrušit výběr"
+  "선택 해제": "Zrušit výběr",
+  "두 손가락으로 확대": "Přiblížení dvěma prsty",
+  "확대됨 · 좌우로 이동": "Zvětšené · Pohyb doleva nebo doprava",
+  "전체 보기": "Zobrazit vše"
 }
