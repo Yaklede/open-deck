@@ -6,7 +6,7 @@ A local macro deck with a **macOS host and a native Android app**. Build your co
 
 ![Native monitor page on Android](assets/screenshots/monitor.png)
 
-> Version 0.12.0 supports USB + encrypted Wi-Fi on Apple Silicon Macs (macOS 13+) and Android 8+. It implements the core desk-control workflow; it does not claim full feature or plugin compatibility with Macro Deck or Touch Portal.
+> Version 0.12.1 supports USB + encrypted Wi-Fi on Apple Silicon Macs (macOS 13+) and Android 8+. It implements the core desk-control workflow; it does not claim full feature or plugin compatibility with Macro Deck or Touch Portal.
 
 ## Download
 
@@ -19,7 +19,7 @@ The macOS download is an ad-hoc signed developer build, not Apple notarized. You
 | Feature                              | Included                                                                                          |
 | ------------------------------------ | ------------------------------------------------------------------------------------------------- |
 | Mac desktop app and menu bar control | App bundles the host runtime; no Node installation needed to run                                  |
-| USB and Wi-Fi                        | USB registration, certificate-pinned HTTPS, auto/Wi-Fi/USB modes                                  |
+| USB and Wi-Fi                        | USB registration, certificate-pinned HTTPS, automatic host rediscovery, auto/Wi-Fi/USB modes      |
 | Touch and rendering                  | Immediate press animation, haptics, per-widget updates, bounded concurrent actions                |
 | Native Android client                | Portrait/landscape, reconnect, multiple pages, encrypted saved token                              |
 | Visual deck editor                   | Independent page grids, drag placement, resize/spans, duplication, undo/redo, themes and images   |
@@ -59,7 +59,7 @@ Jimin OS 서버 로그인 정보는 Open Deck과 태블릿에 전달하지 않�
 5. 태블릿 앱에 맥 편집기의 6자리 코드를 입력합니다. 최초 USB 등록 때 맥의 Wi-Fi 주소와 인증서가 함께 저장됩니다.
 6. 맥과 태블릿을 같은 Wi-Fi에 연결하면 자동으로 암호화된 무선 연결을 사용합니다. 등록 후 USB 케이블을 빼도 됩니다.
 7. 태블릿 오른쪽 위 설정 → **연결 방식 · Wi-Fi / USB**에서 자동(Wi-Fi 우선), Wi-Fi 전용, USB 전용을 선택할 수 있습니다.
-8. 공유기에서 맥 IP가 바뀌면 USB를 한 번 연결하거나, 맥 편집기 **연결된 기기**에 표시된 HTTPS 주소를 태블릿 **맥 Wi-Fi 주소 변경**에 입력하세요. 맥 인증서는 그대로 유지됩니다.
+8. 맥 IP가 바뀌어 연결이 끊기면 앱이 같은 네트워크에서 등록한 맥을 다시 검색합니다. 저장된 인증서가 일치하는 HTTPS 주소만 사용하며 기존 페어링을 유지합니다. 검색이 차단된 네트워크에서는 USB를 한 번 연결하거나 **맥 Wi-Fi 주소 관리**에 현재 HTTPS 주소를 추가하세요. [연결 조건과 문제 해결](docs/networking.md)을 참고하세요.
 9. 맥에서 위젯을 편집한 뒤 **변경 저장**을 누르면 태블릿에 바로 반영됩니다.
 
 Chrome 버튼의 `프로필`에는 이메일 주소가 아닌 `Default`, `Profile 2` 같은 Chrome 프로필 폴더 이름을 입력합니다. 해당 프로필에서 기존 URL의 탭을 찾고, 없으면 새로 엽니다. macOS가 Chrome 제어 권한을 물으면 본인이 허용해야 합니다.
@@ -110,7 +110,7 @@ The Mac editor and USB API bind to `127.0.0.1:8840`. A separate HTTPS listener o
 
 At first launch the host generates a private per-install certificate with the macOS system OpenSSL tool. The Android app obtains its SHA-256 fingerprint over an authenticated USB connection, then verifies the exact certificate and its validity on every Wi-Fi TLS connection. It does not trust arbitrary self-signed certificates and does not install a system CA. Device tokens are never sent over unencrypted Wi-Fi; cleartext is allowed only for the USB loopback endpoint. The same paired token and revocation policy apply to both transports.
 
-Initial registration requires USB. Wi-Fi works on the same reachable private IPv4 network; guest-network isolation or a firewall blocking TCP 8841 prevents it. There is no mDNS discovery or router port forwarding. If a DHCP address changes while USB is absent, enter the new HTTPS address in tablet settings. Keep the Mac host running.
+Initial registration requires USB. Wi-Fi works on the same reachable private IPv4 network; guest-network isolation or a firewall blocking TCP 8841 prevents it. After a connection failure, the paired Android app can rediscover the Mac through DNS-SD/mDNS (`_opendeck._tcp`) and Android NSD. Automatic recovery accepts only HTTPS candidates that match the certificate fingerprint already enrolled over USB; discovery does not replace trust enrollment. Keep host discovery enabled on the Mac. If multicast is blocked, reconnect over USB or add the current HTTPS address in tablet settings. Keep the Mac host running; no router port forwarding is needed. See [networking and recovery](docs/networking.md).
 
 Settings are in `~/Library/Application Support/OpenDeck/`. They are private to that Mac and never included in source or releases. Device tokens are hashed on the host and encrypted with Android Keystore on the tablet. Logs and timers are local; active countdowns are not restored after a host restart.
 

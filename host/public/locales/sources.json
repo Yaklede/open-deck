@@ -1744,12 +1744,6 @@
     ]
   },
   {
-    "source": "검색을 시작하지 못했습니다. 주소를 직접 추가할 수 있습니다.",
-    "files": [
-      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
-    ]
-  },
-  {
     "source": "결과를 아직 확인하지 못했어요. 상태를 확인하거나 같은 요청을 다시 시도해 주세요.",
     "files": [
       "android/app/src/main/java/app/opendeck/client/MainActivity.java"
@@ -3081,12 +3075,6 @@
   },
   {
     "source": "맥 연결을 기다리는 중입니다.",
-    "files": [
-      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
-    ]
-  },
-  {
-    "source": "맥 주소를 저장했습니다.",
     "files": [
       "android/app/src/main/java/app/opendeck/client/MainActivity.java"
     ]
@@ -5628,12 +5616,6 @@
       "host/public/settings-ui.mjs"
     ],
     "english": "Encrypted · unlock the vault to restore"
-  },
-  {
-    "source": "암호화하지 않는 LAN 호스트를 찾았습니다. 연결 전에 주소를 확인하세요.",
-    "files": [
-      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
-    ]
   },
   {
     "source": "암호화하지 않는 Wi-Fi 허용",

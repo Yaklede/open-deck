@@ -91,7 +91,9 @@ public class MainActivity extends Activity {
         settings();
       };
   private android.net.nsd.NsdManager discoveryManager;
-  private android.net.nsd.NsdManager.DiscoveryListener discoveryListener;
+  private HostDiscoveryRun activeDiscovery;
+  private final HostRecoveryPolicy recoveryPolicy = new HostRecoveryPolicy();
+  private final ExecutorService discoveryRequests = Executors.newSingleThreadExecutor();
   private PopupWindow monitorBanner;
   private final Map<String, Long> lastErrors = new HashMap<>();
   private final Runnable tick =
@@ -122,6 +124,7 @@ public class MainActivity extends Activity {
             deck.tick();
             if (idleDimmed && settingString("screenSaverMode").equals("clock")) deck.invalidate();
           }
+          maybeDiscoverHost();
           ui.postDelayed(this, 1000);
         }
       };
@@ -134,6 +137,7 @@ public class MainActivity extends Activity {
             .setFontVariationSettings("'wght' 500")
             .build();
     prefs = getSharedPreferences("open-deck", MODE_PRIVATE);
+    loadConnectionLog();
     loadClientSettings();
     L10n.configure(this, settingString("language"));
     pageId =
@@ -189,6 +193,7 @@ public class MainActivity extends Activity {
   @Override
   public void onPause() {
     foreground = false;
+    stopHostDiscovery();
     ui.removeCallbacks(cornerSettings);
     setIdleDimmed(false);
     if (monitorBanner != null) monitorBanner.dismiss();
@@ -3311,6 +3316,7 @@ public class MainActivity extends Activity {
     if (events != null) events.interrupt();
     commands.shutdownNow();
     stopHostDiscovery();
+    discoveryRequests.shutdownNow();
     images.shutdownNow();
     settingRequests.shutdownNow();
     ui.removeCallbacks(cornerSettings);
@@ -3516,6 +3522,15 @@ public class MainActivity extends Activity {
     return out.toString("UTF-8");
   }
 
+  private boolean currentStreamAttempt(
+      long generation, int revision, String streamToken, String address) {
+    return !stopped
+        && generation == pairingGeneration
+        && revision == connectionRevision
+        && streamToken.equals(token)
+        && address.equals(base);
+  }
+
   private void listen() {
     int delay = 1000, endpoint = 0, revision = connectionRevision;
     while (!stopped && !token.isEmpty()) {
@@ -3527,27 +3542,34 @@ public class MainActivity extends Activity {
       List<String> candidates = endpoints();
       base = candidates.get(endpoint % candidates.size());
       long connectionGeneration = pairingGeneration;
-      String streamToken = token;
+      String streamToken = token, streamBase = base, streamPin = wifiPin;
+      int streamRevision = revision;
       boolean switchToWifi = false;
       HttpURLConnection c = null;
       try {
-        c = PinnedConnection.open(base + "/api/events", wifiPin, settingBool("allowInsecureWifi"));
+        c =
+            PinnedConnection.open(
+                streamBase + "/api/events", streamPin, settingBool("allowInsecureWifi"));
         eventConnection = c;
         c.setConnectTimeout(2500);
         c.setReadTimeout(6000);
         c.setRequestProperty("Authorization", "Bearer " + streamToken);
         int responseStatus = c.getResponseCode();
-        if (connectionGeneration != pairingGeneration) continue;
+        if (!currentStreamAttempt(connectionGeneration, streamRevision, streamToken, streamBase))
+          continue;
         if (responseStatus == 401) {
-          token = "";
-          prefs.edit().remove("token").apply();
+          // A late rejection from a previous endpoint or pairing must never erase the current
+          // identity.
           ui.post(
               () -> {
-                if (connectionGeneration != pairingGeneration) return;
+                if (!currentStreamAttempt(
+                    connectionGeneration, streamRevision, streamToken, streamBase)) return;
+                token = "";
+                prefs.edit().remove("token").apply();
                 resetDeviceIdentity();
                 pairScreen();
               });
-          return;
+          throw new IOException("Host unavailable");
         }
         if (responseStatus != 200) throw new IOException("Host unavailable");
         streamOpenedAt = SystemClock.elapsedRealtime();
@@ -3557,13 +3579,18 @@ public class MainActivity extends Activity {
         delay = 1000;
         ui.post(
             () -> {
+              if (!currentStreamAttempt(
+                  connectionGeneration, streamRevision, streamToken, streamBase)) return;
+              recoveryPolicy.connected();
+              if (activeDiscovery != null && !activeDiscovery.manual) stopHostDiscovery();
               if (deck != null) deck.invalidate();
             });
         try (BufferedReader reader =
             new BufferedReader(new InputStreamReader(c.getInputStream(), StandardCharsets.UTF_8))) {
           String line;
           while (!stopped && (line = reader.readLine()) != null) {
-            if (connectionGeneration != pairingGeneration) break;
+            if (!currentStreamAttempt(
+                connectionGeneration, streamRevision, streamToken, streamBase)) break;
             if (line.startsWith("data: ")) {
               JSONObject snapshot = new JSONObject(line.substring(6));
               lastEventAt = SystemClock.elapsedRealtime();
@@ -3578,7 +3605,8 @@ public class MainActivity extends Activity {
               String configJson = cfg == null ? null : cfg.toString();
               ui.post(
                   () -> {
-                    if (connectionGeneration != pairingGeneration) return;
+                    if (connectionGeneration != pairingGeneration || !streamToken.equals(token))
+                      return;
                     boolean changed = cfg != null && !renderedConfig.equals(configJson);
                     if (cfg != null) {
                       config = cfg;
@@ -3651,6 +3679,13 @@ public class MainActivity extends Activity {
         endpoint = 0;
         continue;
       }
+      ui.post(
+          () -> {
+            if (!currentStreamAttempt(
+                connectionGeneration, streamRevision, streamToken, streamBase)) return;
+            recoveryPolicy.failed();
+            maybeDiscoverHost();
+          });
       endpoint++;
       if (!stopped && revision == connectionRevision)
         try {
@@ -3725,6 +3760,7 @@ public class MainActivity extends Activity {
   }
 
   private void reconnect(String mode) {
+    stopHostDiscovery();
     transport = mode;
     prefs.edit().putString("transport", mode).apply();
     connectionRevision++;
@@ -3776,18 +3812,77 @@ public class MainActivity extends Activity {
         .show();
   }
 
+  private final class HostDiscoveryRun {
+    final boolean manual;
+    final long generation = pairingGeneration;
+    final int revision = connectionRevision;
+    final String expectedToken = token, pin = wifiPin;
+    final ArrayDeque<android.net.nsd.NsdServiceInfo> queue = new ArrayDeque<>();
+    final Set<String> seenServices = new HashSet<>(), seenAddresses = new HashSet<>();
+    android.net.nsd.NsdManager.DiscoveryListener listener;
+    Runnable timeout;
+    AlertDialog dialog;
+    LinearLayout rows;
+    TextView status;
+    volatile boolean active = true;
+    boolean resolving;
+    int attempts, busyRetries, found;
+
+    HostDiscoveryRun(boolean manual) {
+      this.manual = manual;
+    }
+  }
+
+  private boolean discoveryIdentityCurrent(HostDiscoveryRun run) {
+    return !stopped
+        && foreground
+        && HostRecoveryPolicy.currentAttempt(
+            run.generation,
+            run.revision,
+            run.expectedToken,
+            run.pin,
+            pairingGeneration,
+            connectionRevision,
+            token,
+            wifiPin,
+            transport);
+  }
+
+  private boolean discoveryCurrent(HostDiscoveryRun run) {
+    return run.active
+        && activeDiscovery == run
+        && discoveryIdentityCurrent(run)
+        && (run.manual || !connected);
+  }
+
   private void stopHostDiscovery() {
-    if (discoveryManager != null && discoveryListener != null) {
+    HostDiscoveryRun run = activeDiscovery;
+    if (run == null) return;
+    activeDiscovery = null;
+    run.active = false;
+    run.queue.clear();
+    if (run.timeout != null) ui.removeCallbacks(run.timeout);
+    if (discoveryManager != null && run.listener != null) {
       try {
-        discoveryManager.stopServiceDiscovery(discoveryListener);
+        discoveryManager.stopServiceDiscovery(run.listener);
       } catch (Exception ignored) {
       }
     }
-    discoveryListener = null;
+  }
+
+  private void maybeDiscoverHost() {
+    if (recoveryPolicy.shouldSearch(
+        SystemClock.elapsedRealtime(),
+        foreground,
+        !token.isEmpty(),
+        wifiPin.matches("[0-9a-f]{64}"),
+        transport,
+        connected,
+        activeDiscovery != null)) startHostDiscovery(false);
   }
 
   private void discoverHosts() {
-    if (wifiPin.isEmpty()) {
+    if (wifiPin.isEmpty() || token.isEmpty()) {
       new AlertDialog.Builder(L10n.context(this))
           .setTitle(L10n.text("최초 등록이 필요합니다"))
           .setMessage(L10n.text("USB로 한 번 등록한 뒤 같은 맥의 Wi-Fi 주소를 자동으로 찾을 수 있습니다."))
@@ -3795,33 +3890,64 @@ public class MainActivity extends Activity {
           .show();
       return;
     }
-    stopHostDiscovery();
-    LinearLayout rows = new LinearLayout(this);
-    rows.setOrientation(LinearLayout.VERTICAL);
-    rows.setPadding((int) dp(20), (int) dp(12), (int) dp(20), (int) dp(12));
-    TextView status = new TextView(this);
-    status.setText(L10n.text("같은 Wi-Fi에서 등록한 맥을 찾고 있습니다…"));
-    rows.addView(status);
-    AlertDialog dialog =
-        new AlertDialog.Builder(L10n.context(this))
-            .setTitle(L10n.text("Wi-Fi 호스트 검색"))
-            .setView(rows)
-            .setNegativeButton(L10n.text("닫기"), null)
-            .create();
-    Set<String> found = ConcurrentHashMap.newKeySet();
-    discoveryManager = getSystemService(android.net.nsd.NsdManager.class);
-    if (discoveryManager == null) {
-      Toast.makeText(this, L10n.text("이 기기에서 호스트 검색을 사용할 수 없습니다."), Toast.LENGTH_LONG).show();
+    if ("usb".equals(transport)) {
+      connectionSettings();
       return;
     }
-    android.net.nsd.NsdManager.DiscoveryListener listener =
+    startHostDiscovery(true);
+  }
+
+  private void finishHostDiscovery(HostDiscoveryRun run, String reason) {
+    if (activeDiscovery != run) return;
+    stopHostDiscovery();
+    recordConnection("discovery", reason);
+    if (run.manual && run.dialog != null && run.dialog.isShowing() && run.found == 0)
+      run.status.setText(L10n.text("등록한 맥을 찾지 못했습니다. 같은 Wi-Fi인지 확인하거나 주소를 직접 추가하세요."));
+  }
+
+  private void startHostDiscovery(boolean manual) {
+    stopHostDiscovery();
+    HostDiscoveryRun run = new HostDiscoveryRun(manual);
+    if (!discoveryIdentityCurrent(run)) return;
+    discoveryManager = getSystemService(android.net.nsd.NsdManager.class);
+    if (discoveryManager == null) {
+      if (manual)
+        Toast.makeText(this, L10n.text("이 기기에서 호스트 검색을 사용할 수 없습니다."), Toast.LENGTH_LONG).show();
+      recoveryPolicy.searchStarted(SystemClock.elapsedRealtime());
+      return;
+    }
+    activeDiscovery = run;
+    recoveryPolicy.searchStarted(SystemClock.elapsedRealtime());
+    recordConnection("discovery", manual ? "manual-start" : "automatic-start");
+    if (manual) {
+      run.rows = new LinearLayout(this);
+      run.rows.setOrientation(LinearLayout.VERTICAL);
+      run.rows.setPadding((int) dp(20), (int) dp(12), (int) dp(20), (int) dp(12));
+      run.status = new TextView(this);
+      run.status.setText(L10n.text("같은 Wi-Fi에서 등록한 맥을 찾고 있습니다…"));
+      run.rows.addView(run.status);
+      run.dialog =
+          new AlertDialog.Builder(L10n.context(this))
+              .setTitle(L10n.text("Wi-Fi 호스트 검색"))
+              .setView(run.rows)
+              .setNegativeButton(L10n.text("닫기"), null)
+              .create();
+      run.dialog.setOnDismissListener(
+          d -> {
+            if (activeDiscovery == run) stopHostDiscovery();
+          });
+      run.dialog.show();
+    }
+    run.listener =
         new android.net.nsd.NsdManager.DiscoveryListener() {
           public void onDiscoveryStarted(String type) {}
 
-          public void onDiscoveryStopped(String type) {}
+          public void onDiscoveryStopped(String type) {
+            ui.post(() -> finishHostDiscovery(run, "stopped"));
+          }
 
           public void onStartDiscoveryFailed(String type, int error) {
-            ui.post(() -> status.setText(L10n.text("검색을 시작하지 못했습니다. 주소를 직접 추가할 수 있습니다.")));
+            ui.post(() -> finishHostDiscovery(run, "start-failed"));
           }
 
           public void onStopDiscoveryFailed(String type, int error) {}
@@ -3829,94 +3955,132 @@ public class MainActivity extends Activity {
           public void onServiceLost(android.net.nsd.NsdServiceInfo service) {}
 
           public void onServiceFound(android.net.nsd.NsdServiceInfo service) {
-            if (!service.getServiceType().startsWith("_opendeck._tcp")) return;
-            discoveryManager.resolveService(
-                service,
-                new android.net.nsd.NsdManager.ResolveListener() {
-                  public void onResolveFailed(android.net.nsd.NsdServiceInfo info, int error) {}
-
-                  public void onServiceResolved(android.net.nsd.NsdServiceInfo info) {
-                    if (info.getHost() == null) return;
-                    byte[] tlsAttribute = info.getAttributes().get("tls");
-                    boolean plaintext =
-                        tlsAttribute != null
-                            && new String(tlsAttribute, StandardCharsets.UTF_8).equals("0");
-                    if (plaintext && !settingBool("allowInsecureWifi")) return;
-                    String address =
-                        (plaintext ? "http://" : "https://")
-                            + info.getHost().getHostAddress()
-                            + ":"
-                            + info.getPort();
-                    if (!validWifiUrl(address)
-                        || !found.add(address)
-                        || settingRequests.isShutdown()) return;
-                    settingRequests.execute(
-                        () -> {
-                          HttpURLConnection connection = null;
-                          try {
-                            connection =
-                                PinnedConnection.open(
-                                    address + "/health", wifiPin, settingBool("allowInsecureWifi"));
-                            connection.setConnectTimeout(1500);
-                            connection.setReadTimeout(1500);
-                            if (connection.getResponseCode() != 200) return;
-                            ui.post(
-                                () -> {
-                                  if (!dialog.isShowing()) return;
-                                  status.setText(
-                                      plaintext
-                                          ? L10n.text("암호화하지 않는 LAN 호스트를 찾았습니다. 연결 전에 주소를 확인하세요.")
-                                          : L10n.text("저장된 인증서가 일치하는 맥을 찾았습니다."));
-                                  Button item = new Button(MainActivity.this);
-                                  item.setAllCaps(false);
-                                  item.setText(info.getServiceName() + "\n" + address);
-                                  rows.addView(item);
-                                  item.setOnClickListener(
-                                      v -> {
-                                        List<String> next = new ArrayList<>(wifiUrls);
-                                        next.remove(address);
-                                        next.add(0, address);
-                                        if (next.size() > 8)
-                                          next = new ArrayList<>(next.subList(0, 8));
-                                        saveWifiAddresses(next);
-                                        dialog.dismiss();
-                                        Toast.makeText(
-                                                MainActivity.this,
-                                                L10n.text("맥 주소를 저장했습니다."),
-                                                Toast.LENGTH_SHORT)
-                                            .show();
-                                      });
-                                });
-                          } catch (Exception ignored) {
-                          } finally {
-                            if (connection != null) connection.disconnect();
-                          }
-                        });
-                  }
+            ui.post(
+                () -> {
+                  if (!discoveryCurrent(run)
+                      || !service.getServiceType().startsWith("_opendeck._tcp")) return;
+                  String key = service.getServiceName() + "|" + service.getServiceType();
+                  if (run.seenServices.size() >= 12 || !run.seenServices.add(key)) return;
+                  run.queue.addLast(service);
+                  resolveNextHost(run);
                 });
           }
         };
-    discoveryListener = listener;
-    dialog.setOnDismissListener(
-        d -> {
-          if (discoveryListener == listener) stopHostDiscovery();
-        });
-    dialog.show();
+    run.timeout = () -> finishHostDiscovery(run, run.found > 0 ? "completed" : "no-match");
+    ui.postDelayed(run.timeout, 10000);
     try {
       discoveryManager.discoverServices(
-          "_opendeck._tcp.", android.net.nsd.NsdManager.PROTOCOL_DNS_SD, listener);
+          "_opendeck._tcp.", android.net.nsd.NsdManager.PROTOCOL_DNS_SD, run.listener);
     } catch (Exception e) {
-      status.setText(L10n.text("검색을 시작하지 못했습니다. 주소를 직접 추가할 수 있습니다."));
+      finishHostDiscovery(run, "start-failed");
     }
-    ui.postDelayed(
-        () -> {
-          if (dialog.isShowing() && discoveryListener == listener) {
-            stopHostDiscovery();
-            if (rows.getChildCount() == 1)
-              status.setText(L10n.text("등록한 맥을 찾지 못했습니다. 같은 Wi-Fi인지 확인하거나 주소를 직접 추가하세요."));
-          }
-        },
-        10000);
+  }
+
+  private void resolveNextHost(HostDiscoveryRun run) {
+    if (!discoveryCurrent(run) || run.resolving || run.queue.isEmpty() || run.attempts >= 8) return;
+    android.net.nsd.NsdServiceInfo service = run.queue.removeFirst();
+    run.resolving = true;
+    run.attempts++;
+    try {
+      discoveryManager.resolveService(
+          service,
+          new android.net.nsd.NsdManager.ResolveListener() {
+            public void onResolveFailed(android.net.nsd.NsdServiceInfo info, int error) {
+              ui.post(
+                  () -> {
+                    if (!discoveryCurrent(run)) return;
+                    run.resolving = false;
+                    if (error == android.net.nsd.NsdManager.FAILURE_ALREADY_ACTIVE
+                        && run.busyRetries++ < 3) {
+                      run.queue.addFirst(service);
+                      ui.postDelayed(() -> resolveNextHost(run), 250);
+                    } else resolveNextHost(run);
+                  });
+            }
+
+            public void onServiceResolved(android.net.nsd.NsdServiceInfo info) {
+              ui.post(() -> verifyDiscoveredHost(run, info));
+            }
+          });
+    } catch (Exception e) {
+      run.resolving = false;
+      resolveNextHost(run);
+    }
+  }
+
+  private void verifyDiscoveredHost(HostDiscoveryRun run, android.net.nsd.NsdServiceInfo info) {
+    if (!discoveryCurrent(run)) return;
+    byte[] tls = info.getAttributes().get("tls");
+    boolean plaintext = tls != null && new String(tls, StandardCharsets.UTF_8).equals("0");
+    String address =
+        info.getHost() == null
+            ? ""
+            : "https://" + info.getHost().getHostAddress() + ":" + info.getPort();
+    if (plaintext
+        || !ClientSettingsPolicy.validWifiUrl(address)
+        || !run.seenAddresses.add(address)) {
+      run.resolving = false;
+      resolveNextHost(run);
+      return;
+    }
+    try {
+      discoveryRequests.execute(
+          () -> {
+            HttpURLConnection probe = null;
+            boolean verified = false;
+            String failure = "unreachable";
+            try {
+              if (!run.active || stopped) return;
+              // No token or new trust is sent during discovery. The saved exact certificate must
+              // match.
+              probe = PinnedConnection.open(address + "/health", run.pin);
+              probe.setConnectTimeout(1500);
+              probe.setReadTimeout(1500);
+              verified = probe.getResponseCode() == 200;
+            } catch (Exception e) {
+              failure = e.getClass().getSimpleName();
+            } finally {
+              if (probe != null) probe.disconnect();
+            }
+            final boolean accepted = verified;
+            final String diagnostic = failure;
+            ui.post(
+                () -> {
+                  if (!discoveryCurrent(run)) return;
+                  run.resolving = false;
+                  if (accepted) {
+                    run.found++;
+                    if (!run.manual) {
+                      acceptDiscoveredHost(run, address);
+                      return;
+                    }
+                    run.status.setText(L10n.text("저장된 인증서가 일치하는 맥을 찾았습니다."));
+                    Button item = new Button(MainActivity.this);
+                    item.setAllCaps(false);
+                    item.setText(info.getServiceName() + "\n" + address);
+                    run.rows.addView(item);
+                    item.setOnClickListener(v -> acceptDiscoveredHost(run, address));
+                  } else recordConnection("discovery-retry", diagnostic);
+                  resolveNextHost(run);
+                });
+          });
+    } catch (RejectedExecutionException e) {
+      finishHostDiscovery(run, "cancelled");
+    }
+  }
+
+  private void acceptDiscoveredHost(HostDiscoveryRun run, String address) {
+    // Manual results remain usable after the bounded search finishes, but never after identity
+    // changes.
+    if (!discoveryIdentityCurrent(run) || (!run.manual && !discoveryCurrent(run))) return;
+    List<String> next = new ArrayList<>(wifiUrls);
+    next.remove(address);
+    next.add(0, address);
+    if (next.size() > 8) next = new ArrayList<>(next.subList(0, 8));
+    recordConnection("discovery", "verified-host");
+    stopHostDiscovery();
+    saveWifiAddresses(next);
+    if (run.dialog != null) run.dialog.dismiss();
   }
 
   private void wifiAddressSettings() {
@@ -3948,6 +4112,10 @@ public class MainActivity extends Activity {
                 .setNegativeButton(L10n.text("취소"), null)
                 .show();
           });
+    p.action(
+        L10n.text("Wi-Fi 호스트 검색"),
+        L10n.text("등록한 주소를 순서대로 시도합니다. 기존 인증서가 일치하는 맥에만 연결합니다."),
+        this::discoverHosts);
     p.action(
         L10n.text("주소 추가"), L10n.text("맥 편집기에 표시된 HTTPS 주소를 입력합니다."), () -> editWifiAddress(null));
     p.show();
@@ -4456,6 +4624,8 @@ public class MainActivity extends Activity {
   }
 
   private void resetDeviceIdentity() {
+    stopHostDiscovery();
+    recoveryPolicy.connected();
     pairingGeneration++;
     settingsSyncRunning = false;
     settingsSyncRetryAt = 0;
@@ -4722,7 +4892,52 @@ public class MainActivity extends Activity {
     } else deck.performHapticFeedback(feedback);
   }
 
+  private boolean safeConnectionLog(String event, String detail) {
+    if (event == null || detail == null) return false;
+    switch (event) {
+      case "connected":
+        return detail.equals("Wi-Fi") || detail.equals("USB");
+      case "settings-navigation-reset":
+        return detail.equals("profile-or-page-removed");
+      case "retry":
+      case "settings-pending":
+      case "discovery-retry":
+        return detail.equals("unreachable")
+            || detail.matches("[A-Za-z][A-Za-z0-9_$]{0,64}(Exception|Error)");
+      case "discovery":
+        return detail.equals("manual-start")
+            || detail.equals("automatic-start")
+            || detail.equals("stopped")
+            || detail.equals("start-failed")
+            || detail.equals("completed")
+            || detail.equals("no-match")
+            || detail.equals("cancelled")
+            || detail.equals("verified-host");
+      default:
+        return false;
+    }
+  }
+
+  private synchronized void loadConnectionLog() {
+    try {
+      String stored = prefs.getString("connectionLog", "[]");
+      if (stored.length() > 32768) return;
+      JSONArray lines = new JSONArray(stored);
+      for (int i = Math.max(0, lines.length() - 100); i < lines.length(); i++) {
+        String line = lines.optString(i);
+        String[] fields = line.split(" · ", 3);
+        if (fields.length == 3
+            && fields[0].matches("[0-9]{2}-[0-9]{2} [0-9]{2}:[0-9]{2}:[0-9]{2}")
+            && safeConnectionLog(fields[1], fields[2])) connectionLog.addLast(line);
+      }
+    } catch (Exception ignored) {
+    }
+  }
+
   private synchronized void recordConnection(String event, String detail) {
+    // Persist only an allowlisted event and exception class; never addresses, tokens, pins or
+    // messages.
+    if (!safeConnectionLog(event, detail)) return;
     String line =
         new SimpleDateFormat("MM-dd HH:mm:ss", Locale.ROOT).format(new Date())
             + " · "
@@ -4731,6 +4946,8 @@ public class MainActivity extends Activity {
             + detail;
     if (connectionLog.size() >= 100) connectionLog.removeFirst();
     connectionLog.addLast(line);
+    if (prefs != null)
+      prefs.edit().putString("connectionLog", new JSONArray(connectionLog).toString()).apply();
   }
 
   private String appVersion() {
