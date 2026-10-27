@@ -33,7 +33,11 @@ public class MainActivity extends Activity {
   private final Map<String, Long> pending = new HashMap<>();
   private final Map<String, Integer> colors = new HashMap<>();
   private long serverTime = 0, receivedAt = 0, lastReconnectAt = -5000;
-  private volatile long lastEventAt = 0, streamOpenedAt = 0;
+  private volatile long lastEventAt = 0,
+      lastTrafficAt = 0,
+      streamOpenedAt = 0,
+      activeStreamAttempt = 0;
+  private long recoveryAppliedAttempt;
   private String renderedConfig = "";
   private final Set<String> runningIds = new HashSet<>();
   private volatile boolean stopped = false, connected = false;
@@ -46,7 +50,6 @@ public class MainActivity extends Activity {
   private volatile List<String> wifiUrls = new ArrayList<>();
   private volatile int connectionRevision = 0;
   private String connectionError = "";
-  private long lastWifiProbe = -15000;
   private volatile JSONObject config = new JSONObject(), state = new JSONObject();
   private JSONObject savedNavigationCatalog = new JSONObject();
   private DeckView deck;
@@ -59,6 +62,7 @@ public class MainActivity extends Activity {
           return value.getAllocationByteCount();
         }
       };
+  private static final int MAX_STREAM_LINE_CHARS = 16 * 1024 * 1024;
   private static final Pattern TEMPLATE = Pattern.compile("\\{\\{\\s*([a-zA-Z0-9_]+)\\s*\\}\\}");
   private Typeface font;
   private int osMonthOffset = 0;
@@ -94,6 +98,8 @@ public class MainActivity extends Activity {
   private HostDiscoveryRun activeDiscovery;
   private final HostRecoveryPolicy recoveryPolicy = new HostRecoveryPolicy();
   private final ExecutorService discoveryRequests = Executors.newSingleThreadExecutor();
+  private final ScheduledExecutorService streamDeadlines =
+      Executors.newSingleThreadScheduledExecutor();
   private PopupWindow monitorBanner;
   private final Map<String, Long> lastErrors = new HashMap<>();
   private final Runnable tick =
@@ -101,13 +107,16 @@ public class MainActivity extends Activity {
         public void run() {
           if (foreground
               && !token.isEmpty()
-              && !streamFresh()
               && connected
-              && SystemClock.elapsedRealtime() - Math.max(lastEventAt, streamOpenedAt) >= 8000
+              && (!transportAlive()
+                  || lastEventAt == 0
+                      && SystemClock.elapsedRealtime() - streamOpenedAt
+                          >= StreamConnectionPolicy.TRAFFIC_TIMEOUT_MS)
               && SystemClock.elapsedRealtime() - lastReconnectAt >= 5000) {
             lastReconnectAt = SystemClock.elapsedRealtime();
+            recordConnection(
+                "stream", lastEventAt == 0 ? "first-snapshot-timeout" : "traffic-timeout");
             connected = false;
-            connectionRevision++;
             disconnectEvents();
             if (deck != null) {
               deck.updateState();
@@ -180,7 +189,8 @@ public class MainActivity extends Activity {
     super.onResume();
     foreground = true;
     wakeDisplay();
-    if (!token.isEmpty() && !streamFresh()) {
+    if (!token.isEmpty() && !transportAlive()) {
+      recordConnection("stream", "resume-reconnect");
       connectionRevision++;
       disconnectEvents();
     }
@@ -1835,8 +1845,14 @@ public class MainActivity extends Activity {
     return ink == monitorColor("normal") ? color("#a8b5c5") : ink;
   }
 
+  private boolean transportAlive() {
+    return StreamConnectionPolicy.trafficAlive(
+        connected, SystemClock.elapsedRealtime(), streamOpenedAt, lastTrafficAt);
+  }
+
   private boolean streamFresh() {
-    return DataFreshness.streamFresh(connected, SystemClock.elapsedRealtime(), lastEventAt);
+    return lastEventAt >= streamOpenedAt
+        && DataFreshness.streamFresh(connected, SystemClock.elapsedRealtime(), lastEventAt);
   }
 
   private JSONObject sourceMeta(JSONObject data, String key) {
@@ -1906,7 +1922,7 @@ public class MainActivity extends Activity {
   }
 
   private String freshnessNotice(JSONObject widget, JSONObject data) {
-    if (!streamFresh()) return L10n.text("연결 끊김");
+    if (!streamFresh()) return L10n.text(transportAlive() ? "오래된 데이터" : "연결 끊김");
     if (!queryFresh(data)) return L10n.text("조회 중단");
     String[] keys =
         widget.optString("metric").equals("system")
@@ -3317,6 +3333,7 @@ public class MainActivity extends Activity {
     commands.shutdownNow();
     stopHostDiscovery();
     discoveryRequests.shutdownNow();
+    streamDeadlines.shutdownNow();
     images.shutdownNow();
     settingRequests.shutdownNow();
     ui.removeCallbacks(cornerSettings);
@@ -3522,48 +3539,92 @@ public class MainActivity extends Activity {
     return out.toString("UTF-8");
   }
 
-  private boolean currentStreamAttempt(
-      long generation, int revision, String streamToken, String address) {
+  private boolean currentStreamIdentity(long generation, int revision, String streamToken) {
     return !stopped
         && generation == pairingGeneration
         && revision == connectionRevision
-        && streamToken.equals(token)
-        && address.equals(base);
+        && streamToken.equals(token);
+  }
+
+  private boolean currentStreamAttempt(
+      long generation, int revision, String streamToken, String address, long attempt) {
+    return currentStreamIdentity(generation, revision, streamToken)
+        && address.equals(base)
+        && attempt == activeStreamAttempt;
+  }
+
+  private JSONObject parseStreamSnapshot(String line) throws Exception {
+    String payload = SseLineReader.dataPayload(line);
+    if (payload == null) return null;
+    JSONObject snapshot = new JSONObject(payload);
+    JSONObject nextState = snapshot.optJSONObject("state");
+    if (nextState == null || nextState.optLong("at", 0) <= 0)
+      throw new IOException("Host unavailable");
+    return snapshot;
+  }
+
+  private void recordStreamPolicy(
+      long generation, int revision, String streamToken, long attempt, boolean stable) {
+    ui.post(
+        () -> {
+          if (!currentStreamIdentity(generation, revision, streamToken)
+              || attempt < recoveryAppliedAttempt) return;
+          recoveryAppliedAttempt = attempt;
+          if (stable) {
+            recoveryPolicy.connected();
+            if (activeDiscovery != null && !activeDiscovery.manual) stopHostDiscovery();
+          } else {
+            recoveryPolicy.failed();
+            maybeDiscoverHost();
+          }
+        });
   }
 
   private void listen() {
-    int delay = 1000, endpoint = 0, revision = connectionRevision;
+    StreamConnectionPolicy policy = new StreamConnectionPolicy();
+    int endpoint = 0, revision = connectionRevision, promotionOffset = 0;
+    long policyGeneration = pairingGeneration;
+    String preferredEndpoint = "";
     while (!stopped && !token.isEmpty()) {
-      if (revision != connectionRevision) {
+      if (revision != connectionRevision || policyGeneration != pairingGeneration) {
         endpoint = 0;
         revision = connectionRevision;
-        delay = 1000;
+        policyGeneration = pairingGeneration;
+        preferredEndpoint = "";
+        policy.explicitReconnect();
       }
       List<String> candidates = endpoints();
+      if (!preferredEndpoint.isEmpty() && candidates.contains(preferredEndpoint))
+        endpoint = candidates.indexOf(preferredEndpoint);
+      preferredEndpoint = "";
       base = candidates.get(endpoint % candidates.size());
-      long connectionGeneration = pairingGeneration;
+      long connectionGeneration = pairingGeneration, attempt = ++activeStreamAttempt;
       String streamToken = token, streamBase = base, streamPin = wifiPin;
       int streamRevision = revision;
-      boolean switchToWifi = false;
+      String promoteTo = "", promotionPin = "";
+      String endReason = "eof";
+      boolean sessionHasSnapshot = false;
+      Future<String> promotionProbe = null;
+      ScheduledFuture<?> firstSnapshotDeadline = null;
       HttpURLConnection c = null;
+      lastEventAt = lastTrafficAt = streamOpenedAt = 0;
+      policy.opened();
       try {
         c =
             PinnedConnection.open(
                 streamBase + "/api/events", streamPin, settingBool("allowInsecureWifi"));
         eventConnection = c;
         c.setConnectTimeout(2500);
-        c.setReadTimeout(6000);
+        c.setReadTimeout(StreamConnectionPolicy.READ_TIMEOUT_MS);
         c.setRequestProperty("Authorization", "Bearer " + streamToken);
         int responseStatus = c.getResponseCode();
-        if (!currentStreamAttempt(connectionGeneration, streamRevision, streamToken, streamBase))
-          continue;
+        if (!currentStreamAttempt(
+            connectionGeneration, streamRevision, streamToken, streamBase, attempt)) continue;
         if (responseStatus == 401) {
-          // A late rejection from a previous endpoint or pairing must never erase the current
-          // identity.
           ui.post(
               () -> {
                 if (!currentStreamAttempt(
-                    connectionGeneration, streamRevision, streamToken, streamBase)) return;
+                    connectionGeneration, streamRevision, streamToken, streamBase, attempt)) return;
                 token = "";
                 prefs.edit().remove("token").apply();
                 resetDeviceIdentity();
@@ -3573,151 +3634,231 @@ public class MainActivity extends Activity {
         }
         if (responseStatus != 200) throw new IOException("Host unavailable");
         streamOpenedAt = SystemClock.elapsedRealtime();
+        HttpURLConnection openingConnection = c;
+        firstSnapshotDeadline =
+            streamDeadlines.schedule(
+                openingConnection::disconnect,
+                StreamConnectionPolicy.TRAFFIC_TIMEOUT_MS,
+                TimeUnit.MILLISECONDS);
         connected = true;
         connectionError = "";
-        recordConnection("connected", base.startsWith("https:") ? "Wi-Fi" : "USB");
-        delay = 1000;
+        recordConnection("connected", isUsbEndpoint(streamBase) ? "USB" : "Wi-Fi");
         ui.post(
             () -> {
               if (!currentStreamAttempt(
-                  connectionGeneration, streamRevision, streamToken, streamBase)) return;
-              recoveryPolicy.connected();
+                  connectionGeneration, streamRevision, streamToken, streamBase, attempt)) return;
               if (activeDiscovery != null && !activeDiscovery.manual) stopHostDiscovery();
               if (deck != null) deck.invalidate();
             });
-        try (BufferedReader reader =
-            new BufferedReader(new InputStreamReader(c.getInputStream(), StandardCharsets.UTF_8))) {
+        try (SseLineReader reader =
+            new SseLineReader(
+                new InputStreamReader(c.getInputStream(), StandardCharsets.UTF_8),
+                MAX_STREAM_LINE_CHARS,
+                SystemClock::elapsedRealtime)) {
           String line;
-          while (!stopped && (line = reader.readLine()) != null) {
+          while (!stopped
+              && (line =
+                      reader.readLine(
+                          sessionHasSnapshot
+                              ? 0
+                              : streamOpenedAt + StreamConnectionPolicy.TRAFFIC_TIMEOUT_MS))
+                  != null) {
             if (!currentStreamAttempt(
-                connectionGeneration, streamRevision, streamToken, streamBase)) break;
-            if (line.startsWith("data: ")) {
-              JSONObject snapshot = new JSONObject(line.substring(6));
-              lastEventAt = SystemClock.elapsedRealtime();
-              boolean learned = learnNetwork(snapshot.optJSONObject("network"));
-              if ("auto".equals(transport)
-                  && base.startsWith("http:")
-                  && (learned || wifiAvailable())) {
-                switchToWifi = true;
+                connectionGeneration, streamRevision, streamToken, streamBase, attempt)) {
+              endReason = "superseded";
+              break;
+            }
+            lastTrafficAt = SystemClock.elapsedRealtime();
+            JSONObject snapshot = parseStreamSnapshot(line);
+            if (snapshot == null) continue;
+            sessionHasSnapshot = true;
+            if (firstSnapshotDeadline != null) {
+              firstSnapshotDeadline.cancel(false);
+              firstSnapshotDeadline = null;
+            }
+            lastEventAt = lastTrafficAt;
+            if (policy.snapshot(lastEventAt)) {
+              recordConnection("stream", "stable");
+              recordStreamPolicy(connectionGeneration, streamRevision, streamToken, attempt, true);
+            }
+            learnNetwork(snapshot.optJSONObject("network"));
+            if ("auto".equals(transport) && isUsbEndpoint(streamBase)) {
+              if (promotionProbe != null && promotionProbe.isDone()) {
+                try {
+                  promoteTo = promotionProbe.get();
+                  if (!promotionPin.equals(wifiPin)) promoteTo = "";
+                } catch (Exception ignored) {
+                  promoteTo = "";
+                }
+                promotionProbe = null;
+                if (promoteTo.isEmpty()) promotionOffset++;
+                recordConnection(
+                    "stream", promoteTo.isEmpty() ? "promotion-failed" : "promotion-verified");
               }
-              JSONObject cfg = snapshot.optJSONObject("config"),
-                  st = snapshot.getJSONObject("state");
-              String configJson = cfg == null ? null : cfg.toString();
-              ui.post(
-                  () -> {
-                    if (connectionGeneration != pairingGeneration || !streamToken.equals(token))
-                      return;
-                    boolean changed = cfg != null && !renderedConfig.equals(configJson);
-                    if (cfg != null) {
-                      config = cfg;
-                      cacheNavigationCatalog(cfg);
+              if (promoteTo.isEmpty()
+                  && promotionProbe == null
+                  && policy.canPromote(SystemClock.elapsedRealtime())) {
+                policy.promotionAttempted(SystemClock.elapsedRealtime());
+                List<String> probeAddresses = new ArrayList<>(wifiUrls);
+                if (!probeAddresses.isEmpty())
+                  Collections.rotate(probeAddresses, -(promotionOffset % probeAddresses.size()));
+                String probePin = wifiPin;
+                promotionPin = probePin;
+                promotionProbe =
+                    discoveryRequests.submit(
+                        () -> verifyWifiStream(probeAddresses, probePin, streamToken));
+              }
+            }
+            JSONObject cfg = snapshot.optJSONObject("config"), st = snapshot.getJSONObject("state");
+            String configJson = cfg == null ? null : cfg.toString();
+            ui.post(
+                () -> {
+                  if (!currentStreamAttempt(
+                      connectionGeneration, streamRevision, streamToken, streamBase, attempt))
+                    return;
+                  boolean changed = cfg != null && !renderedConfig.equals(configJson);
+                  if (cfg != null) {
+                    config = cfg;
+                    cacheNavigationCatalog(cfg);
+                  }
+                  receiveDeviceSettings(snapshot.optJSONObject("device"));
+                  if (cfg != null && firstConfig) {
+                    firstConfig = false;
+                    if (!getIntent().getBooleanExtra("openOS", false)
+                        && !getIntent().hasExtra("openPage")) {
+                      List<String> visible = new ArrayList<>();
+                      JSONArray pages = cfg.optJSONArray("pages");
+                      if (pages != null)
+                        for (int i = 0; i < pages.length(); i++)
+                          visible.add(pages.optJSONObject(i).optString("id"));
+                      pageId =
+                          ProfileNavigation.startupPage(
+                              settingBool("rememberPage"),
+                              prefs.getString("page", ""),
+                              settingString("startPageId"),
+                              profileDefaultPage(),
+                              visible);
+                      prefs.edit().putString("page", pageId).apply();
                     }
-                    receiveDeviceSettings(snapshot.optJSONObject("device"));
-                    if (cfg != null && firstConfig) {
-                      firstConfig = false;
-                      if (!getIntent().getBooleanExtra("openOS", false)
-                          && !getIntent().hasExtra("openPage")) {
-                        List<String> visible = new ArrayList<>();
-                        JSONArray pages = cfg.optJSONArray("pages");
-                        if (pages != null)
-                          for (int i = 0; i < pages.length(); i++)
-                            visible.add(pages.optJSONObject(i).optString("id"));
-                        pageId =
-                            ProfileNavigation.startupPage(
-                                settingBool("rememberPage"),
-                                prefs.getString("page", ""),
-                                settingString("startPageId"),
-                                profileDefaultPage(),
-                                visible);
-                        prefs.edit().putString("page", pageId).apply();
-                      }
+                  }
+                  resolveRequestedNavigation();
+                  state = st;
+                  serverTime = st.optLong("at", System.currentTimeMillis());
+                  receivedAt = SystemClock.elapsedRealtime();
+                  runningIds.clear();
+                  JSONArray running = st.optJSONArray("running");
+                  if (running != null)
+                    for (int i = 0; i < running.length(); i++) runningIds.add(running.optString(i));
+                  showErrors();
+                  indexOSCalendar();
+                  showOSNotifications();
+                  if (deck != null && foreground) {
+                    if (changed) {
+                      renderedConfig = configJson;
+                      deck.rebuild();
                     }
-                    resolveRequestedNavigation();
-                    state = st;
-                    serverTime = st.optLong("at", System.currentTimeMillis());
-                    receivedAt = SystemClock.elapsedRealtime();
-                    runningIds.clear();
-                    JSONArray running = st.optJSONArray("running");
-                    if (running != null)
-                      for (int i = 0; i < running.length(); i++)
-                        runningIds.add(running.optString(i));
-                    showErrors();
-                    indexOSCalendar();
-                    showOSNotifications();
-                    if (deck != null && foreground) {
-                      if (changed) {
-                        renderedConfig = configJson;
-                        deck.rebuild();
-                      }
-                      deck.updateState();
-                    }
-                  });
-              if (switchToWifi) break;
+                    deck.updateState();
+                  }
+                });
+            if (!promoteTo.isEmpty()) {
+              endReason = "promote-wifi";
+              break;
             }
           }
         }
       } catch (Exception e) {
+        endReason =
+            e instanceof SocketTimeoutException
+                ? (sessionHasSnapshot ? "read-timeout" : "first-snapshot-timeout")
+                : "read-failed";
         connectionError =
             e.getMessage() == null ? L10n.text("연결할 수 없습니다.") : L10n.error(e.getMessage());
         recordConnection("retry", e.getClass().getSimpleName());
-        if (!stopped) {
-          connected = false;
-          ui.post(
-              () -> {
-                if (deck != null) {
-                  deck.updateState();
-                  deck.invalidate();
-                }
-              });
-        }
       } finally {
+        if (!sessionHasSnapshot
+            && streamOpenedAt > 0
+            && SystemClock.elapsedRealtime() - streamOpenedAt
+                >= StreamConnectionPolicy.TRAFFIC_TIMEOUT_MS) endReason = "first-snapshot-timeout";
+        if (firstSnapshotDeadline != null) firstSnapshotDeadline.cancel(false);
+        if (promotionProbe != null) promotionProbe.cancel(true);
         if (c != null) c.disconnect();
-        eventConnection = null;
+        if (eventConnection == c) eventConnection = null;
         connected = false;
       }
-      if (switchToWifi) {
-        endpoint = 0;
-        continue;
-      }
+      boolean current = currentStreamIdentity(connectionGeneration, streamRevision, streamToken);
+      if (current) recordConnection("stream", endReason);
       ui.post(
           () -> {
-            if (!currentStreamAttempt(
-                connectionGeneration, streamRevision, streamToken, streamBase)) return;
-            recoveryPolicy.failed();
-            maybeDiscoverHost();
+            if (!currentStreamIdentity(connectionGeneration, streamRevision, streamToken)) return;
+            if (deck != null) {
+              deck.updateState();
+              deck.invalidate();
+            }
           });
+      if (current && !promoteTo.isEmpty()) {
+        preferredEndpoint = promoteTo;
+        continue;
+      }
+      if (!current) continue;
+      recordStreamPolicy(connectionGeneration, streamRevision, streamToken, attempt, false);
       endpoint++;
-      if (!stopped && revision == connectionRevision)
+      long until = SystemClock.elapsedRealtime() + policy.failureDelay();
+      while (currentStreamIdentity(connectionGeneration, streamRevision, streamToken)
+          && SystemClock.elapsedRealtime() < until) {
         try {
-          Thread.sleep(delay);
+          Thread.sleep(Math.min(250, Math.max(1, until - SystemClock.elapsedRealtime())));
         } catch (InterruptedException e) {
-          return;
+          if (stopped) return;
+          break;
         }
-      delay = Math.min(5000, delay * 2);
+      }
     }
   }
 
-  // Probe on the event thread, never on the render or command threads. A working USB stream
-  // stays active if Wi-Fi is unavailable; healthy Wi-Fi becomes preferred again after recovery.
-  private boolean wifiAvailable() {
-    long now = SystemClock.elapsedRealtime();
-    if (wifiPin.isEmpty() || wifiUrls.isEmpty() || now - lastWifiProbe < 15000) return false;
-    lastWifiProbe = now;
-    for (int i = 0; i < Math.min(2, wifiUrls.size()); i++) {
+  private boolean isUsbEndpoint(String address) {
+    return address.equals("http://127.0.0.1:" + BuildConfig.USB_PORT);
+  }
+
+  private String verifyWifiStream(List<String> addresses, String pin, String pairedToken) {
+    long deadline = SystemClock.elapsedRealtime() + 5000;
+    for (String address : addresses) {
+      if (Thread.currentThread().isInterrupted()
+          || stopped
+          || SystemClock.elapsedRealtime() >= deadline) return "";
+      if (!address.startsWith("https:") || !ClientSettingsPolicy.validWifiUrl(address)) continue;
       HttpURLConnection probe = null;
+      ScheduledFuture<?> probeDeadline = null;
       try {
-        probe =
-            PinnedConnection.open(
-                wifiUrls.get(i) + "/health", wifiPin, settingBool("allowInsecureWifi"));
-        probe.setConnectTimeout(700);
-        probe.setReadTimeout(700);
-        if (probe.getResponseCode() == 200) return true;
+        probe = PinnedConnection.open(address + "/api/events", pin);
+        HttpURLConnection checkingConnection = probe;
+        probeDeadline =
+            streamDeadlines.schedule(
+                checkingConnection::disconnect,
+                Math.max(1, deadline - SystemClock.elapsedRealtime()),
+                TimeUnit.MILLISECONDS);
+        int remaining = (int) Math.max(1, deadline - SystemClock.elapsedRealtime());
+        probe.setConnectTimeout(Math.min(2000, remaining));
+        probe.setReadTimeout(Math.min(3000, remaining));
+        probe.setRequestProperty("Authorization", "Bearer " + pairedToken);
+        if (probe.getResponseCode() != 200) continue;
+        try (SseLineReader reader =
+            new SseLineReader(
+                new InputStreamReader(probe.getInputStream(), StandardCharsets.UTF_8),
+                MAX_STREAM_LINE_CHARS,
+                SystemClock::elapsedRealtime)) {
+          String line;
+          while (!Thread.currentThread().isInterrupted()
+              && (line = reader.readLine(deadline)) != null) {
+            if (parseStreamSnapshot(line) != null) return address;
+          }
+        }
       } catch (Exception ignored) {
       } finally {
+        if (probeDeadline != null) probeDeadline.cancel(false);
         if (probe != null) probe.disconnect();
       }
     }
-    return false;
+    return "";
   }
 
   private List<String> endpoints() {
@@ -3745,6 +3886,7 @@ public class MainActivity extends Activity {
     }
     if (valid.isEmpty()) return false;
     boolean changed = !pin.equals(wifiPin) || !valid.equals(wifiUrls);
+    if (!changed) return false;
     wifiPin = pin;
     wifiUrls = valid;
     prefs
@@ -3799,7 +3941,7 @@ public class MainActivity extends Activity {
                 new AlertDialog.Builder(L10n.context(this))
                     .setTitle(L10n.text("연결 정보"))
                     .setMessage(
-                        (connected ? L10n.text("연결됨: ") : L10n.text("재연결 중: "))
+                        (transportAlive() ? L10n.text("연결됨: ") : L10n.text("재연결 중: "))
                             + base
                             + L10n.text("\n\n인증서: ")
                             + (wifiPin.isEmpty() ? L10n.text("미등록 · USB로 먼저 연결하세요") : wifiPin)
@@ -4504,7 +4646,7 @@ public class MainActivity extends Activity {
   }
 
   private void action(JSONObject body) {
-    if (!connected) {
+    if (!streamFresh()) {
       Toast.makeText(this, L10n.text("맥 연결을 기다리는 중입니다."), Toast.LENGTH_SHORT).show();
       return;
     }
@@ -4626,6 +4768,7 @@ public class MainActivity extends Activity {
   private void resetDeviceIdentity() {
     stopHostDiscovery();
     recoveryPolicy.connected();
+    recoveryAppliedAttempt = 0;
     pairingGeneration++;
     settingsSyncRunning = false;
     settingsSyncRetryAt = 0;
@@ -4677,7 +4820,7 @@ public class MainActivity extends Activity {
   private void flushDeviceSettings() {
     if ((pendingSettings.isEmpty() && deviceMetadataSent)
         || settingsSyncRunning
-        || !connected
+        || !streamFresh()
         || token.isEmpty()
         || SystemClock.elapsedRealtime() < settingsSyncRetryAt) return;
     ClientSettingsSync.Patch patch = settingsSync.snapshot();
@@ -4904,6 +5047,18 @@ public class MainActivity extends Activity {
       case "discovery-retry":
         return detail.equals("unreachable")
             || detail.matches("[A-Za-z][A-Za-z0-9_$]{0,64}(Exception|Error)");
+      case "stream":
+        return detail.equals("first-snapshot-timeout")
+            || detail.equals("traffic-timeout")
+            || detail.equals("resume-reconnect")
+            || detail.equals("stable")
+            || detail.equals("eof")
+            || detail.equals("superseded")
+            || detail.equals("read-timeout")
+            || detail.equals("read-failed")
+            || detail.equals("promote-wifi")
+            || detail.equals("promotion-failed")
+            || detail.equals("promotion-verified");
       case "discovery":
         return detail.equals("manual-start")
             || detail.equals("automatic-start")
@@ -4968,7 +5123,8 @@ public class MainActivity extends Activity {
         + " "
         + Build.MODEL
         + L10n.text("\n연결: ")
-        + (streamFresh() ? L10n.text("연결됨") : L10n.text("재연결 중"))
+        + (transportAlive() ? L10n.text("연결됨") : L10n.text("재연결 중"))
+        + (!streamFresh() && transportAlive() ? " · " + L10n.text("오래된 데이터") : "")
         + " · "
         + transport
         + L10n.text("\nWi-Fi 인증서: ")
@@ -6033,8 +6189,15 @@ public class MainActivity extends Activity {
     }
 
     long osHeaderBucket = -1;
+    boolean previousTransportAlive, previousSnapshotFresh;
 
     void tick() {
+      boolean live = transportAlive(), fresh = streamFresh();
+      if (live != previousTransportAlive || fresh != previousSnapshotFresh) {
+        previousTransportAlive = live;
+        previousSnapshotFresh = fresh;
+        invalidate();
+      }
       if (pageId.equals("jimin-os-page") && hostNow() / 5000 != osHeaderBucket) {
         osHeaderBucket = hostNow() / 5000;
         invalidate();
@@ -6202,12 +6365,13 @@ public class MainActivity extends Activity {
             Paint.Align.LEFT);
         label(
             c,
-            streamFresh()
+            transportAlive()
                 ? (base.startsWith("https:")
                         ? L10n.text("Wi-Fi · 암호화 연결됨")
                         : base.startsWith("http://127.0.0.1:")
                             ? L10n.text("USB · 연결됨")
                             : L10n.text("Wi-Fi · 암호화 안 됨"))
+                    + (!streamFresh() ? " · " + L10n.text("오래된 데이터") : "")
                     + (pageId.equals("jimin-os-page") ? "  · " + osSyncNotice() : "")
                 : L10n.text("맥에 다시 연결하는 중…")
                     + (pageId.equals("jimin-os-page") && osData() != null
@@ -6217,9 +6381,11 @@ public class MainActivity extends Activity {
             dp(49),
             10,
             color(
-                !streamFresh()
+                !transportAlive()
                     ? "#ff7d8b"
-                    : pageId.equals("jimin-os-page") && !osFresh() ? "#efbd73" : "#70c9a8"),
+                    : !streamFresh() || pageId.equals("jimin-os-page") && !osFresh()
+                        ? "#efbd73"
+                        : "#70c9a8"),
             Paint.Align.LEFT);
       }
       if (!settingBool("settingsButtonHidden"))

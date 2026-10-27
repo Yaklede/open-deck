@@ -49,6 +49,7 @@ import { fileURLToPath } from "node:url";
 import { dataDir, loadConfig, validateConfig, writeJson } from "./config.mjs";
 import { Engine } from "./engine.mjs";
 import { Scheduler } from "./scheduler.mjs";
+import { LatestSnapshotStream } from "./sse-stream.mjs";
 const publicDir = fileURLToPath(new URL("./public/", import.meta.url));
 const digest = (v) => crypto.createHash("sha256").update(v).digest("hex");
 const equal = (a, b) =>
@@ -218,49 +219,66 @@ export function createHost({
   const focusSessions = new Map();
   const streams = new Set(),
     attempts = new Map();
-  const broadcast = () => {
-    const common = { state: engine.state(), network: network() };
-    const deviceList = adminDevices(),
-      deviceStamp = JSON.stringify(deviceList);
-    for (const s of streams) {
-      if (
-        !s.openDeckDeviceId &&
-        (editorLock.status().locked ||
-          !account.authenticate(s.openDeckSession, { touch: false }))
-      ) {
-        s.end();
-        streams.delete(s);
-        continue;
-      }
-      if (s.writableLength > 256000) {
-        s.destroy();
-        streams.delete(s);
-        continue;
-      }
-      const d = s.openDeckDeviceId
-        ? devices.find((d) => d.id === s.openDeckDeviceId)
-        : null;
-      if (s.openDeckDeviceId && !d) {
-        s.end();
-        streams.delete(s);
-        continue;
-      }
-      const revision = configRevision + ":" + (d?.settingsRevision || 0);
-      const data = {
-        ...common,
-        state: scopedState(common.state, d),
-        device: safeDevice(d),
-      };
-      if (!s.openDeckDeviceId && s.openDeckDevices !== deviceStamp) {
-        data.devices = deviceList;
-        s.openDeckDevices = deviceStamp;
-      }
-      if (s.openDeckRevision !== revision) {
-        data.config = deviceConfig(config, d);
-        s.openDeckRevision = revision;
-      }
-      s.write(`event: snapshot\ndata: ${JSON.stringify(data)}\n\n`);
+  let closing = false;
+  const closeStream = (stream, reason, destroy = stream.openDeckChannel.blocked) =>
+    stream.openDeckChannel.close(reason, destroy);
+  const streamAuthorized = (s) => {
+    if (
+      !s.openDeckDeviceId &&
+      (editorLock.status().locked ||
+        !account.authenticate(s.openDeckSession, { touch: false }))
+    ) {
+      closeStream(s, "admin_session_ended", s.openDeckChannel.blocked);
+      return false;
     }
+    if (s.openDeckDeviceId && !devices.some((d) => d.id === s.openDeckDeviceId)) {
+      closeStream(s, "device_revoked", s.openDeckChannel.blocked);
+      return false;
+    }
+    return true;
+  };
+  const broadcast = () => {
+    if (closing) return;
+    const common = { state: engine.state(), network: network() };
+    for (const s of streams) {
+      if (!streamAuthorized(s)) continue;
+      s.openDeckChannel.snapshot(() => {
+        // The device/session may have been revoked while waiting for drain.
+        if (!streamAuthorized(s)) return null;
+        const d = s.openDeckDeviceId
+          ? devices.find((d) => d.id === s.openDeckDeviceId)
+          : null;
+        const revision = configRevision + ":" + (d?.settingsRevision || 0);
+        const data = {
+          ...common,
+          state: scopedState(common.state, d),
+          device: safeDevice(d),
+        };
+        let deviceStamp;
+        if (!s.openDeckDeviceId) {
+          const deviceList = adminDevices();
+          deviceStamp = JSON.stringify(deviceList);
+          if (s.openDeckDevices !== deviceStamp) data.devices = deviceList;
+        }
+        if (s.openDeckRevision !== revision) data.config = deviceConfig(config, d);
+        return {
+          data,
+          onWritten: () => {
+            s.openDeckRevision = revision;
+            if (deviceStamp !== undefined) s.openDeckDevices = deviceStamp;
+          },
+        };
+      });
+    }
+  };
+  let broadcastQueued = false;
+  const queueBroadcast = () => {
+    if (closing || broadcastQueued) return;
+    broadcastQueued = true;
+    queueMicrotask(() => {
+      broadcastQueued = false;
+      broadcast();
+    });
   };
   const engine = new Engine(config, broadcast, runner, {
     dir,
@@ -308,8 +326,7 @@ export function createHost({
     recovery.at = Date.now();
     diagnostics.log("info", "connections.resumed", { count: recovery.count });
     grafana.resume();
-    for (const stream of streams) stream.end();
-    streams.clear();
+    for (const stream of streams) closeStream(stream, "host_resumed");
   };
   const stateFile = path.join(dir, "state.json");
   try {
@@ -714,10 +731,8 @@ export function createHost({
           }
           if (editorLock.status().locked)
             for (const stream of streams)
-              if (!stream.openDeckDeviceId) {
-                stream.end();
-                streams.delete(stream);
-              }
+              if (!stream.openDeckDeviceId)
+                closeStream(stream, "editor_locked", stream.openDeckChannel.blocked);
           diagnostics.log(
             input.operation === "activity" ? "debug" : "info",
             "editor.lock." + input.operation,
@@ -958,7 +973,8 @@ export function createHost({
           networkListeners.updateIdentity();
           diagnostics.log("info", "certificate.updated");
           for (const stream of streams)
-            if (stream.socket?.encrypted) stream.end();
+            if (stream.socket?.encrypted)
+              closeStream(stream, "certificate_updated");
           return send(res, 200, certificateInfo(dir));
         }
         if (req.method === "GET" && u.pathname === "/api/admin/usb")
@@ -1083,8 +1099,10 @@ export function createHost({
           devices = devices.filter((d) => d.id !== b.id);
           diagnostics.log("info", "device.revoked", { count: devices.length });
           writeJson(devicesFile, devices);
-          for (const s of streams) s.end();
-          streams.clear();
+          for (const s of streams)
+            if (s.openDeckDeviceId === b.id)
+              closeStream(s, "device_revoked", s.openDeckChannel.blocked);
+          broadcast();
           return send(res, 200, { ok: true });
         }
         if (req.method === "PUT" && u.pathname === "/api/admin/config") {
@@ -1248,22 +1266,31 @@ export function createHost({
             "Cache-Control": "no-store",
             Connection: "keep-alive",
           });
-          res.write(": connected\n\n");
           const d = device(req);
           if (d) {
             d.lastSeenAt = new Date().toISOString();
             res.openDeckDeviceId = d.id;
           } else res.openDeckSession = sessionToken(req);
           res.openDeckTransport = lan ? "wifi" : "usb";
+          res.openDeckChannel = new LatestSnapshotStream(res, {
+            onClose: ({ reason, durationMs }) => {
+              const removed = streams.delete(res);
+              diagnostics.log(
+                ["backpressure_timeout", "write_error", "snapshot_error"].includes(reason)
+                  ? "warn"
+                  : "info",
+                "stream.closed",
+                { reason, durationMs, transport: res.openDeckTransport },
+              );
+              if (removed) queueBroadcast();
+            },
+          });
           streams.add(res);
           diagnostics.log("debug", "stream.connected", {
             transport: lan ? "wifi" : "usb",
           });
+          res.openDeckChannel.comment("connected");
           broadcast();
-          req.on("close", () => {
-            streams.delete(res);
-            broadcast();
-          });
           return;
         }
         if (
@@ -1493,6 +1520,11 @@ export function createHost({
       )
     : null;
   let lastTick = Date.now();
+  const heartbeat = setInterval(() => {
+    for (const stream of streams)
+      if (streamAuthorized(stream)) stream.openDeckChannel.comment();
+  }, 2000);
+  heartbeat.unref();
   const interval = metrics
     ? setInterval(() => {
         const now = Date.now();
@@ -1507,6 +1539,8 @@ export function createHost({
   );
   const schedule = metrics ? setInterval(() => scheduler.tick(), 1000) : null;
   server.on("close", () => {
+    closing = true;
+    clearInterval(heartbeat);
     clearInterval(interval);
     clearInterval(backupTimer);
     clearInterval(companionTimer);
@@ -1520,7 +1554,7 @@ export function createHost({
     plugins.close();
     vault.lock();
     engine.monitorAlerts.close();
-    for (const s of streams) s.end();
+    for (const s of streams) closeStream(s, "host_closed");
   });
   return {
     server,
@@ -1533,8 +1567,9 @@ export function createHost({
     getPin: () => pin,
     close: () =>
       new Promise((resolve) => {
-        for (const s of streams) s.end();
-        streams.clear();
+        closing = true;
+        clearInterval(heartbeat);
+        for (const s of streams) closeStream(s, "host_closed");
         plugins.close();
         const listeners = [server];
         Promise.all([
