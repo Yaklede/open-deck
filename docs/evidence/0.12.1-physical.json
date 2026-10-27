@@ -1,0 +1,514 @@
+{
+  "version": "0.12.1",
+  "build": 22,
+  "sourceCommit": "7c4196fbdcb979a9571eaf69fed6653842bae02e",
+  "status": "pass",
+  "deviceModel": "SM-T870",
+  "scope": "physical Android connection diagnosis, controlled unavailable-endpoint recovery and app-restart persistence",
+  "observedIncident": {
+    "macAddressChangedSincePriorCapture": true,
+    "certificateFingerprintUnchanged": true,
+    "currentHttpsHealth200": true,
+    "usbConnectionLearnedCurrentAddressAndRestoredWifi": true,
+    "originalFailedSavedEndpointCapturedBeforeUsbLearning": false,
+    "causeAssessment": "IP 변경에 따른 저장 주소 불일치 가능성이 있으나, 최초 실패 주소가 USB 주소 학습 전에 보존되지 않아 원래 장애 원인으로 확정하지 않는다.",
+    "verificationMethod": "private network-record comparison plus execution-runner health/USB recovery observation"
+  },
+  "oldVersionReproduction": {
+    "version": "0.12.0",
+    "transportMode": "wifi-only",
+    "controlledCondition": "같은 Mac의 닫힌 포트를 저장된 Wi-Fi 주소로 지정한 뒤 앱을 재시작했다.",
+    "actualNetworkIpForcedToChange": false,
+    "oldVersionFailedToRecoverDuringObservation": true,
+    "observationWindowApproxSeconds": 16,
+    "observations": [
+      {
+        "elapsedSeconds": 0,
+        "online": false
+      },
+      {
+        "elapsedSeconds": 2,
+        "online": false
+      },
+      {
+        "elapsedSeconds": 4,
+        "online": false
+      },
+      {
+        "elapsedSeconds": 6,
+        "online": false
+      },
+      {
+        "elapsedSeconds": 8,
+        "online": false
+      },
+      {
+        "elapsedSeconds": 10,
+        "online": false
+      },
+      {
+        "elapsedSeconds": 12,
+        "online": false
+      },
+      {
+        "elapsedSeconds": 14,
+        "online": false
+      }
+    ],
+    "lastRecordedObservationSeconds": 14,
+    "limitation": "실제 공유기 DHCP 변경 시험이 아니며, 이 제한된 관찰창의 복구 실패를 무기한 복구 불가로 확대하지 않는다.",
+    "evidence": [
+      "0120-failure-reproduction.json",
+      "0120-controlled-failure-info.xml",
+      "0120-invalid-address-offline.xml"
+    ]
+  },
+  "automatedChecks": {
+    "hostInitialParallelRun": {
+      "tests": 247,
+      "passed": 246,
+      "failed": 1,
+      "failure": "plugin initial polling timing assertion",
+      "evidence": [
+        "host-0121-tests.log"
+      ]
+    },
+    "hostSequentialRerun": {
+      "command": "node --test --test-concurrency=1 test/*.test.mjs",
+      "tests": 247,
+      "passed": 247,
+      "failed": 0,
+      "evidence": [
+        "host-0121-tests-sequential.log"
+      ]
+    },
+    "newHostRecoveryPolicy": {
+      "passed": 46,
+      "failed": 0,
+      "verificationMethod": "implementation agent test result"
+    },
+    "limitation": "순수 정책·호스트 테스트 결과는 새 APK의 실기기 자동 재연결 검증을 대신하지 않는다."
+  },
+  "newVersionPhysicalValidation": {
+    "status": "pass",
+    "appVersion": "0.12.1",
+    "build": 22,
+    "controlledUnavailableEndpointRecovery": {
+      "result": "pass",
+      "wifiOnlyMode": true,
+      "actualNetworkIpForcedToChange": false,
+      "closedPortEndpoint": true,
+      "automaticNsdDiscoveryVerified": true,
+      "wifiTransportVerified": true,
+      "observedRecoverySeconds": 6.06,
+      "observations": [
+        {
+          "elapsedSeconds": 0.02,
+          "online": false
+        },
+        {
+          "elapsedSeconds": 1.03,
+          "online": false
+        },
+        {
+          "elapsedSeconds": 2.03,
+          "online": false
+        },
+        {
+          "elapsedSeconds": 3.04,
+          "online": false
+        },
+        {
+          "elapsedSeconds": 4.05,
+          "online": false
+        },
+        {
+          "elapsedSeconds": 5.05,
+          "online": false
+        },
+        {
+          "elapsedSeconds": 6.06,
+          "online": true
+        }
+      ],
+      "limitation": "한 번의 통제 실행에서 관측한 복구 시간이며 모든 네트워크의 복구 시간 보장이 아니다.",
+      "evidence": [
+        "first-recovery-result.json",
+        "0121-first-recovered.xml",
+        "0121-discovery-diagnostics.xml",
+        "discovery-log-result.json"
+      ]
+    },
+    "diagnosticSequence": {
+      "automaticStartSeen": true,
+      "verifiedHostSeen": true,
+      "wifiConnectedSeen": true
+    },
+    "appForceStopAndRestart": {
+      "result": "pass",
+      "reconnected": true,
+      "observedRecoverySeconds": 1.01,
+      "priorLogLinesChecked": 10,
+      "allPriorLogLinesRetained": true,
+      "evidence": [
+        "app-restart-result.json",
+        "log-persistence-result.json",
+        "0121-after-app-restart-diagnostics.xml"
+      ]
+    },
+    "wholeTabletReboot": {
+      "status": "pass",
+      "physicalTabletRebooted": true,
+      "ownerUnlockedBeforeAppLaunch": true,
+      "appOpenedAfterUnlock": true,
+      "bootAutostartClaimed": false,
+      "controlledClosedPortEndpoint": true,
+      "wifiOnlyMode": true,
+      "usbCableForControlPresent": true,
+      "wifiDataTransportVerified": true,
+      "reconnected": true,
+      "observedRecoverySecondsAfterAppLaunch": 5.03,
+      "observations": [
+        {
+          "elapsedSeconds": 0.01,
+          "online": false
+        },
+        {
+          "elapsedSeconds": 1.01,
+          "online": false
+        },
+        {
+          "elapsedSeconds": 2.02,
+          "online": false
+        },
+        {
+          "elapsedSeconds": 3.02,
+          "online": false
+        },
+        {
+          "elapsedSeconds": 4.02,
+          "online": false
+        },
+        {
+          "elapsedSeconds": 5.03,
+          "online": true
+        }
+      ],
+      "priorLogLinesChecked": 10,
+      "allPriorLogLinesRetained": true,
+      "automaticDiscoveryCyclesIncludingFirstRecovery": 2,
+      "verifiedHostCyclesIncludingFirstRecovery": 2,
+      "evidence": [
+        "reboot-result.json",
+        "reboot-log-result.json",
+        "0121-after-reboot-diagnostics.xml"
+      ],
+      "scope": "실제 태블릿 재부팅 → 사용자 잠금 해제 → 앱 실행 뒤 자동 복구. 부팅 시 앱 자동 실행이나 USB 케이블 분리 시험이 아니다.",
+      "harnessNote": "재열거 과정에서 오래된 ADB transport가 한 번 반환되었고, 최초 잠금 해제 전 앱 실행은 OS의 잠금 상태로 거절됐다. 재대기·사용자 잠금 해제 후 완료했으며 앱 오류로 분류하지 않는다."
+    }
+  },
+  "releaseChecks": {
+    "status": "pass",
+    "url": "https://github.com/Yaklede/open-deck/releases/tag/v0.12.1",
+    "tag": "v0.12.1",
+    "sourceCommit": "7c4196fbdcb979a9571eaf69fed6653842bae02e",
+    "tagCommit": "7c4196fbdcb979a9571eaf69fed6653842bae02e",
+    "version": "0.12.1",
+    "build": 22,
+    "latestRelease": true,
+    "draft": false,
+    "prerelease": false,
+    "zipCrcPassed": true,
+    "downloadedMacBuildInfoMatches": true,
+    "assets": [
+      {
+        "name": "Open-Deck-Android.apk",
+        "sha256": "6528fdf13ac1e1ab43eba1cb3590e1cdb6e75dbe57e8e7f7b3238571dabd1d85",
+        "githubDigestMatches": true,
+        "redownloadMatches": true,
+        "size": 6184429
+      },
+      {
+        "name": "Open-Deck-macOS-arm64.zip",
+        "sha256": "8b04b2828a6b6ef298f84726fa12b2beec94606a7b1016dc0c79052fbdd75c45",
+        "githubDigestMatches": true,
+        "redownloadMatches": true,
+        "size": 39655752
+      },
+      {
+        "name": "SHA256SUMS.txt",
+        "sha256": "7599d61d8478cafba1cc364c88ab11c05fd8979b444d29d2b2f3d88599e22e2f",
+        "githubDigestMatches": true,
+        "redownloadMatches": true,
+        "size": 180
+      }
+    ],
+    "androidSignatureVerification": "pass",
+    "androidSignerSha256": "15cfc6762d9b063abd2ce5b8cd665757f1e30b03707b921abb4619ff38aeba4a",
+    "existingAndroidSignerPreserved": true,
+    "verificationMethod": "published verification JSON and execution-runner verification of downloaded APK signature",
+    "evidence": [
+      "release-0121-published-verification.json"
+    ]
+  },
+  "originalEvidence": [
+    {
+      "filename": "0120-failure-reproduction.json",
+      "sha256": "dfe6c83a8b2165615899287a74d868c85d19f140037a67bdc21520b655f26a25",
+      "published": false
+    },
+    {
+      "filename": "0120-controlled-failure-info.xml",
+      "sha256": "f3e4210fa5758c765d3e229323bc687265d7473b5b7f20667e937e6fc67ed652",
+      "published": false
+    },
+    {
+      "filename": "0120-controlled-failure-info.png",
+      "sha256": "4c6a1c7d68bccb6593c542295e7820e9ce6a7628dcdbf67c4ab5357342f79f34",
+      "published": false
+    },
+    {
+      "filename": "0120-invalid-address-offline.xml",
+      "sha256": "0e7269b7534f1c44186c125e5ea1399d8ce64f180472bd708b4d41cff4e55ad3",
+      "published": false
+    },
+    {
+      "filename": "0120-invalid-address-offline.png",
+      "sha256": "7dd326b3620fb3742879694ca850fbaf51515f889881ef48578920217206fb06",
+      "published": false
+    },
+    {
+      "filename": "restored-connection-info.xml",
+      "sha256": "86cd2fb9d2367468bf316b9bbffa3539f557be4dcba78c1c5310e135bf22ee10",
+      "published": false
+    },
+    {
+      "filename": "restored-connection-info.png",
+      "sha256": "9d13de461a7dc44a41163b6d4f14e423a7c7d317514e7f39bea674ccdb3a3dc5",
+      "published": false
+    },
+    {
+      "filename": "host-0121-tests.log",
+      "sha256": "aae46c3dc8fb4f8075535b5e7bbbbfad1ebf1d4cd638ec5c0019fde0910f8af4",
+      "published": false
+    },
+    {
+      "filename": "host-0121-tests-sequential.log",
+      "sha256": "15663f833c3494cd93b8fd0fe97f5434ab5dfddc2820fc2609b70fa9f036842b",
+      "published": false
+    },
+    {
+      "filename": "device-environment.json",
+      "sha256": "da42dfdf5f2dd12b42cf3302bf443084758eea96317328326e4b595ea9247951",
+      "published": false
+    },
+    {
+      "filename": "first-recovery-result.json",
+      "sha256": "d8ac375b2df22e4a5378ff91cd10712173639fbe8f1322ee68b821f59b40d5dd",
+      "published": false
+    },
+    {
+      "filename": "discovery-log-result.json",
+      "sha256": "f62cd7b28699dea1a1fd76f170dca0c3acde0ae1e924ff3ed103f39552fd8699",
+      "published": false
+    },
+    {
+      "filename": "app-restart-result.json",
+      "sha256": "6d4773ecc5e5d8a12aeb66a05219ff4d9aaa5c1340025e1251e2c3a902bc756c",
+      "published": false
+    },
+    {
+      "filename": "log-persistence-result.json",
+      "sha256": "56862ce5fea501501265008c3b5fe6ada784f3a00b453f1f1038f90cc2fbb4de",
+      "published": false
+    },
+    {
+      "filename": "preservation-and-install-result.json",
+      "sha256": "1b96134fd404d7a9b29204c5e51912066b811c26ff840077a0a6e05c8af00a83",
+      "published": false
+    },
+    {
+      "filename": "0121-first-recovered.xml",
+      "sha256": "36d6db4d148607b5373e1a8808a0df45bed87a7b069504799f76a788200af7b3",
+      "published": false
+    },
+    {
+      "filename": "0121-first-recovered.png",
+      "sha256": "e4eca24550d7227d44213b8f5943423f7edee7df3a1982e43211e6fdcf6a37d8",
+      "published": false
+    },
+    {
+      "filename": "0121-discovery-diagnostics.xml",
+      "sha256": "4b84e46d859f89338acd804a67b1eceb9786c9f01021aa9aae6fc1924bccdbe0",
+      "published": false
+    },
+    {
+      "filename": "0121-discovery-diagnostics.png",
+      "sha256": "e57fddd73b0901d96daf2f849184dda91615a370320cbe2b0d30016e819d431d",
+      "published": false
+    },
+    {
+      "filename": "0121-after-app-restart-diagnostics.xml",
+      "sha256": "6bcede6cf08b865c705cc1ddd695f3b4d31f4e8486efc060e179401dd2db9d66",
+      "published": false
+    },
+    {
+      "filename": "0121-after-app-restart-diagnostics.png",
+      "sha256": "b1e9aecfcbd6f2cf9553b19be384b2dd60143eb5e01d8d6257ef73c88e27838a",
+      "published": false
+    },
+    {
+      "filename": "release-0121-artifacts.json",
+      "sha256": "c143269b568e6ef6284f706063908b518791ec2d6ebaff7c7c5e48188fd23d46",
+      "published": false
+    },
+    {
+      "filename": "reboot-result.json",
+      "sha256": "d9b27ea9bb7dcbe260cecdbded7289e3cf93680cff486285eb03e6062fd1a80d",
+      "published": false
+    },
+    {
+      "filename": "reboot-log-result.json",
+      "sha256": "92a4789f461c7edc143f81995d1c58a7845fdc81e564f537ba5a2d148504e6c5",
+      "published": false
+    },
+    {
+      "filename": "0121-after-reboot-diagnostics.xml",
+      "sha256": "15f0383301fefc218281380a7d0632e24a4d187ec38c32a59fa00798b01be90c",
+      "published": false
+    },
+    {
+      "filename": "0121-after-reboot-diagnostics.png",
+      "sha256": "c6c7173c3286494d72d18a1b6a5fcd8b0519939c20709208b060e8a01e8b2ce0",
+      "published": false
+    },
+    {
+      "filename": "final-connection-result.json",
+      "sha256": "9a66185674b6f687e2e136c548787e0e3c23be2d56b18cdcb7d01ee6b70ddb1a",
+      "published": false
+    },
+    {
+      "filename": "release-0121-published-verification.json",
+      "sha256": "156d6cd97e420e0b41776389df457321309a7acb186f9cdae65b02a39de25840",
+      "published": false
+    },
+    {
+      "filename": "0121-restored-auto-mode.xml",
+      "sha256": "8f316e8a72877011724fb5d057f95e3aaf70937a646bcb0de91071bd9a7c9937",
+      "published": false
+    },
+    {
+      "filename": "0121-restored-auto-mode.png",
+      "sha256": "dfbeddf600681178e9587c4242d81144bec75f420834d379c438fc80b63e680e",
+      "published": false
+    },
+    {
+      "filename": "0121-manual-host-search.xml",
+      "sha256": "bf0c7c9c74b5eae5489dedbaf47ded5a81765c366619bbfbd016a43027bfeb7a",
+      "published": false
+    },
+    {
+      "filename": "0121-manual-host-search.png",
+      "sha256": "8718b12d1fd37ac2c3bd57f32aa867cc287fb04e9bbd96f49077e85ffa1e1164",
+      "published": false
+    },
+    {
+      "filename": "0121-final-connected.xml",
+      "sha256": "15f0383301fefc218281380a7d0632e24a4d187ec38c32a59fa00798b01be90c",
+      "published": false
+    },
+    {
+      "filename": "0121-final-connected.png",
+      "sha256": "c6c7173c3286494d72d18a1b6a5fcd8b0519939c20709208b060e8a01e8b2ce0",
+      "published": false
+    },
+    {
+      "filename": "0121-final-ready.xml",
+      "sha256": "1fcd639eee36031d98017f060923b86610a1411dc805e50fc98161306968cc94",
+      "published": false
+    },
+    {
+      "filename": "0121-final-ready.png",
+      "sha256": "4b7346610a027a3c1d2889c01fd0e7e1d3dcd75887e1f95a1b29efadaf916405",
+      "published": false
+    }
+  ],
+  "privacy": {
+    "rawCapturesPublished": false,
+    "pinOrTokensPublished": false,
+    "deviceSerialPublished": false,
+    "privateConfigurationPublished": false,
+    "privateIpAddressesPublished": false
+  },
+  "limitations": [
+    "최초 실패 저장 주소를 직접 확보하지 못했으므로 원래 연결 장애 원인을 확정하지 않는다.",
+    "구버전 재현은 닫힌 포트로 저장 주소의 접근 실패를 만든 통제 조건이다.",
+    "실제 재부팅 검증에서 USB는 제어용으로 연결되어 있었고 앱은 Wi-Fi 전용으로 데이터 전송했다.",
+    "태블릿을 잠금 해제하고 앱을 연 뒤의 자동 연결이며 부팅 시 앱 자동 실행을 주장하지 않는다."
+  ],
+  "androidVersion": "13",
+  "androidApi": 33,
+  "preservationAndInstallation": {
+    "deckUnchanged": true,
+    "pairingIdsUnchanged": true,
+    "deviceSettingsUnchanged": true,
+    "installedApkMatchesReleaseCandidate": true,
+    "installedMacBuildMatches": true,
+    "macZipCrcAndBuildInfoMatch": true,
+    "verificationMethod": "execution-runner private before/after configuration and installed-artifact comparison",
+    "evidence": [
+      "preservation-and-install-result.json"
+    ]
+  },
+  "buildAndLocalization": {
+    "version": "0.12.1",
+    "build": 22,
+    "sourceCommit": "7c4196fbdcb979a9571eaf69fed6653842bae02e",
+    "macBuild": "pass",
+    "androidBuild": "pass",
+    "androidLint": {
+      "errors": 0,
+      "warnings": 22
+    },
+    "existingAndroidSignerPreserved": true,
+    "localization": {
+      "keys": 1558,
+      "languages": 19,
+      "missing": 0,
+      "placeholderErrors": 0,
+      "countChange": "obsolete manual plaintext discovery messages removed"
+    },
+    "assets": [
+      {
+        "name": "Open-Deck-macOS-arm64.zip",
+        "sha256": "8b04b2828a6b6ef298f84726fa12b2beec94606a7b1016dc0c79052fbdd75c45"
+      },
+      {
+        "name": "Open-Deck-Android.apk",
+        "sha256": "6528fdf13ac1e1ab43eba1cb3590e1cdb6e75dbe57e8e7f7b3238571dabd1d85"
+      }
+    ],
+    "verificationMethod": "execution-runner build/lint/localization report and artifact metadata"
+  },
+  "artifactStage": "released",
+  "finalConnection": {
+    "status": "pass",
+    "originalAutoModeRestored": true,
+    "manualSearchFoundPinnedHost": true,
+    "manualSelectionSucceeded": true,
+    "finalDeviceOnline": true,
+    "finalWifiDataTransport": true,
+    "finalRestartClearedTestDialogs": true,
+    "finalWifiConnectionAfterRestart": true,
+    "version": "0.12.1",
+    "build": 22,
+    "evidence": [
+      "final-connection-result.json",
+      "0121-restored-auto-mode.xml",
+      "0121-manual-host-search.xml",
+      "0121-final-connected.xml",
+      "0121-final-ready.xml"
+    ],
+    "scope": "원래 자동 연결 모드를 복원했다. 수동 검색에서도 같은 인증서의 호스트를 찾아 선택했고, 검사 대화상자를 정리한 최종 앱 재실행 후 Wi-Fi 연결을 확인했다."
+  }
+}
