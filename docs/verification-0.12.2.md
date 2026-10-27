@@ -46,6 +46,14 @@ Java 196개는 `HostRecoveryPolicy` 46개, `StreamConnectionPolicy` 86개, `SseL
 
 ## 배포 확인
 
-현재 배포 확인은 **pending**이다. 위 소스 커밋에서 빌드한 Mac·서명된 Android 설치 파일과 공개 릴리즈의 태그·체크섬 검증 결과를 배포 완료 후 갱신한다. 이 보고서의 코드 검증 결과만으로 운영 환경에서 재연결 문제가 완전히 사라졌다고 주장하지 않는다.
+[v0.12.2 릴리즈](https://github.com/Yaklede/open-deck/releases/tag/v0.12.2)를 최신 정식 릴리즈로 게시했다. 앱 소스 및 태그는 `10436bd15660b6d7e6fbef8364069983a688ffd5`이며, 이 커밋에서 Mac·Android 설치 파일을 빌드했다. 공개 설치 파일 3개를 다시 내려받아 로컬 원본 및 GitHub SHA-256 digest와 일치함을 확인했다. Mac ZIP의 내장 build-info와 plist, Android APK의 버전·build 23 및 기존 서명 인증서도 확인했다.
+
+| 설치 파일 | SHA-256 |
+| --- | --- |
+| Open-Deck-macOS-arm64.zip | `fae21c54f0ae8435522fb39670113800ed632f3c180e50b32af43944ab94f631` |
+| Open-Deck-Android.apk | `a127d3d29772d6235c935ba37aae6ff8b4d55f45dabf87014de740a962693bb5` |
+| SHA256SUMS.txt | `905be9a5f0695554f363610ccdb7c09b2205e56d1122ad9bd8e866d1bd654a47` |
+
+운영 앱과 태블릿의 설치 버전은 변경하지 않았다. 변경을 적용하려면 Mac과 Android 앱을 모두 0.12.2로 업데이트해야 한다. 이 보고서의 코드 검증 결과만으로 운영 환경에서 재연결 문제가 완전히 사라졌다고 주장하지 않는다.
 
 원본 로그·런타임 파일, PIN·토큰, 사적 주소, 기기 식별자와 운영 데이터는 공개하지 않는다.
