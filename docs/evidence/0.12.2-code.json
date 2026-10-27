@@ -14,7 +14,8 @@
     "emulatorTested": false,
     "productionHostOperated": false,
     "productionConfigurationChanged": false,
-    "syntheticMetricsOnly": true
+    "syntheticMetricsOnly": true,
+    "validationStage": "before physical installation and the later physical follow-up"
   },
   "reportedIncident": {
     "description": "연결이 심할 때 약 5초마다 끊겼다가 복구된다는 사용자 보고",
@@ -332,5 +333,6 @@
     "운영 호스트·설정·네트워크·VPN을 변경하지 않았다.",
     "약 5초 반복은 특정 EOF 입력에 대한 소스 시나리오이며 실제 사용자 장애 원인을 확정하지 않는다.",
     "합성 loopback TCP 시험은 실제 Wi-Fi 품질·잠금 해제·백그라운드 복구 검증을 대신하지 않는다."
-  ]
+  ],
+  "followupPhysicalEvidence": "0.12.2-physical.json"
 }

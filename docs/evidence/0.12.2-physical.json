@@ -1,0 +1,268 @@
+{
+  "version": "0.12.2",
+  "build": 23,
+  "sourceCommit": "10436bd15660b6d7e6fbef8364069983a688ffd5",
+  "status": "completed_with_limitations_and_user_deferred_restart",
+  "scope": {
+    "deviceModel": "SM-T870",
+    "physicalDeviceTested": true,
+    "emulatorTested": false,
+    "wifiOnlyMode": true,
+    "targetDeviceOnly": true,
+    "otherDeviceStreamsExcluded": true,
+    "macroActionsInvoked": false,
+    "systemRebootPerformed": false,
+    "appSourceChangedForThisValidation": false,
+    "releaseArtifactsRebuiltForThisValidation": false,
+    "priorCodeOnlyReportPreserved": true,
+    "priorCodeOnlyReport": "0.12.2-code.json",
+    "usbControlDeviceDetectedAtInstallation": true,
+    "usbControlDeviceUnavailableAtEnd": true,
+    "cableRemovalTimeObserved": false,
+    "usbPresentThroughoutFiveMinutesClaimed": false,
+    "usbAbsentThroughoutFiveMinutesClaimed": false,
+    "rawSamplerUsbPresenceFieldMeaning": "초기 USB 제어 연결 조건을 기록한 가정 필드이며 관측창 전체에 대한 연속 측정값이 아니다."
+  },
+  "installation": {
+    "status": "pass",
+    "model": "SM-T870",
+    "version": "0.12.2",
+    "build": 23,
+    "androidInstalledApkMatchesRelease": true,
+    "macInstalledBuildInfoMatchesRelease": true,
+    "sourceCommit": "10436bd15660b6d7e6fbef8364069983a688ffd5",
+    "androidSignerPreserved": true,
+    "beforeUpdateBackupCreated": true
+  },
+  "preservationAfterInstallation": {
+    "status": "pass",
+    "deckPreserved": true,
+    "pairingIdentityPreserved": true,
+    "deviceSettingsPreserved": true,
+    "pairedDeviceCountPreserved": true
+  },
+  "initialRestartInclusiveObservation": {
+    "status": "zero_disconnect_criterion_not_met",
+    "criterion": "Every one-second sample is online with exactly one target Wi-Fi stream; no stream-close events during the observation window.",
+    "includesIntentionalAppRestartTransition": true,
+    "durationSeconds": 300.01,
+    "samples": 301,
+    "samplingIntervalSeconds": 1,
+    "maxObservationGapSeconds": 1.377,
+    "offlineSamples": 1,
+    "notExactlyOneWifiStreamSamples": 1,
+    "usbDataStreamSamples": 0,
+    "apiErrorCount": 0,
+    "wifiStreamClosedEventCount": 2,
+    "closeReasons": {
+      "client_closed": 2
+    },
+    "offlineObservations": [
+      {
+        "elapsedSeconds": 1.009,
+        "online": false,
+        "targetStreams": 0,
+        "wifiStreams": 0,
+        "usbStreams": 0
+      }
+    ],
+    "initialOnlineSequence": [
+      {
+        "elapsedSeconds": 0.016,
+        "online": true
+      },
+      {
+        "elapsedSeconds": 1.009,
+        "online": false
+      },
+      {
+        "elapsedSeconds": 2.006,
+        "online": true
+      },
+      {
+        "elapsedSeconds": 3.009,
+        "online": true
+      }
+    ],
+    "executionContext": "The collector started immediately after an intentional app force-stop/start. Two client_closed events coincide with that initial restart/onResume transition; the execution runner reported no later close events within this window.",
+    "zeroDisconnectCriterionMet": false,
+    "supersededBySteadyObservation": false,
+    "evidence": [
+      "physical-stability-result.json"
+    ]
+  },
+  "steadyObservation": {
+    "status": "pass",
+    "entryCondition": "10 consecutive online Wi-Fi-only target-device observations after startup",
+    "separateFromInitialObservation": true,
+    "durationSeconds": 300.01,
+    "samples": 301,
+    "samplingIntervalSeconds": 1,
+    "maxObservationGapSeconds": 1.184,
+    "offlineSamples": 0,
+    "notExactlyOneWifiStreamSamples": 0,
+    "usbDataStreamSamples": 0,
+    "apiErrorCount": 0,
+    "wifiStreamClosedEventCount": 0,
+    "zeroDisconnectCriterionMet": true,
+    "initialFailureOverridden": false,
+    "evidence": [
+      "physical-steady-result.json"
+    ],
+    "limitation": "1초 간격의 제한된 5분 관측이며, 모든 순간의 연결 유지나 장기간 안정성을 보장하지 않는다."
+  },
+  "appRestartValidation": {
+    "status": "deferred_by_user",
+    "separateAndroidRestartBegan": false,
+    "firstControlCommandFailedBeforeRestart": true,
+    "reason": "USB 제어 기기를 찾을 수 없어 재시작 전에 중단됐고, 사용자가 태블릿 재시작 검사를 나중에 하겠다고 요청했다.",
+    "wirelessAdbDiscoveryEmpty": true,
+    "previousWirelessAdbConnectionRefused": true,
+    "furtherRestartPerformed": false,
+    "dedicatedMacRestartValidation": "not_performed",
+    "macAppRestartedDuringInstallation": true,
+    "macOperatingSystemRebooted": false,
+    "tabletOperatingSystemRebooted": false,
+    "initialRestartTransitionStillReported": true,
+    "evidence": [
+      "physical-restarts-0122.log",
+      "control-availability-result.json",
+      "final-preservation-connection-result.json"
+    ]
+  },
+  "finalPreservationAndConnection": {
+    "status": "preservation_pass_mode_not_restored",
+    "version": "0.12.2",
+    "deckPreserved": true,
+    "pairingIdentityPreserved": true,
+    "deviceSettingsPreserved": true,
+    "pairedDeviceCountPreserved": true,
+    "online": true,
+    "oneTargetWifiStream": true,
+    "targetUsbDataStreams": 0,
+    "lastConfiguredMode": "wifi-only",
+    "originalMode": "auto",
+    "originalModeRestored": false,
+    "modeNotRestoredReason": "USB control unavailable at end; user deferred further tablet restart/control work",
+    "androidRestartValidation": "deferred_by_user",
+    "dedicatedMacRestartValidation": "not_performed",
+    "macAppRestartedDuringInstallation": true,
+    "macOperatingSystemRebooted": false,
+    "tabletOperatingSystemRebooted": false,
+    "deviceSettingsPreservationScope": "호스트에 저장된 공유 기기 설정. Android 로컬 연결 모드는 원래 auto에서 wifi-only로 변경된 상태가 유지됐다.",
+    "evidence": [
+      "final-preservation-connection-result.json"
+    ]
+  },
+  "liveDataScope": {
+    "grafanaProjectReadyCount": 4,
+    "macSystemStatus": "connected",
+    "jiminOsStatus": "stale",
+    "transportSuccessDoesNotProveAllProviderDataFresh": true,
+    "metricValuesPublished": false
+  },
+  "independentJiminOsObservation": {
+    "scope": "local bridge and upstream backend data state, separate from tablet Wi-Fi transport",
+    "status": "stale",
+    "reason": "backend_retrying",
+    "localBridgeConnected": true,
+    "lastSuccessfulDataPreserved": true,
+    "backendLogCategory": "network",
+    "backendHttpStatus": 0,
+    "configuredSourceDnsResponse": "NXDOMAIN",
+    "controlDnsResponse": "NOERROR",
+    "installedAppRuntimeOriginConfirmed": false,
+    "dnsFailureProvenForEachInstalledAppRequest": false,
+    "rootCauseConfirmed": false,
+    "interpretation": "설정 소스의 주소가 관측 시 NXDOMAIN인 것은 확인했으나, 설치 앱의 실제 runtime origin과 각 요청의 DNS 원인을 확인하지 못해 Jimin OS 장애의 확정 원인으로 단정하지 않는다. 태블릿 Wi-Fi transport 장애의 증거도 아니다.",
+    "evidence": [
+      "jimin-os-backend-network-diagnostic-0122.json"
+    ]
+  },
+  "releaseIdentity": {
+    "tag": "v0.12.2",
+    "url": "https://github.com/Yaklede/open-deck/releases/tag/v0.12.2",
+    "sameSourceAndPublishedArtifactsAsCodeVerification": true,
+    "newReleaseForValidationOnly": false,
+    "publishedReleaseEvidence": "0.12.2-code.json"
+  },
+  "originalEvidence": [
+    {
+      "filename": "physical-stability-result.json",
+      "sha256": "47ac2d02067ab30d2fd794d2e0024afcd7ab9aeb7000a31f9cc10cd4d518b7a9",
+      "published": false
+    },
+    {
+      "filename": "installation-result.json",
+      "sha256": "d6803c070cccd440c222028f8f7c3767adf2798a909810e8f687aae87f72a518",
+      "published": false
+    },
+    {
+      "filename": "preservation-after-install.json",
+      "sha256": "c266e960d482f2d48e333f47228c207cca1814da1cb4fab8925a994448f4e886",
+      "published": false
+    },
+    {
+      "filename": "live-data-scope.json",
+      "sha256": "94669e6f622594562405ed4eadaed323b218865a8c55c0026343f2149bc452e7",
+      "published": false
+    },
+    {
+      "filename": "jimin-os-backend-network-diagnostic-0122.json",
+      "sha256": "0aa53c85fa3de8ff763a823fca42c86b1aff53a84264baaffea1f421adb2d637",
+      "published": false
+    },
+    {
+      "filename": "physical-steady-result.json",
+      "sha256": "22d8a8353501bc73fc205144ac3c2c434e97749d880252868e1483904dfddabf",
+      "published": false
+    },
+    {
+      "filename": "final-preservation-connection-result.json",
+      "sha256": "acb2197767d9ad4b11432d8ec3755ba8333d6dfc44cf36bab100d3e6700c6746",
+      "published": false
+    },
+    {
+      "filename": "control-availability-result.json",
+      "sha256": "8625f27dc7d4e08d3ac4597a2cba0b25f1064b9a49591e3b0123e498e4fe842b",
+      "published": false
+    },
+    {
+      "filename": "physical-restarts-0122.log",
+      "sha256": "1f1c6681691e043be190488553ff5efa43f5676d286257987f4af831006e6d12",
+      "published": false
+    }
+  ],
+  "privacy": {
+    "rawLogsOrScreenshotsPublished": false,
+    "tokensOrPairingSecretsPublished": false,
+    "privateAddressesOrOriginsPublished": false,
+    "deviceIdentifiersPublished": false,
+    "productionMetricValuesPublished": false,
+    "absoluteCollectionTimesPublished": false
+  },
+  "limitations": [
+    "최초 5분의 offline 1개와 종료 로그 2개를 보존한다. 이후 안정 구간의 통과로 최초 결과를 대체하지 않는다.",
+    "별도 안정 구간 5분은 301개 표본과 호스트 종료 로그에서 단절이 없었지만, 모든 순간의 무중단 연결이나 장기간 안정성을 보장하지 않는다.",
+    "USB 제어 기기는 설치 시 감지됐고 추가 재시작 시도 때 사용할 수 없었다. 분리 시점을 관측하지 않아 USB가 내내 연결됐거나 분리된 5분 시험이라고 주장하지 않는다.",
+    "태블릿 앱 데이터 경로는 Wi-Fi 전용으로 필터링했다. 다른 기기의 USB 연결은 제외했다.",
+    "별도 태블릿 재시작 검사는 실제 재시작 전에 중단됐으며 사용자 요청으로 미뤘다. 별도의 Mac 재시작 검사와 OS 전체 재부팅도 수행하지 않았다.",
+    "원래 자동 연결 모드는 복원하지 못했으며 현재 Wi-Fi 전용 상태다. 덱·페어링·공유 기기 설정은 보존됐다.",
+    "Jimin OS 데이터 지연과 태블릿 transport 연결 상태를 구분하며, 설정 소스 NXDOMAIN만으로 설치 앱 장애의 원인을 확정하지 않는다."
+  ],
+  "controlAvailability": {
+    "usbDeviceDetectedAtInstallation": true,
+    "usbDeviceUnavailableAtRestartAttempt": true,
+    "wirelessAdbDiscoveryEmpty": true,
+    "previousWirelessAdbEndpointRefused": true,
+    "cableRemovalTimeObserved": false,
+    "usbPresentThroughoutFiveMinutesClaimed": false,
+    "usbAbsentThroughoutFiveMinutesClaimed": false,
+    "initialRawSamplerUsbPresentFieldIsInitialConditionOnly": true,
+    "tabletRestartAttemptBegan": false,
+    "userDeferredTabletRestartValidation": true,
+    "evidence": [
+      "control-availability-result.json"
+    ]
+  }
+}
