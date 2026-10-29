@@ -6,7 +6,7 @@ Physical device: Samsung Galaxy Tab S7 (SM-T870), production signed APK, existin
 
 The shared AppTypography layer loads NotoSansKR.ttf once at weights 500/700. It handles dialog titles/body, buttons, switches (including switch text), checkboxes, numeric EditText controls, native single-choice/list items, spinner selected rows and lazy dropdown rows. Font padding is disabled to keep native dialogs compact. A form rebuilt after loading gets the same typography again. Choice wrapping preserves the checked selection.
 
-Physical observations covered the fan detail, four curve inputs, the sensor dropdown, audio device picker, awake checkbox, all four work-feature editors, their master switches, the six-feature hub and the generic theme radio picker. There were **35 dialog audits with 510 TextView observations and zero typeface mismatches**, plus 15 lazy dropdown-row observations and two native-list row audits. These are observations across repeated views, not 510 distinct controls. [Font results](font-results.json), [sanitized audit log](font-audit.log), [choice selection](choice-results.json).
+Physical observations covered the fan detail, four curve inputs, the sensor dropdown, audio device picker, awake checkbox, all four work-feature editors, their master switches, the six-feature hub and the generic theme radio picker. There were **35 dialog audits with 510 TextView observations and zero typeface mismatches**, plus 15 lazy dropdown-row observations and two native-list row audits. These are observations across repeated views, not 510 distinct controls. [Font results](font-results.json), [sanitized audit log](font-audit.txt), [choice selection](choice-results.json).
 
 ![Curve inputs and dialog buttons using Noto Sans KR](curve-inputs-noto.png)
 

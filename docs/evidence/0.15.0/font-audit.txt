@@ -1,0 +1,53 @@
+--------- beginning of main
+OpenDeckFont: NotoSansKR textViews=8 mismatches=0
+OpenDeckFont: NotoSansKR textViews=21 mismatches=0
+OpenDeckFont: NotoSansKR textViews=16 mismatches=0
+OpenDeckFont: NotoSansKR dropdown-row
+OpenDeckFont: NotoSansKR dropdown-row
+OpenDeckFont: NotoSansKR dropdown-row
+OpenDeckFont: NotoSansKR dropdown-row
+OpenDeckFont: NotoSansKR dropdown-row
+OpenDeckFont: NotoSansKR dropdown-row
+OpenDeckFont: NotoSansKR dropdown-row
+OpenDeckFont: NotoSansKR dropdown-row
+OpenDeckFont: NotoSansKR dropdown-row
+OpenDeckFont: NotoSansKR dropdown-row
+OpenDeckFont: NotoSansKR dropdown-row
+OpenDeckFont: NotoSansKR dropdown-row
+OpenDeckFont: NotoSansKR dropdown-row
+OpenDeckFont: NotoSansKR dropdown-row
+OpenDeckFont: NotoSansKR dropdown-row
+OpenDeckFont: NotoSansKR textViews=16 mismatches=0
+OpenDeckFont: NotoSansKR list-row mismatches=0
+OpenDeckFont: NotoSansKR textViews=7 mismatches=0
+OpenDeckFont: NotoSansKR textViews=5 mismatches=0
+OpenDeckFont: NotoSansKR textViews=27 mismatches=0
+OpenDeckFont: NotoSansKR textViews=19 mismatches=0
+OpenDeckFont: NotoSansKR textViews=5 mismatches=0
+OpenDeckFont: NotoSansKR textViews=27 mismatches=0
+OpenDeckFont: NotoSansKR textViews=15 mismatches=0
+OpenDeckFont: NotoSansKR textViews=5 mismatches=0
+OpenDeckFont: NotoSansKR textViews=27 mismatches=0
+OpenDeckFont: NotoSansKR textViews=15 mismatches=0
+OpenDeckFont: NotoSansKR textViews=5 mismatches=0
+OpenDeckFont: NotoSansKR textViews=27 mismatches=0
+OpenDeckFont: NotoSansKR textViews=17 mismatches=0
+OpenDeckFont: NotoSansKR textViews=5 mismatches=0
+OpenDeckFont: NotoSansKR textViews=27 mismatches=0
+OpenDeckFont: NotoSansKR textViews=15 mismatches=0
+OpenDeckFont: NotoSansKR textViews=5 mismatches=0
+OpenDeckFont: NotoSansKR textViews=5 mismatches=0
+OpenDeckFont: NotoSansKR textViews=27 mismatches=0
+OpenDeckFont: NotoSansKR textViews=15 mismatches=0
+OpenDeckFont: NotoSansKR textViews=5 mismatches=0
+OpenDeckFont: NotoSansKR textViews=27 mismatches=0
+OpenDeckFont: NotoSansKR textViews=16 mismatches=0
+OpenDeckFont: NotoSansKR textViews=5 mismatches=0
+OpenDeckFont: NotoSansKR textViews=27 mismatches=0
+OpenDeckFont: NotoSansKR textViews=5 mismatches=0
+OpenDeckFont: NotoSansKR textViews=27 mismatches=0
+OpenDeckFont: NotoSansKR textViews=5 mismatches=0
+OpenDeckFont: NotoSansKR textViews=11 mismatches=0
+OpenDeckFont: NotoSansKR textViews=14 mismatches=0
+OpenDeckFont: NotoSansKR list-row mismatches=0
+OpenDeckFont: NotoSansKR textViews=7 mismatches=0
