@@ -5958,7 +5958,7 @@ public class MainActivity extends Activity {
       if (getWidth() == 0
           || reducedMotion()
           || !android.animation.ValueAnimator.areAnimatorsEnabled()) return;
-      transitionUntil = SystemClock.elapsedRealtime() + 240;
+      transitionUntil = SystemClock.elapsedRealtime() + 180;
       float distance = direction * getWidth();
       android.view.animation.Interpolator easing =
           new android.view.animation.DecelerateInterpolator(1.35f);
@@ -5970,7 +5970,7 @@ public class MainActivity extends Activity {
         tile.setTranslationX(0);
         tile.animate()
             .translationX(-distance)
-            .setDuration(240)
+            .setDuration(180)
             .setInterpolator(easing)
             .withEndAction(
                 () -> {
@@ -5982,7 +5982,7 @@ public class MainActivity extends Activity {
       }
       for (Tile tile : tiles) {
         tile.setTranslationX(distance);
-        tile.animate().translationX(0).setDuration(240).setInterpolator(easing).start();
+        tile.animate().translationX(0).setDuration(180).setInterpolator(easing).start();
       }
     }
 
@@ -8696,7 +8696,8 @@ public class MainActivity extends Activity {
           }
           gestureBlocked =
               !resumeSwipe
-                  && (swipeSettle != null || SystemClock.elapsedRealtime() < transitionUntil);
+                  && (swipeSettle != null || SystemClock.elapsedRealtime() < transitionUntil)
+                  && y <= getHeight() - dp(46);
           if (gestureBlocked) return true;
           swipeVelocity = VelocityTracker.obtain();
           swipeVelocity.addMovement(e);
@@ -8803,7 +8804,9 @@ public class MainActivity extends Activity {
               return true;
             }
             if (moved) return true;
-            if (SystemClock.elapsedRealtime() < transitionUntil) return true;
+            // Navigation stays responsive while a prior page is settling.
+            if (SystemClock.elapsedRealtime() < transitionUntil && y <= getHeight() - dp(46))
+              return true;
             if (!settingBool("settingsButtonHidden") && y < dp(60) && x > getWidth() - dp(75)) {
               settings();
               return true;
