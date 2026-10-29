@@ -8178,21 +8178,33 @@ public class MainActivity extends Activity {
         JSONObject fan = runtime == null ? null : runtime.optJSONObject("fan");
         JSONArray fans = fan == null ? null : fan.optJSONArray("fans");
         int count = fans == null ? 0 : Math.min(fans.length(), 4);
+        RectF readings = new RectF(r.centerX(), r.top, r.right, r.bottom);
+        boolean stacked = r.width() < dp(600) && count > 1;
         if (count == 0)
-          monitorText(c, macControlText(provider, "noFans"), r, r.centerY() + dp(12), 24, muted);
+          monitorText(
+              c, macControlText(provider, "noFans"), readings, r.centerY() + dp(12), 18, muted);
         for (int i = 0; i < count; i++) {
           JSONObject f = fans.optJSONObject(i);
-          float x = r.left + (i + .5f) * r.width() / count;
-          label(c, "FAN " + (i + 1), x, r.top + dp(55), 12, muted, Paint.Align.CENTER);
+          float x =
+              stacked ? readings.centerX() : readings.left + (i + .5f) * readings.width() / count;
+          float rowTop = r.top + dp(48) + i * (r.height() - dp(74)) / Math.max(1, count);
+          label(
+              c,
+              "FAN " + (i + 1),
+              x,
+              stacked ? rowTop + dp(9) : r.top + dp(55),
+              12,
+              muted,
+              Paint.Align.CENTER);
           label(
               c,
               String.valueOf(Math.round(f.optDouble("actualRPM"))),
               x,
-              r.top + dp(113),
-              Math.min(54, r.width() / Math.max(1, count) / dp(5)),
+              stacked ? rowTop + dp(42) : r.top + dp(113),
+              stacked ? 32 : Math.min(54, readings.width() / Math.max(1, count) / dp(4)),
               fresh ? ink : muted,
               Paint.Align.CENTER);
-          label(c, "RPM", x, r.top + dp(134), 11, muted, Paint.Align.CENTER);
+          if (!stacked) label(c, "RPM", x, r.top + dp(134), 11, muted, Paint.Align.CENTER);
           label(
               c,
               macControlText(provider, "target")
@@ -8200,8 +8212,8 @@ public class MainActivity extends Activity {
                   + Math.round(f.optDouble("targetRPM"))
                   + " RPM",
               x,
-              r.top + dp(151),
-              12,
+              stacked ? rowTop + dp(59) : r.top + dp(151),
+              stacked ? 9 : 12,
               muted,
               Paint.Align.CENTER);
         }
@@ -8217,8 +8229,7 @@ public class MainActivity extends Activity {
                     ? macControlText(provider, mode.equals("external") ? "external" : "authorize")
                     : macControlText(provider, "updated")
                         + " "
-                        + new java.text.SimpleDateFormat("HH:mm:ss", Locale.getDefault())
-                            .format(new Date(runtime.optLong("at")));
+                        + osDate(runtime.optLong("at"), "HH:mm:ss");
         RectF automatic = fanQuickBounds(r, false), maximum = fanQuickBounds(r, true);
         boolean enabled =
             fresh
@@ -8226,18 +8237,12 @@ public class MainActivity extends Activity {
                 && fan.optBoolean("controllable")
                 && !runtime.optBoolean("applying")
                 && fanQuickOperation.isEmpty();
-        monitorText(
-            c,
-            hint,
-            new RectF(r.left, r.top, automatic.left - dp(5), r.bottom),
-            r.bottom - dp(24),
-            10,
-            muted);
+        monitorText(c, hint, r, r.bottom - dp(12), 10, muted);
         drawFanQuick(
             c,
             automatic,
             macControlText(
-                provider, fanQuickOperation.equals("fan.system") ? "applying" : "system"),
+                provider, fanQuickOperation.equals("fan.system") ? "applying" : "automaticShort"),
             mode.equals("system"),
             enabled,
             accent);
@@ -8245,7 +8250,7 @@ public class MainActivity extends Activity {
             c,
             maximum,
             macControlText(
-                provider, fanQuickOperation.equals("fan.manual") ? "applying" : "maximum"),
+                provider, fanQuickOperation.equals("fan.manual") ? "applying" : "maximumShort"),
             mode.equals("manual") && fan != null && fan.optInt("level") == 100,
             enabled,
             accent);
@@ -8301,9 +8306,9 @@ public class MainActivity extends Activity {
     }
 
     RectF fanQuickBounds(RectF card, boolean maximum) {
-      float width = Math.min(dp(150), (card.width() - dp(52)) / 3);
-      float right = card.right - dp(18) - (maximum ? 0 : width + dp(10));
-      return new RectF(right - width, card.bottom - dp(56), right, card.bottom - dp(12));
+      float width = (card.width() / 2 - dp(48)) / 2;
+      float left = card.left + dp(18) + (maximum ? width + dp(12) : 0);
+      return new RectF(left, card.top + dp(60), left + width, card.bottom - dp(34));
     }
 
     void drawFanQuick(
@@ -8315,8 +8320,8 @@ public class MainActivity extends Activity {
           c,
           title,
           r.centerX(),
-          r.centerY() + dp(5),
-          13,
+          r.centerY() + dp(9),
+          Math.min(26, r.width() / dp(3)),
           enabled ? selected ? color("#e5eff8") : accent : color("#657789"),
           Paint.Align.CENTER);
     }

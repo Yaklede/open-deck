@@ -157,6 +157,8 @@ export class Vorssaint {
               "mute",
               "fan",
               "maximum",
+              "automaticShort",
+              "maximumShort",
               "loading",
               "close",
               "stale",

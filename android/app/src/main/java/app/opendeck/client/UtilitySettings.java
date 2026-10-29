@@ -121,6 +121,7 @@ final class UtilitySettings {
             .setNegativeButton(L10n.text("닫기"), null)
             .create();
     AlertDialog shown = loading;
+    shown.setCanceledOnTouchOutside(false);
     shown.setOnDismissListener(
         d -> {
           if (loading == shown) close();

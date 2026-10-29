@@ -448,6 +448,7 @@ final class MacControlsPanel {
       ScrollView scroll = new ScrollView(context);
       scroll.addView(content);
       dialog = new AlertDialog.Builder(context).setView(scroll).create();
+      dialog.setCanceledOnTouchOutside(false);
       dialog.setOnDismissListener(d -> close());
       dialog.show();
     }
