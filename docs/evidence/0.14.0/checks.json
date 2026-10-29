@@ -1,0 +1,23 @@
+{
+  "version": "0.14.0",
+  "build": 25,
+  "status": "candidate-awaiting-mac-administrator-approval",
+  "hostTests": {
+    "passed": 284,
+    "failed": 0
+  },
+  "androidReleaseLint": {
+    "errors": 0,
+    "warnings": 22
+  },
+  "physicalTabletModel": "Samsung Galaxy Tab S7 (SM-T870)",
+  "actualFanTelemetryVerified": 2,
+  "actualFanSpeedWriteVerified": false,
+  "fanCurveHardwareVerification": "pending administrator approval",
+  "brightnessNativeSliderVerified": true,
+  "audioNativeSliderVerified": true,
+  "realKeepAwakeAssertionVerified": true,
+  "macWasLockedDuringApprovalAttempt": true,
+  "administratorAttemptExpiredWithoutApproval": true,
+  "publishedReleaseUpdated": false
+}

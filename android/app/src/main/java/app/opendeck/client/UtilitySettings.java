@@ -24,6 +24,8 @@ final class UtilitySettings {
   private final String theme;
   private final String language;
   private final String widgetId;
+  private String selectedGroup;
+  private final boolean categoryMenu;
   private JSONObject model;
   private JSONObject copy = new JSONObject();
 
@@ -34,7 +36,8 @@ final class UtilitySettings {
       Host host,
       String theme,
       String language,
-      String widgetId) {
+      String widgetId,
+      String selectedGroup) {
     this.activity = activity;
     this.ui = ui;
     this.executor = executor;
@@ -42,6 +45,8 @@ final class UtilitySettings {
     this.theme = theme;
     this.language = language;
     this.widgetId = widgetId;
+    this.selectedGroup = selectedGroup;
+    this.categoryMenu = "all".equals(selectedGroup);
   }
 
   private boolean current() {
@@ -65,7 +70,10 @@ final class UtilitySettings {
             JSONObject response =
                 host.request(
                     "/api/extensions/vorssaint/settings?widgetId="
-                        + URLEncoder.encode(widgetId, "UTF-8"),
+                        + URLEncoder.encode(widgetId, "UTF-8")
+                        + (selectedGroup == null
+                            ? ""
+                            : "&group=" + URLEncoder.encode(selectedGroup, "UTF-8")),
                     "GET",
                     null);
             ui.post(
@@ -109,6 +117,23 @@ final class UtilitySettings {
 
   private void groups() {
     if (!current()) return;
+    if (model.has("groups")) {
+      ClientSettingsPanel categories =
+          panel(text("categories"), text("description"), new HashMap<>(), new HashMap<>());
+      JSONArray groups = model.optJSONArray("groups");
+      for (int i = 0; groups != null && i < groups.length(); i++) {
+        JSONObject group = groups.optJSONObject(i);
+        categories.action(
+            label(group.optJSONObject("label")),
+            "",
+            () -> {
+              selectedGroup = group.optString("id");
+              open();
+            });
+      }
+      categories.show();
+      return;
+    }
     ClientSettingsPanel panel =
         panel(
             label(model.optJSONObject("group").optJSONObject("label")),
@@ -134,6 +159,14 @@ final class UtilitySettings {
                     : text("availableOff");
         panel.action(label(feature.optJSONObject("label")), state, () -> feature(feature));
       }
+    if (categoryMenu)
+      panel.action(
+          text("categories"),
+          "",
+          () -> {
+            selectedGroup = "all";
+            open();
+          });
     panel.show();
   }
 
@@ -214,6 +247,7 @@ final class UtilitySettings {
                     .put("widgetId", widgetId)
                     .put("revision", model.optString("revision"))
                     .put("patch", new JSONObject(patch));
+            if (selectedGroup != null) request.put("group", selectedGroup);
             JSONObject response =
                 host.request("/api/extensions/vorssaint/settings", "POST", request);
             ui.post(

@@ -1,44 +1,61 @@
-# Vorssaint · Mac 도구
+# Mac tools: live controls and Vorssaint preferences
 
-Open Deck connects to the separately installed [Vorssaint 3.4.2](https://github.com/vorssaint/vorssaint-utils/releases/tag/v3.4.2) macOS utility. The integration targets upstream commit `833967fd45153fc9dc95651d34c867f5c4aee7f1` and its `com.vorssaint.utils` preference interface. Vorssaint requires macOS 14 or later; Open Deck itself still supports macOS 13.
+The main **Mac 도구** page controls the Mac directly. Its fan card shows measured RPM and target RPM; the remaining cards open native brightness, audio and keep-awake controls. **세부 환경설정** opens the separate Vorssaint preference editor.
 
 ## Setup
 
-1. Install the official signed Vorssaint app at `/Applications/Vorssaint.app` and choose its features on the Mac.
-2. In the Open Deck Mac editor, open **변수 · 연동 → Vorssaint** and choose **＋ Vorssaint**.
-3. Open **Mac 도구** on the paired tablet. Each category opens native Android settings. The Mac editor also offers the same category forms.
-4. Change options, then choose **저장하고 적용**. Draft edits and cancelled forms do not change Mac settings.
+1. Update the Open Deck Mac app and Android APK together.
+2. Open **변수 · 연동 → Vorssaint → ＋ Vorssaint** in the Mac editor. The original 0.13 utility template is upgraded automatically; other pages are preserved. A page that no longer matches the original template is preserved.
+3. Open **Mac 도구 → 팬 제어** on the tablet. RPM telemetry is available without administrator installation. To change fan speed, choose **Mac에서 팬 제어 허용** and approve the Mac's administrator dialog directly. Mac unlock and password entry cannot be performed from the tablet.
+4. Use **시스템 자동**, **최대 냉각**, the manual slider or **온도 곡선**. Values are applied to the actual hardware and read back; no feature-visibility toggle is needed.
 
-The page uses the normal editable grid. Its cards can be moved, resized, renamed and styled in the Mac editor. Adding the integration preserves existing pages and appends the new page to the default profile. Add it to other profiles with the regular profile editor when needed.
+## Direct controls
 
-## Available controls
-
-| Category | Scope |
+| Control | Behavior |
 | --- | --- |
-| 에너지·화면 | Keep awake, display/brightness utilities and related options |
-| 창·Dock | Window, Dock and workspace utility visibility and switches |
-| 마우스·키보드 | Input utilities, smooth scrolling, focus and debounce options |
-| 소리 | Audio utility visibility and switches |
-| 클립보드·파일 | Clipboard and file utility visibility and switches |
-| Dynamic Island | Island utility visibility and switches |
-| 메뉴 막대 모니터 | CPU, GPU, memory, network, disk and power monitor visibility |
-| 앱·도구 | App and miscellaneous utility visibility and switches |
-| 공통 설정 | Vorssaint appearance and language |
+| Fans | Current/target/minimum/maximum RPM per fan, automatic mode, manual cooling level in 5% steps, temperature curve and live chip temperature |
+| Brightness | Per-display hardware brightness, applied when the slider is released; only displays supported by the Mac display API are offered |
+| Audio | System output/input device selection, hardware volume and mute, with actual device readback |
+| Keep awake | 15/30/60 minutes or indefinite, optional display wake prevention, and immediate stop |
+| Advanced preferences | Nine categories of the separately installed Vorssaint app |
 
-The pinned catalog contains 77 feature entries and 151 typed preference fields. A feature's **Vorssaint에 표시** option controls its availability in Vorssaint; features with a separate enabled preference expose that switch as well. Changing visibility alone does not execute an arbitrary utility action.
+Manual fan level maps 0–100% to each fan's reported hardware minimum–maximum RPM. It is not a percentage of current RPM. The native editor offers a two-point curve with chip/CPU/GPU sensor selection; the bounded backend also supports the upstream multi-curve model. Curve temperatures increase within 20–110°C and cooling levels stay the same or increase in 5% steps.
 
-The quick buttons start a 30-minute keep-awake session or stop it. Stop disables the keep-awake feature in Vorssaint, which releases its sleep-prevention assertion. Starting a session enables the feature and its automatic start with a 30-minute duration. These changes persist in Vorssaint.
+Actual fan mode, current RPM and target RPM are shown separately. A fan takes time to reach a new target. If the hardware or another fan application prevents control, the failure is reported rather than presenting a successful change. The controller does not take over another app's manual session.
 
-App-specific volume controls, editable app/file lists, device selectors, global hotkeys, clipboard contents and other complex runtime tools remain in the official Mac app. **Mac에서 상세 설정** opens that app. This integration is not a full remote replica of every Vorssaint window. macOS Accessibility, Screen Recording and similar permissions must be granted through the normal Mac flow when a selected feature needs them; Open Deck does not grant them.
+Successful manual-level and curve presets are saved in `~/Library/Application Support/OpenDeck/mac-control-presets.json`. These are reusable values, not an instruction to replay manual mode after restart. When the Mac control process exits, the helper loses its client, its heartbeat stops or the hardware/thermal policy requires it, fans return to system control. The helper watches for a missing heartbeat after seven seconds. Tablet disconnection alone does not stop a healthy Mac control process.
 
-## Applying and synchronization
+Keep-awake sessions belong to the Open Deck control process and end when it exits. Stopping an Open Deck session does not change another application's sleep assertions. Brightness, audio volume and selected devices use the Mac's own settings. Applying these controls does not restart Vorssaint or raise another application.
 
-Vorssaint does not publish an external command API. Open Deck therefore reads an explicit allowlist of preference keys with a small native helper. A save validates field types, ranges and choices, checks that the settings have not changed since the form opened, asks Vorssaint to quit gracefully, rechecks the revision, writes only changed keys, then starts Vorssaint in the background. The Mac and other apps remain running.
+## Fan module and connection
 
-An outdated form returns a conflict instead of overwriting newer settings. Close and reopen that category to load its latest values. Only one save runs at a time. If the app refuses to quit, the write is cancelled. If saving succeeds but starting the app fails, the UI reports that separately.
+The independent fan daemon is installed only through a Mac administrator confirmation. Its executable and launch configuration are root-owned at:
 
-Reopening a form reads the latest Mac preferences. Page connection status and category visibility counts refresh approximately every six seconds. The page stream contains summaries, not the complete settings catalog. Existing paired-device tokens and page/profile access control apply to both USB and pinned HTTPS Wi-Fi requests.
+- `/Library/PrivilegedHelperTools/app.opendeck.host.fan-control`
+- `/Library/LaunchDaemons/app.opendeck.host.fan-control.plist`
 
-Before a write, Open Deck keeps the previous values of the changed fields in `~/Library/Application Support/OpenDeck/vorssaint-settings-backups/`. The folder is private to the local user and retains the latest 20 saves. Other preferences, clipboard contents, accounts and personal files are not read or backed up by this adapter.
+The installer verifies the exact bundled daemon signature after copying it to its protected staging path. The daemon authenticates the exact signed control-client binary and the active console user. Its XPC interface accepts bounded fan configuration, status, heartbeat and restore operations; it has no arbitrary shell, path or SMC-key entry point. The official Vorssaint application and protected helper are unchanged.
 
-Vorssaint is installed separately and retains its own GPL-3.0-or-later license and signature. Open Deck does not distribute its app or source code. The adapter and native form implementation are Open Deck code; the catalog records public interface keys and setting metadata. A future Vorssaint version that changes those interfaces may require an adapter update.
+The unprivileged client handles audio, brightness and sleep assertions. The Node host communicates with it through bounded local JSON lines. Paired tablet requests use the existing page/profile scope over USB or certificate-pinned HTTPS Wi-Fi. Browser-origin and administrator requests remain blocked on the LAN listener.
+
+If the local control process exits, Open Deck retains its last readings with a stale/disconnected flag and retries with backoff. A new process must deliver a new sample before readings are considered current. Mutations run one at a time and reads coalesce. A new action must start within five seconds; expired actions are cancelled instead of running later. Queued work fails explicitly when the process disconnects. Diagnostics are local in `~/Library/Application Support/OpenDeck/mac-controls.log` and the fan daemon's macOS unified log. Command parameters, credentials and clipboard contents are not logged.
+
+Disabling the integration stops the local control client and returns its fan session to system mode. To remove the installed fan service completely, an administrator can run:
+
+```sh
+sudo launchctl bootout system/app.opendeck.host.fan-control
+sudo rm /Library/LaunchDaemons/app.opendeck.host.fan-control.plist
+sudo rm /Library/PrivilegedHelperTools/app.opendeck.host.fan-control
+```
+
+## Advanced Vorssaint preferences
+
+Install official [Vorssaint 3.4.2](https://github.com/vorssaint/vorssaint-utils/releases/tag/v3.4.2) at `/Applications/Vorssaint.app` to use **세부 환경설정**. These settings target upstream commit `833967fd45153fc9dc95651d34c867f5c4aee7f1` and the `com.vorssaint.utils` preference interface.
+
+The categories cover energy/display, windows/Dock, mouse/keyboard, sound, clipboard/files, Dynamic Island, menu-bar monitors, apps/tools and general appearance/language. The catalog contains 77 feature availability entries and 151 typed fields. Availability means showing a feature in Vorssaint; it is distinct from the live hardware controls above.
+
+These forms keep drafts local and apply selected keys together with **저장하고 적용**. The adapter checks for stale revisions, asks Vorssaint to quit gracefully, rechecks the revision, writes only changed preferences and starts it in the background. Conflicting forms cannot overwrite newer values. Previous changed-field values are kept in the private `vorssaint-settings-backups/` directory, retaining 20 saves.
+
+Per-app audio mixing, clipboard contents, complex app/device lists, window tools and other Vorssaint runtime windows are not remotely implemented by this page. Their availability/preferences can be edited here; runtime interactions still belong to the official app. Required macOS Accessibility or Screen Recording permissions must be granted through the normal Mac flow.
+
+The host/editor/Android application remains MIT licensed. The independent Mac-control executables use separately licensed GPL-3.0-or-later code with preserved notices and complete corresponding source included in the macOS package. New control/form metadata is Korean/English with English fallback in other interface languages.

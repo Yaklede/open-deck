@@ -1533,3 +1533,43 @@ html[data-ui-direction="rtl"]
 .utility-status {
   min-height: 24px;
 }
+.mac-controls-dialog {
+  max-height: 88vh;
+  overflow: auto;
+}
+.mac-control-section {
+  background: var(--panel, #1c2938);
+  border: 1px solid #5a708433;
+  border-radius: 12px;
+  padding: 16px;
+  margin: 12px 0;
+}
+.mac-control-stats,
+.mac-control-actions {
+  display: flex;
+  gap: 12px;
+}
+.mac-control-stats > .mac-control-section {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.mac-control-stats strong {
+  font-size: 34px;
+  font-variant-numeric: tabular-nums;
+}
+.mac-control-stats small,
+.mac-control-section small {
+  color: var(--muted, #9aacc0);
+}
+.mac-control-range {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 240px;
+}
+.mac-control-range input {
+  flex: 1;
+  min-width: 100px;
+}

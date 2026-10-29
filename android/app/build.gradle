@@ -6,7 +6,7 @@ android {
     namespace 'app.opendeck.client'
     compileSdk 35
     buildFeatures { buildConfig true }
-    defaultConfig { applicationId (project.findProperty('verificationApplicationId') ?: 'app.opendeck.client'); minSdk 26; targetSdk 35; versionCode 24; versionName '0.13.0'; buildConfigField 'int', 'USB_PORT', project.hasProperty('verificationApplicationId') ? '18840' : '8840' }
+    defaultConfig { applicationId (project.findProperty('verificationApplicationId') ?: 'app.opendeck.client'); minSdk 26; targetSdk 35; versionCode 25; versionName '0.14.0'; buildConfigField 'int', 'USB_PORT', project.hasProperty('verificationApplicationId') ? '18840' : '8840' }
     if(signingFile.exists()) signingConfigs { release { storeFile file(signingValues.storeFile); storePassword signingValues.storePassword; keyAlias signingValues.keyAlias; keyPassword signingValues.keyPassword } }
     buildTypes { release { minifyEnabled false; if(signingFile.exists()) signingConfig signingConfigs.release } }
     compileOptions { sourceCompatibility JavaVersion.VERSION_17; targetCompatibility JavaVersion.VERSION_17 }

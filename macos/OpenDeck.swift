@@ -44,6 +44,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, WKUI
     let directory = FileManager.default.homeDirectoryForCurrentUser.appendingPathComponent("Library/Application Support/OpenDeck")
 
     func applicationDidFinishLaunching(_ notification: Notification) {
+        MacFanAccess.shared.refresh()
         _ = OpenDeckLocale.configure(settingsSection("appearance")["language"] as? String)
         let appMenu = NSMenu(); let root = NSMenuItem(); appMenu.addItem(root)
         let submenu = NSMenu(); submenu.addItem(withTitle:t("Open Deck 정보"), action: #selector(about), keyEquivalent: "")
@@ -61,7 +62,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, WKUI
         menu.addItem(NSMenuItem.separator()); menu.addItem(withTitle:t("종료"),action:#selector(quit),keyEquivalent:""); menuItem.menu=menu
         applySettings()
         let startup = settingsSection("startup")
-        if startup["openMinimized"] as? Bool != true { window.makeKeyAndOrderFront(nil); NSApp.activate(ignoringOtherApps:true) }
+        if startup["openMinimized"] as? Bool != true && !ProcessInfo.processInfo.arguments.contains("--background") { window.makeKeyAndOrderFront(nil); NSApp.activate(ignoringOtherApps:true) }
         startHost()
         settingsTimer=Timer.scheduledTimer(withTimeInterval:2,repeats:true){[weak self] _ in self?.applySettings()}
         let workspace = NSWorkspace.shared.notificationCenter
@@ -186,7 +187,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, WKUI
         recovery=job;DispatchQueue.main.asyncAfter(deadline:.now()+min(15,Double(2 << attempt)),execute:job)
     }
     @objc func show(){window.makeKeyAndOrderFront(nil);NSApp.activate(ignoringOtherApps:true)}
-    @objc func about(){showError("Open Deck " + (Bundle.main.object(forInfoDictionaryKey:"CFBundleShortVersionString") as? String ?? "") + "\n" + t("맥 호스트 + 네이티브 Android 컨트롤 패널") + "\nMIT · " + t("무료 · 오픈소스") + "\nhttps://github.com/Yaklede/open-deck")}
+    @objc func about(){showError("Open Deck " + (Bundle.main.object(forInfoDictionaryKey:"CFBundleShortVersionString") as? String ?? "") + "\n" + t("맥 호스트 + 네이티브 Android 컨트롤 패널") + "\nMIT · Mac controls GPL-3.0-or-later · " + t("무료 · 오픈소스") + "\nhttps://github.com/Yaklede/open-deck")}
+    func application(_ application: NSApplication, open urls: [URL]) {
+        for url in urls where url.scheme == "opendeck" && url.host == "authorize-fan" && url.query == nil && url.path.isEmpty {
+            MacFanAccess.shared.authorize()
+        }
+    }
     @objc func quit(){NSApp.terminate(nil)}
     func userContentController(_ controller:WKUserContentController,didReceive message:WKScriptMessage){
         if message.name=="nativeSettings" {
@@ -244,6 +250,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, WKUI
         return json[name] as? [String:Any] ?? [:]
     }
     func applySettings() {
+        MacFanAccess.shared.refresh()
         guard let data=try? Data(contentsOf:directory.appendingPathComponent("preferences.json")), data != previousSettings,
               let json=(try? JSONSerialization.jsonObject(with:data)) as? [String:Any] else{return}
         previousSettings=data
@@ -301,6 +308,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, WKUI
     func webView(_ webView:WKWebView,runJavaScriptConfirmPanelWithMessage message:String,initiatedByFrame frame:WKFrameInfo,completionHandler:@escaping(Bool)->Void){let a=NSAlert();a.messageText=message;a.addButton(withTitle:t("확인"));a.addButton(withTitle:t("취소"));completionHandler(a.runModal() == .alertFirstButtonReturn)}
     func webView(_ webView:WKWebView,runJavaScriptTextInputPanelWithPrompt prompt:String,defaultText:String?,initiatedByFrame frame:WKFrameInfo,completionHandler:@escaping(String?)->Void){let a=NSAlert();a.messageText=prompt;let field=NSTextField(frame:NSRect(x:0,y:0,width:300,height:24));field.stringValue=defaultText ?? "";a.accessoryView=field;a.addButton(withTitle:t("확인"));a.addButton(withTitle:t("취소"));completionHandler(a.runModal() == .alertFirstButtonReturn ? field.stringValue:nil)}
 }
-let app=NSApplication.shared
-app.setActivationPolicy(.regular)
-let delegate=AppDelegate();app.delegate=delegate;app.run()
+@main struct OpenDeckMain {
+    static func main() {
+        let app=NSApplication.shared;app.setActivationPolicy(.regular)
+        let delegate=AppDelegate();app.delegate=delegate
+        withExtendedLifetime(delegate){app.run()}
+    }
+}

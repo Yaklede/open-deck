@@ -27,7 +27,11 @@ import {
 } from "./system-tools.mjs";
 import { MacMetrics } from "./mac-metrics.mjs";
 import { GrafanaMonitor, grafanaSource, grafanaSecretId } from "./grafana.mjs";
-import { vorssaintPage } from "./extensions/vorssaint/index.mjs";
+import {
+  vorssaintPage,
+  catalog as vorssaintCatalog,
+  controlCopy,
+} from "./extensions/vorssaint/index.mjs";
 import { Extensions, osPage } from "./extensions.mjs";
 import { Plugins } from "./plugins.mjs";
 import { saveAsset, readAsset } from "./assets.mjs";
@@ -575,6 +579,7 @@ export function createHost({
             "/api/device/settings",
             "/api/device/update",
             "/api/extensions/vorssaint/settings",
+            "/api/extensions/vorssaint/control",
           ].includes(u.pathname) &&
           !/^\/api\/assets\/[a-f0-9]{64}$/.test(u.pathname) &&
           !/^\/api\/monitor\/incidents\/incident-[a-f0-9]{32}$/.test(
@@ -1304,6 +1309,56 @@ export function createHost({
           broadcast();
           return send(res, 200, result);
         }
+        if (u.pathname === "/api/extensions/vorssaint/control") {
+          if (!["GET", "POST"].includes(req.method))
+            return send(res, 405, { error: "METHOD_NOT_ALLOWED" });
+          const input = req.method === "POST" ? await body(req) : null;
+          const paired = admin ? null : device(req);
+          if (!admin && !paired)
+            return send(res, 401, { error: "UNAUTHORIZED" });
+          if (
+            admin &&
+            !account.authenticate(sessionToken(req), { touch: false })
+          )
+            return send(res, 401, { error: "ACCOUNT_LOGIN_REQUIRED" });
+          if (admin && editorLock.status().locked)
+            return send(res, 423, { error: "EDITOR_LOCKED" });
+          const id = input?.widgetId || u.searchParams.get("widgetId");
+          const widget = config.pages
+            .flatMap((p) => p.widgets)
+            .find((w) => w.id === id);
+          if (
+            !widget ||
+            widget.provider !== "vorssaint" ||
+            !["fan", "display", "audio", "awake"].includes(
+              widget.utilityControl,
+            ) ||
+            !allowedWidget(paired, id)
+          )
+            return send(res, 403, { error: "FORBIDDEN" });
+          const provider = extensions.providers.get("vorssaint");
+          if (provider.getOptions().enabled !== true)
+            return send(res, 403, { error: "DISABLED" });
+          if (req.method === "GET")
+            return send(res, 200, {
+              copy: controlCopy,
+              state: await provider.controls.read(),
+              control: widget.utilityControl,
+            });
+          if (
+            Object.keys(input).some(
+              (k) => !["widgetId", "operation", "parameters"].includes(k),
+            )
+          )
+            return send(res, 400, { error: "INVALID_CONTROL" });
+          return send(res, 200, {
+            state: await provider.controls.control(
+              widget.utilityControl,
+              input.operation,
+              input.parameters,
+            ),
+          });
+        }
         if (u.pathname === "/api/extensions/vorssaint/settings") {
           if (!["GET", "POST"].includes(req.method))
             return send(res, 405, { error: "METHOD_NOT_ALLOWED" });
@@ -1335,22 +1390,33 @@ export function createHost({
           )
             return send(res, 403, { error: "FORBIDDEN" });
           const provider = extensions.providers.get("vorssaint");
+          const group =
+            input?.group || u.searchParams.get("group") || widget.utilityGroup;
+          if (
+            widget.utilityControl !== "preferences" &&
+            group !== widget.utilityGroup
+          )
+            return send(res, 403, { error: "FORBIDDEN" });
+          if (req.method === "GET" && group === "all") {
+            const settings = await provider.settings("general");
+            return send(res, 200, {
+              copy: settings.copy,
+              app: settings.app,
+              groups: vorssaintCatalog.groups,
+            });
+          }
           if (req.method === "GET")
-            return send(res, 200, await provider.settings(widget.utilityGroup));
+            return send(res, 200, await provider.settings(group));
           if (
             Object.keys(input).some(
-              (k) => !["widgetId", "revision", "patch"].includes(k),
+              (k) => !["widgetId", "revision", "patch", "group"].includes(k),
             )
           )
             return send(res, 400, { error: "INVALID_PATCH" });
           return send(
             res,
             200,
-            await provider.update(
-              widget.utilityGroup,
-              input.revision,
-              input.patch,
-            ),
+            await provider.update(group, input.revision, input.patch),
           );
         }
         if (req.method === "GET" && u.pathname === "/api/snapshot")
@@ -1498,6 +1564,7 @@ export function createHost({
             "/layout.mjs",
             "/monitor-layout.mjs",
             "/vorssaint-ui.mjs",
+            "/mac-controls-ui.mjs",
             "/monitor-rules.mjs",
             "/monitor-inbox.mjs",
             "/monitor-inbox.css",

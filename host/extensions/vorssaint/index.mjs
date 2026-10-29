@@ -4,9 +4,13 @@ import crypto from "node:crypto";
 import { execFile } from "node:child_process";
 import { promisify } from "node:util";
 import { fileURLToPath } from "node:url";
+import { MacControls } from "./runtime.mjs";
 const exec = promisify(execFile);
 const copy = JSON.parse(
   fs.readFileSync(new URL("./copy.json", import.meta.url), "utf8"),
+);
+export const controlCopy = JSON.parse(
+  fs.readFileSync(new URL("./control-copy.json", import.meta.url), "utf8"),
 );
 export const catalog = JSON.parse(
   fs.readFileSync(new URL("./catalog.json", import.meta.url), "utf8"),
@@ -96,8 +100,10 @@ export class Vorssaint {
     onChange = () => {},
     native = createNative(),
     clock = Date.now,
+    controls,
   } = {}) {
     Object.assign(this, { dir, getOptions, onChange, native, clock });
+    this.controls = controls || new MacControls({ dir, onChange, clock });
     this.data = null;
     this.error = "";
     this.updatedAt = 0;
@@ -128,6 +134,31 @@ export class Vorssaint {
       applying: this.busy,
       error: this.error,
       summaryText: { ko: copy.ko.count, en: copy.en.count },
+      runtime: this.controls.state(),
+      controlText: Object.fromEntries(
+        ["ko", "en"].map((lang) => [
+          lang,
+          Object.fromEntries(
+            [
+              "system",
+              "manual",
+              "curve",
+              "external",
+              "noFans",
+              "authorize",
+              "active",
+              "stopped",
+              "until",
+              "categoriesCount",
+              "preferencesHint",
+              "current",
+              "target",
+              "updated",
+              "mute",
+            ].map((key) => [key, controlCopy[lang][key]]),
+          ),
+        ]),
+      ),
       groups: catalog.groups.map((g) => ({
         ...g,
         total: catalog.features.filter(
@@ -160,6 +191,11 @@ export class Vorssaint {
     return this.reading;
   }
   async poll() {
+    if (this.getOptions().enabled !== true) {
+      this.controls.stop();
+      return;
+    }
+    this.controls.ensure();
     if (
       this.closed ||
       this.getOptions().enabled !== true ||
@@ -281,24 +317,46 @@ export class Vorssaint {
       return;
     }
     if (operation === "awake-30" || operation === "awake-off") {
-      const r = await this.read();
-      const patch =
-        operation === "awake-30"
-          ? {
-              "featureAvailable.keepAwake": true,
-              keepAwakeAutoStart: true,
-              defaultDurationMinutes: 30,
-            }
-          : { "featureAvailable.keepAwake": false };
-      return this.update("energyDisplay", r.revision, patch);
+      return this.controls.control(
+        "awake",
+        operation === "awake-30" ? "awake.start" : "awake.stop",
+        operation === "awake-30" ? { minutes: 30, display: false } : {},
+      );
     }
     throw error("INVALID_OPERATION");
   }
   close() {
     this.closed = true;
+    this.controls.close();
   }
 }
 export function vorssaintPage() {
+  const button = (id, label, icon, control, x, y, w, h) => ({
+    id,
+    type: "button",
+    label,
+    icon,
+    provider: "vorssaint",
+    utilityControl: control,
+    x,
+    y,
+    w,
+    h,
+    color: "#99bbd8",
+    style: { presentation: "mac-control", background: "#1a2531", textSize: 18 },
+    actions: [],
+  });
+  const preferences = button(
+    "vorssaint-group-general",
+    "세부 환경설정",
+    "settings",
+    "preferences",
+    6,
+    6,
+    6,
+    2,
+  );
+  preferences.utilityGroup = "general";
   return {
     id: "vorssaint-page",
     name: "Mac 도구",
@@ -312,8 +370,8 @@ export function vorssaintPage() {
       {
         id: "vorssaint-title",
         type: "text",
-        label: "Vorssaint · Mac 도구",
-        text: "Vorssaint · Mac 도구",
+        label: "Mac 제어",
+        text: "Mac 제어",
         provider: "vorssaint",
         x: 0,
         y: 0,
@@ -326,48 +384,40 @@ export function vorssaintPage() {
           presentation: "utility-header",
         },
       },
-      ...[
-        ["awake-30", "30분 깨어 있기", "power"],
-        ["awake-off", "잠자기 방지 중지", "moon"],
-        ["open-settings", "Mac에서 상세 설정", "settings"],
-      ].map(([op, label, icon], i) => ({
-        id: "vorssaint-" + op,
-        type: "button",
-        label,
-        icon,
-        provider: "vorssaint",
-        x: i * 4,
-        y: 1,
-        w: 4,
-        h: 1,
-        color: "#9cb9d7",
-        style: {
-          background: "#1b2b3b",
-          textSize: 15,
-          iconSize: 20,
-          labelPosition: "center",
-          presentation: "os-action",
-          emphasis: "primary",
-        },
-        actions: [
-          { type: "extension", extensionId: "vorssaint", operation: op },
-        ],
-      })),
-      ...catalog.groups.map((g, i) => ({
-        id: "vorssaint-group-" + g.id,
-        type: "button",
-        label: g.label.ko,
-        icon: g.icon,
-        provider: "vorssaint",
-        utilityGroup: g.id,
-        x: (i % 3) * 4,
-        y: 2 + Math.floor(i / 3) * 2,
-        w: 4,
-        h: 2,
-        color: "#8daac8",
-        style: { presentation: "utility", background: "#1a2531", textSize: 18 },
-        actions: [],
-      })),
+      button("vorssaint-fan", "팬 제어", "gauges", "fan", 0, 1, 12, 3),
+      button(
+        "vorssaint-display",
+        "디스플레이 밝기",
+        "settings",
+        "display",
+        0,
+        4,
+        6,
+        2,
+      ),
+      button(
+        "vorssaint-audio",
+        "음량 · 오디오 장치",
+        "volume",
+        "audio",
+        6,
+        4,
+        6,
+        2,
+      ),
+      button("vorssaint-awake", "잠자기 방지", "power", "awake", 0, 6, 6, 2),
+      preferences,
     ],
   };
+}
+export function upgradeVorssaintPage(config) {
+  const page = config.pages.find((p) => p.id === "vorssaint-page");
+  if (
+    page &&
+    !page.widgets.some((w) => w.utilityControl) &&
+    page.widgets.length === 13 &&
+    page.widgets.every((w) => w.id.startsWith("vorssaint-"))
+  )
+    Object.assign(page, vorssaintPage());
+  return config;
 }

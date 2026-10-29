@@ -5,15 +5,34 @@ const node = (tag, text, cls) => {
   if (cls) e.className = cls;
   return e;
 };
-export async function showVorssaintSettings(api, widgetId) {
+export async function showVorssaintSettings(api, widgetId, group) {
   const data = await api(
     "/api/extensions/vorssaint/settings?widgetId=" +
-      encodeURIComponent(widgetId),
+      encodeURIComponent(widgetId) +
+      (group ? "&group=" + encodeURIComponent(group) : ""),
   );
   const lang = locale() === "ko" ? "ko" : "en",
     copy = data.copy[lang],
     label = (x) => x?.[lang] || x?.en || "";
   const dialog = node("dialog", undefined, "utility-dialog");
+  if (data.groups) {
+    dialog.append(node("h2", copy.categories));
+    for (const category of data.groups) {
+      const button = node("button", label(category.label));
+      button.onclick = () => {
+        dialog.close();
+        showVorssaintSettings(api, widgetId, category.id);
+      };
+      dialog.append(button);
+    }
+    const close = node("button", t("닫기"));
+    close.onclick = () => dialog.close();
+    dialog.append(close);
+    dialog.addEventListener("close", () => dialog.remove());
+    document.body.append(dialog);
+    dialog.showModal();
+    return;
+  }
   const title = node("h2", label(data.group.label));
   dialog.append(
     title,
@@ -98,6 +117,7 @@ export async function showVorssaintSettings(api, widgetId) {
         widgetId,
         revision: data.revision,
         patch,
+        ...(group ? { group } : {}),
       });
       status.textContent = result.launchError
         ? copy.savedNotStarted

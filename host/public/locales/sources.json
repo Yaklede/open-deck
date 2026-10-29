@@ -5851,7 +5851,8 @@
   {
     "source": "연결 대기",
     "files": [
-      "host/public/settings-ui.mjs"
+      "host/public/settings-ui.mjs",
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
     ],
     "english": "Offline"
   },
@@ -9563,6 +9564,7 @@
     "files": [
       "host/public/monitor-inbox.mjs",
       "host/public/settings-ui.mjs",
+      "android/app/src/main/java/app/opendeck/client/MacControlsPanel.java",
       "android/app/src/main/java/app/opendeck/client/MainActivity.java",
       "android/app/src/main/java/app/opendeck/client/UtilitySettings.java",
       "macos/OpenDeck.swift"

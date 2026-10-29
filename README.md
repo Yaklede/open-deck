@@ -2,11 +2,11 @@
 
 A local macro deck with a **macOS host and a native Android app**. Build your controls on the Mac, then use a spare phone or tablet as your desk panel.
 
-**Free, MIT licensed, no account, trial, subscription, analytics, or license server.** Android renders directly with Canvas: it contains no WebView or JavaScript engine.
+**Free and open source, no account, trial, subscription, analytics, or license server.** Android renders directly with Canvas: it contains no WebView or JavaScript engine.
 
 ![Native monitor page on Android](assets/screenshots/monitor.png)
 
-> Version 0.13.0 supports USB + encrypted Wi-Fi on Apple Silicon Macs (macOS 13+) and Android 8+. It implements the core desk-control workflow; it does not claim full feature or plugin compatibility with Macro Deck or Touch Portal.
+> Version 0.14.0 supports USB + encrypted Wi-Fi on Apple Silicon Macs (macOS 13+) and Android 8+. It implements the core desk-control workflow; it does not claim full feature or plugin compatibility with Macro Deck or Touch Portal.
 
 ## Download
 
@@ -31,7 +31,7 @@ The macOS download is an ad-hoc signed developer build, not Apple notarized. You
 | Grafana                              | Native system CPU, collection and DB status cards, CPU/MEM/TPS/QPS, actual GiB, configurable risk colors/tablet alerts and shared project selection |
 | Service health                       | Response time, 5xx error percentage and RPS below the primary CPU readout, with native history charts |
 | Monitoring inbox                     | Project-grouped incidents, acknowledge, 30-minute snooze/resume and persistent recovery history on Mac and Android |
-| Mac utilities                        | Vorssaint integration, a native tablet settings page and timed keep-awake controls |
+| Mac utilities                        | Direct fan control with real RPM, temperature curves, brightness, volume, audio device selection and timed keep-awake |
 | Pairing                              | Expiring single-use PIN, per-device scoped tokens, device revocation                              |
 | Backup                               | Deck JSON with image assets; theme presets                                                        |
 | HTTP connectors                      | GET polling, manual webhooks, scalar JSON binding, Keychain Bearer tokens                         |
@@ -51,11 +51,18 @@ The **모니터** template prioritizes native Grafana system CPU and DB status c
 
 Jimin OS 서버 로그인 정보는 Open Deck과 태블릿에 전달하지 않습니다. 이 연결은 Jimin OS 전용 확장으로, Macro Deck 플러그인 호환 어댑터와 별개입니다. [연동 프로토콜](docs/jimin-os.md)을 참고하세요.
 
-## Vorssaint · Mac 도구
+## Mac 도구 · 직접 제어
 
-[Vorssaint](https://github.com/vorssaint/vorssaint-utils/releases/tag/v3.4.2) 3.4.2를 맥의 `/Applications/Vorssaint.app`에 설치한 뒤, 맥 편집기 **변수 · 연동 → Vorssaint → ＋ Vorssaint**을 선택하세요. Vorssaint은 macOS 14 이상이 필요하며 Open Deck 설치 파일에는 포함되지 않습니다.
+맥 편집기 **변수 · 연동 → Vorssaint → ＋ Vorssaint**에서 **Mac 도구** 페이지를 추가합니다. 태블릿의 팬 카드에는 실제 현재·목표 RPM이 표시되고, 카드를 누르면 시스템 자동·수동 속도·온도 곡선을 적용할 수 있습니다.
 
-태블릿의 **Mac 도구** 페이지에서 9개 분류의 기능 표시와 주요 옵션을 설정하고, 30분 잠자기 방지를 시작하거나 중지할 수 있습니다. 선택한 값은 **저장하고 적용**을 눌렀을 때 함께 반영되며 Vorssaint만 다시 시작합니다. 앱별 음량, 대상 앱·장치 목록 등 상세 기능은 **Mac에서 상세 설정**으로 엽니다. [지원 범위와 설정 방법](docs/vorssaint.md)을 참고하세요.
+- 팬: 하드웨어 최저~최고 범위에서 속도를 조절하고 CPU·GPU·칩 온도에 따른 곡선을 적용합니다. 최초 한 번 Mac의 관리자 확인으로 팬 제어 모듈을 설치해야 합니다.
+- 밝기: 지원되는 디스플레이의 밝기를 슬라이더를 놓는 즉시 변경합니다.
+- 오디오: Mac의 출력·입력 장치, 음량, 음소거를 바로 변경합니다.
+- 잠자기 방지: 15·30·60분 또는 계속 켜 두기를 시작하고 중지합니다.
+
+팬 속도·곡선 프리셋은 저장됩니다. Mac 제어 프로세스가 종료되거나 제어 신호가 끊기면 팬은 시스템 자동으로 복귀합니다. 다른 앱의 팬 제어는 덮어쓰지 않습니다. [지원 범위·관리자 설정·제어 방식](docs/vorssaint.md)을 참고하세요.
+
+**세부 환경설정**에는 [Vorssaint 3.4.2](https://github.com/vorssaint/vorssaint-utils/releases/tag/v3.4.2)의 9개 분류가 있습니다. 이 항목은 별도로 설치한 `/Applications/Vorssaint.app`의 기능 표시와 옵션을 편집하며, 저장할 때 Vorssaint을 다시 시작합니다. Vorssaint은 macOS 14 이상이 필요합니다.
 
 ## 빠른 시작
 
@@ -141,4 +148,4 @@ Touch Portal and Macro Deck are separate products and are not modified by Open D
 
 ## Licensing
 
-Open Deck code: [MIT](LICENSE). The bundled Android font is Google's Noto Sans KR under [SIL OFL 1.1](assets/fonts/NotoSansKR-OFL.txt). The macOS app bundles Node.js with its distribution license and third-party notices. The `ws` dependency is MIT licensed and its license is bundled with the desktop app. Public Macro Deck protocol descriptor metadata is attributed under [Apache 2.0](docs/licenses/MacroDeck-Protocol-LICENSE) with [notice](docs/licenses/MacroDeck-Protocol-NOTICE). Gradle wrapper files retain their upstream license. No original product trademarks or icons are included.
+Open Deck host, editor and Android code: [MIT](LICENSE). The independent Mac control client and privileged fan daemon are [GPL-3.0-or-later](macos/mac-controls/COPYING), with [component notice and source](macos/mac-controls/NOTICE.md). Complete corresponding source and build instructions for these executables are included in the macOS download under `Contents/Resources/MacControls-Source/`. The bundled Android font is Google's Noto Sans KR under [SIL OFL 1.1](assets/fonts/NotoSansKR-OFL.txt). The macOS app bundles Node.js with its distribution license and third-party notices. The `ws` dependency is MIT licensed and its license is bundled with the desktop app. Public Macro Deck protocol descriptor metadata is attributed under [Apache 2.0](docs/licenses/MacroDeck-Protocol-LICENSE) with [notice](docs/licenses/MacroDeck-Protocol-NOTICE). Gradle wrapper files retain their upstream license. No original product trademarks or icons are included.

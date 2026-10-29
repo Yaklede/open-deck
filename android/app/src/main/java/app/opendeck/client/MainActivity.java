@@ -3505,7 +3505,7 @@ public class MainActivity extends Activity {
     HttpURLConnection c =
         PinnedConnection.open(base + route, wifiPin, settingBool("allowInsecureWifi"));
     c.setConnectTimeout(2200);
-    c.setReadTimeout(route.startsWith("/api/extensions/vorssaint/settings") ? 45000 : 12000);
+    c.setReadTimeout(route.startsWith("/api/extensions/vorssaint/") ? 45000 : 12000);
     c.setRequestMethod(method);
     if (pairedToken != null) c.setRequestProperty("Authorization", "Bearer " + pairedToken);
     if (body != null) {
@@ -4604,33 +4604,50 @@ public class MainActivity extends Activity {
 
   private boolean utilityButton(JSONObject widget) {
     if (!widget.optString("provider").equals("vorssaint")
-        || widget.optString("utilityGroup").isEmpty()) return false;
+        || widget.optString("utilityGroup").isEmpty()
+            && widget.optString("utilityControl").isEmpty()) return false;
     long generation = pairingGeneration;
     String pairedToken = token;
-    new UtilitySettings(
-            this,
-            ui,
-            commands,
-            new UtilitySettings.Host() {
-              public JSONObject request(String route, String method, JSONObject body)
-                  throws Exception {
-                if (!current()) throw new IOException("CONNECTION_CHANGED");
-                return requestWithToken(route, method, body, pairedToken);
-              }
+    UtilitySettings.Host controlHost =
+        new UtilitySettings.Host() {
+          public JSONObject request(String route, String method, JSONObject body) throws Exception {
+            if (!current()) throw new IOException("CONNECTION_CHANGED");
+            return requestWithToken(route, method, body, pairedToken);
+          }
 
-              public boolean current() {
-                return generation == pairingGeneration
-                    && pairedToken != null
-                    && pairedToken.equals(token)
-                    && streamFresh();
-              }
-            },
-            settingString("theme"),
-            settingString("language").equals("system")
-                ? java.util.Locale.getDefault().getLanguage()
-                : settingString("language"),
-            widget.optString("id"))
-        .open();
+          public boolean current() {
+            return generation == pairingGeneration
+                && pairedToken != null
+                && pairedToken.equals(token)
+                && streamFresh();
+          }
+        };
+    String language =
+        settingString("language").equals("system")
+            ? java.util.Locale.getDefault().getLanguage()
+            : settingString("language");
+    if (!widget.optString("utilityControl").isEmpty()
+        && !widget.optString("utilityControl").equals("preferences"))
+      new MacControlsPanel(
+              this,
+              ui,
+              commands,
+              controlHost,
+              settingString("theme"),
+              language,
+              widget.optString("id"))
+          .open();
+    else
+      new UtilitySettings(
+              this,
+              ui,
+              commands,
+              controlHost,
+              settingString("theme"),
+              language,
+              widget.optString("id"),
+              widget.optString("utilityControl").equals("preferences") ? "all" : null)
+          .open();
     return true;
   }
 
@@ -7513,14 +7530,14 @@ public class MainActivity extends Activity {
             24,
             color("#d8e4ef"),
             Paint.Align.LEFT);
+        JSONObject runtime = provider == null ? null : provider.optJSONObject("runtime");
         String status =
-            provider == null
-                ? "Vorssaint"
-                : provider.optString("appVersion")
-                    + " · "
-                    + (provider.optString("status").equals("connected")
-                        ? L10n.text("연결됨")
-                        : provider.optString("status"));
+            "Mac · "
+                + (runtime != null
+                        && runtime.optBoolean("available")
+                        && !runtime.optBoolean("stale")
+                    ? L10n.text("연결됨")
+                    : L10n.text("연결 대기"));
         label(
             c,
             status,
@@ -7529,6 +7546,10 @@ public class MainActivity extends Activity {
             12,
             color("#8daac8"),
             Paint.Align.RIGHT);
+        return;
+      }
+      if (type.equals("button") && style.optString("presentation").equals("mac-control")) {
+        drawMacControl(c, w, r, accent);
         return;
       }
       if (type.equals("button") && style.optString("presentation").equals("utility")) {
@@ -7969,6 +7990,125 @@ public class MainActivity extends Activity {
         c.drawText(fitting, x, y, paint);
         y += lineHeight;
       }
+    }
+
+    String macControlText(JSONObject provider, String key) {
+      JSONObject all = provider == null ? null : provider.optJSONObject("controlText");
+      String lang = settingString("language");
+      boolean korean =
+          lang.equals("ko")
+              || lang.equals("system") && Locale.getDefault().getLanguage().equals("ko");
+      JSONObject copy = all == null ? null : all.optJSONObject(korean ? "ko" : "en");
+      return copy == null ? key : copy.optString(key, key);
+    }
+
+    void drawMacControl(Canvas c, JSONObject widget, RectF r, int accent) {
+      JSONObject providers = state.optJSONObject("extensions"),
+          provider = providers == null ? null : providers.optJSONObject("vorssaint"),
+          runtime = provider == null ? null : provider.optJSONObject("runtime");
+      String control = widget.optString("utilityControl");
+      int ink = color("#e0ebf4"), muted = color("#90a7bb");
+      drawIcon(c, widget.optString("icon"), r.left + dp(28), r.top + dp(29), dp(21), accent);
+      RectF heading = new RectF(r.left + dp(50), r.top, r.right - dp(25), r.bottom);
+      monitorText(c, widget.optString("label"), heading, r.top + dp(35), 17, ink);
+      boolean fresh =
+          runtime != null && runtime.optBoolean("available") && !runtime.optBoolean("stale");
+      if (control.equals("fan")) {
+        JSONObject fan = runtime == null ? null : runtime.optJSONObject("fan");
+        JSONArray fans = fan == null ? null : fan.optJSONArray("fans");
+        int count = fans == null ? 0 : Math.min(fans.length(), 4);
+        if (count == 0)
+          monitorText(c, macControlText(provider, "noFans"), r, r.centerY() + dp(12), 24, muted);
+        for (int i = 0; i < count; i++) {
+          JSONObject f = fans.optJSONObject(i);
+          float x = r.left + (i + .5f) * r.width() / count;
+          label(c, "FAN " + (i + 1), x, r.top + dp(68), 12, muted, Paint.Align.CENTER);
+          label(
+              c,
+              String.valueOf(Math.round(f.optDouble("actualRPM"))),
+              x,
+              r.top + dp(117),
+              42,
+              fresh ? ink : muted,
+              Paint.Align.CENTER);
+          label(c, "RPM", x, r.top + dp(140), 11, muted, Paint.Align.CENTER);
+          label(
+              c,
+              macControlText(provider, "target")
+                  + " "
+                  + Math.round(f.optDouble("targetRPM"))
+                  + " RPM",
+              x,
+              r.top + dp(165),
+              12,
+              muted,
+              Paint.Align.CENTER);
+        }
+        String mode = fan == null ? "system" : fan.optString("mode", "system");
+        String status =
+            macControlText(provider, mode)
+                + (fan != null && fan.has("level") ? " · " + fan.optInt("level") + "%" : "");
+        label(c, status, r.right - dp(20), r.top + dp(34), 12, accent, Paint.Align.RIGHT);
+        String hint =
+            !fresh
+                ? L10n.text("이전 데이터")
+                : fan != null && !fan.optBoolean("controllable")
+                    ? macControlText(provider, mode.equals("external") ? "external" : "authorize")
+                    : macControlText(provider, "updated")
+                        + " "
+                        + new java.text.SimpleDateFormat("HH:mm:ss", Locale.getDefault())
+                            .format(new Date(runtime.optLong("at")));
+        label(c, hint, r.left + dp(20), r.bottom - dp(17), 12, muted, Paint.Align.LEFT);
+        label(c, "›", r.right - dp(19), r.bottom - dp(16), 24, muted, Paint.Align.RIGHT);
+        return;
+      }
+      String value = "—", detail = "";
+      if (control.equals("display")) {
+        JSONArray displays = runtime == null ? null : runtime.optJSONArray("displays");
+        JSONObject display = displays == null ? null : displays.optJSONObject(0);
+        if (display != null) {
+          value = display.optInt("brightness") + "%";
+          detail = display.optString("name");
+        }
+      } else if (control.equals("audio")) {
+        JSONObject audio = runtime == null ? null : runtime.optJSONObject("audio");
+        JSONArray devices = audio == null ? null : audio.optJSONArray("devices");
+        for (int i = 0; devices != null && i < devices.length(); i++) {
+          JSONObject d = devices.optJSONObject(i);
+          if (d.optInt("id") == audio.optInt("outputId")) {
+            value =
+                d.optBoolean("outputMuted")
+                    ? macControlText(provider, "mute")
+                    : d.has("outputVolume") ? d.optInt("outputVolume") + "%" : "—";
+            detail = d.optString("name");
+            break;
+          }
+        }
+      } else if (control.equals("awake")) {
+        JSONObject awake = runtime == null ? null : runtime.optJSONObject("awake");
+        value =
+            macControlText(
+                provider, awake != null && awake.optBoolean("active") ? "active" : "stopped");
+        if (awake != null && awake.has("until"))
+          detail =
+              macControlText(provider, "until")
+                  + " "
+                  + new java.text.SimpleDateFormat("HH:mm", Locale.getDefault())
+                      .format(new Date(awake.optLong("until")));
+      } else if (control.equals("preferences")) {
+        value = macControlText(provider, "categoriesCount");
+        detail = macControlText(provider, "preferencesHint");
+      }
+      RectF body = new RectF(r.left + dp(20), r.top, r.right - dp(30), r.bottom);
+      monitorText(
+          c,
+          value,
+          body,
+          r.centerY() + dp(19),
+          28,
+          fresh || control.equals("preferences") ? ink : muted);
+      monitorText(c, detail, body, r.bottom - dp(18), 11, muted);
+      label(c, "›", r.right - dp(19), r.bottom - dp(16), 24, muted, Paint.Align.RIGHT);
     }
 
     void drawOSAction(Canvas c, JSONObject widget, RectF r, JSONObject style) {

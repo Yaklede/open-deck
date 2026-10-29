@@ -25,6 +25,7 @@ import {
 } from "./profile-tools.mjs";
 import { migrate, place, overlaps, themes } from "./layout.mjs";
 import { showVorssaintSettings } from "./vorssaint-ui.mjs";
+import { showMacControls } from "./mac-controls-ui.mjs";
 import { monitorPage } from "./monitor-layout.mjs";
 import { monitorSettings, monitorRuleNames } from "./monitor-rules.mjs";
 import { createMonitorInbox } from "./monitor-inbox.mjs";
@@ -1105,9 +1106,21 @@ function inspect() {
       min: 1,
       max,
     });
+  if (
+    w.provider === "vorssaint" &&
+    w.utilityControl &&
+    w.utilityControl !== "preferences"
+  )
+    button(box, w.label, () =>
+      showMacControls(api, w.id).catch((e) => notice(e.message, true)),
+    );
   if (w.provider === "vorssaint" && w.utilityGroup)
     button(box, "Vorssaint", () =>
-      showVorssaintSettings(api, w.id).catch((e) => notice(e.message, true)),
+      showVorssaintSettings(
+        api,
+        w.id,
+        w.utilityControl === "preferences" ? "all" : undefined,
+      ).catch((e) => notice(e.message, true)),
     );
   if (["button", "page"].includes(w.type))
     field(
@@ -2065,9 +2078,18 @@ function renderPlugins() {
   });
   for (const w of (config?.pages || [])
     .flatMap((p) => p.widgets)
-    .filter((w) => w.provider === "vorssaint" && w.utilityGroup))
+    .filter(
+      (w) => w.provider === "vorssaint" && (w.utilityGroup || w.utilityControl),
+    ))
     button(utilities, w.label, () =>
-      showVorssaintSettings(api, w.id).catch((e) => notice(e.message, true)),
+      (w.utilityControl && w.utilityControl !== "preferences"
+        ? showMacControls(api, w.id)
+        : showVorssaintSettings(
+            api,
+            w.id,
+            w.utilityControl === "preferences" ? "all" : undefined,
+          )
+      ).catch((e) => notice(e.message, true)),
     );
   box.append(utilities);
 

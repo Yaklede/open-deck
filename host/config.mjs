@@ -1,4 +1,7 @@
-import { catalog as vorssaintCatalog } from "./extensions/vorssaint/index.mjs";
+import {
+  catalog as vorssaintCatalog,
+  upgradeVorssaintPage,
+} from "./extensions/vorssaint/index.mjs";
 import { effectivePages, profileDesignKeys } from "./public/profiles.mjs";
 import fs from "node:fs";
 import { validateMonitorSettings } from "./public/monitor-rules.mjs";
@@ -106,7 +109,7 @@ const plain = (v) =>
   !Array.isArray(v) &&
   Object.getPrototypeOf(v) === Object.prototype;
 export function validateConfig(input) {
-  const c = migrate(input);
+  const c = upgradeVorssaintPage(migrate(input));
   delete c.assets;
   if (!Array.isArray(c.pages) || !c.pages.length || c.pages.length > 40)
     throw Error("1~40개의 페이지가 필요합니다.");
@@ -400,6 +403,15 @@ export function validateConfig(input) {
           !vorssaintCatalog.groups.some((g) => g.id === w.utilityGroup))
       )
         throw Error("Invalid Vorssaint group");
+      if (
+        w.utilityControl !== undefined &&
+        (w.type !== "button" ||
+          w.provider !== "vorssaint" ||
+          !["fan", "display", "audio", "awake", "preferences"].includes(
+            w.utilityControl,
+          ))
+      )
+        throw Error("Invalid Mac control");
       if (w.image && !/^[a-f0-9]{64}$/.test(w.image))
         throw Error("이미지를 확인하세요.");
       if (
@@ -590,6 +602,18 @@ export function loadConfig(dir = dataDir) {
   const config = validateConfig(raw);
   if (raw.version === 1) {
     const backup = path.join(dir, "deck-before-v2.json");
+    if (!fs.existsSync(backup)) writeJson(backup, raw);
+    writeJson(file, config);
+  }
+  const previousUtility = raw.pages?.find((p) => p.id === "vorssaint-page");
+  if (
+    previousUtility &&
+    !previousUtility.widgets?.some((w) => w.utilityControl) &&
+    config.pages
+      .find((p) => p.id === "vorssaint-page")
+      ?.widgets.some((w) => w.utilityControl)
+  ) {
+    const backup = path.join(dir, "deck-before-mac-controls.json");
     if (!fs.existsSync(backup)) writeJson(backup, raw);
     writeJson(file, config);
   }

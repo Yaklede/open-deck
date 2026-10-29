@@ -14,7 +14,8 @@
     "connect": "Vorssaint 연결 · 페이지 추가",
     "applying": "Vorssaint 설정을 적용하는 중…",
     "availableOn": "Vorssaint에 표시됨",
-    "availableOff": "Vorssaint에서 숨김"
+    "availableOff": "Vorssaint에서 숨김",
+    "categories": "설정 분류"
   },
   "en": {
     "description": "Choose features and options, then save. Applying restarts Vorssaint only; your Mac and other apps keep running.",
@@ -31,6 +32,7 @@
     "connect": "Connect Vorssaint and add its page",
     "applying": "Applying Vorssaint settings…",
     "availableOn": "Shown in Vorssaint",
-    "availableOff": "Hidden in Vorssaint"
+    "availableOff": "Hidden in Vorssaint",
+    "categories": "Setting categories"
   }
 }
