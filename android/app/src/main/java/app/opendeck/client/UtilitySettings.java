@@ -364,6 +364,9 @@ final class UtilitySettings {
 
   private void save(Map<String, Object> patch) {
     if (!current() || patch.isEmpty() || saving) return;
+    // The form's action dismisses it before this callback. Its delayed dismiss
+    // must not end the session while the save/progress window is still active.
+    currentPanel = null;
     saving = true;
     progress =
         new AlertDialog.Builder(L10n.context(activity))
