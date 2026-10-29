@@ -6422,6 +6422,10 @@ public class MainActivity extends Activity {
       public void onInitializeAccessibilityNodeInfo(
           android.view.accessibility.AccessibilityNodeInfo info) {
         super.onInitializeAccessibilityNodeInfo(info);
+        if (type.equals("grafana"))
+          info.addAction(
+              new android.view.accessibility.AccessibilityNodeInfo.AccessibilityAction(
+                  0x01030001, L10n.text("알림함")));
         if (widget.optString("utilityControl").equals("fan")) {
           info.addAction(
               new android.view.accessibility.AccessibilityNodeInfo.AccessibilityAction(
@@ -6445,6 +6449,10 @@ public class MainActivity extends Activity {
 
       @Override
       public boolean performAccessibilityAction(int action, Bundle arguments) {
+        if (action == 0x01030001 && type.equals("grafana")) {
+          monitorInbox(widget);
+          return true;
+        }
         if (widget.optString("utilityControl").equals("fan")
             && (action == FAN_AUTOMATIC || action == FAN_MAXIMUM)) {
           quickFan(widget, action == FAN_MAXIMUM);
@@ -6543,25 +6551,6 @@ public class MainActivity extends Activity {
       protected void onSizeChanged(int w, int h, int oldW, int oldH) {
         bounds.set(0, 0, w, h);
         invalidateOutline();
-      }
-
-      @Override
-      public void onInitializeAccessibilityNodeInfo(
-          android.view.accessibility.AccessibilityNodeInfo info) {
-        super.onInitializeAccessibilityNodeInfo(info);
-        if (type.equals("grafana"))
-          info.addAction(
-              new android.view.accessibility.AccessibilityNodeInfo.AccessibilityAction(
-                  0x01030001, L10n.text("알림함")));
-      }
-
-      @Override
-      public boolean performAccessibilityAction(int action, Bundle arguments) {
-        if (action == 0x01030001 && type.equals("grafana")) {
-          monitorInbox(widget);
-          return true;
-        }
-        return super.performAccessibilityAction(action, arguments);
       }
 
       @Override
