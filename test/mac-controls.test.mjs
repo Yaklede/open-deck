@@ -247,6 +247,23 @@ test("read requests coalesce and simultaneous mutations fail instead of accumula
   assert.equal(f.requests.at(-1).deadline, 105000);
 });
 
+test("opening a control reuses the live sample without advancing its timestamp or queuing another hardware read", async (t) => {
+  const f = nativeFixture(t);
+  await f.controls.read();
+  f.clock(102500);
+  const cached = await f.controls.read();
+  assert.equal(cached.at, 100000);
+  assert.equal(f.requests.length, 1);
+  f.clock(102501);
+  assert.equal((await f.controls.read()).at, 102501);
+  assert.equal(f.requests.length, 2);
+  f.child().emit("exit", 1);
+  const disconnected = await f.controls.read();
+  assert.equal(disconnected.at, 102501);
+  assert.equal(disconnected.stale, true);
+  assert.equal(disconnected.available, false);
+});
+
 test("a preset disk failure reports live control separately and a later save recovers", async (t) => {
   const f = nativeFixture(t);
   fs.mkdirSync(path.join(f.dir, "mac-control-presets.json.tmp"));

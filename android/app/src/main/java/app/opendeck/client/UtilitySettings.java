@@ -28,6 +28,11 @@ final class UtilitySettings {
   private final boolean categoryMenu;
   private JSONObject model;
   private JSONObject copy = new JSONObject();
+  private final Runnable onClosed;
+  private boolean closed, reading, saving;
+  private long revision;
+  private ClientSettingsPanel currentPanel;
+  private AlertDialog loading, progress;
 
   UtilitySettings(
       Activity activity,
@@ -37,7 +42,8 @@ final class UtilitySettings {
       String theme,
       String language,
       String widgetId,
-      String selectedGroup) {
+      String selectedGroup,
+      Runnable onClosed) {
     this.activity = activity;
     this.ui = ui;
     this.executor = executor;
@@ -47,10 +53,35 @@ final class UtilitySettings {
     this.widgetId = widgetId;
     this.selectedGroup = selectedGroup;
     this.categoryMenu = "all".equals(selectedGroup);
+    this.onClosed = onClosed;
   }
 
   private boolean current() {
-    return !activity.isFinishing() && !activity.isDestroyed() && host.current();
+    return !closed && !activity.isFinishing() && !activity.isDestroyed() && host.current();
+  }
+
+  void close() {
+    if (closed) return;
+    closed = true;
+    revision++;
+    if (loading != null) loading.dismiss();
+    if (progress != null) progress.dismiss();
+    if (currentPanel != null) currentPanel.dismiss();
+    onClosed.run();
+  }
+
+  private void show(ClientSettingsPanel next) {
+    AlertDialog previousLoading = loading;
+    loading = null;
+    ClientSettingsPanel previousPanel = currentPanel;
+    currentPanel = next;
+    if (previousLoading != null) previousLoading.dismiss();
+    if (previousPanel != null) previousPanel.dismiss();
+    next.onClosed(
+            () -> {
+              if (currentPanel == next) close();
+            })
+        .show();
   }
 
   private String label(JSONObject value) {
@@ -63,22 +94,52 @@ final class UtilitySettings {
     return copy.optString(key, key);
   }
 
+  private void execute(Runnable work) {
+    try {
+      executor.execute(work);
+    } catch (java.util.concurrent.RejectedExecutionException busy) {
+      reading = saving = false;
+      if (progress != null) progress.dismiss();
+      if (current()) error(busy);
+    }
+  }
+
   void open() {
-    executor.execute(
+    if (closed || reading || saving) return;
+    reading = true;
+    long ticket = ++revision;
+    String group = selectedGroup;
+    if (currentPanel != null) {
+      ClientSettingsPanel previous = currentPanel;
+      currentPanel = null;
+      previous.dismiss();
+    }
+    loading =
+        new AlertDialog.Builder(L10n.context(activity))
+            .setTitle("Vorssaint")
+            .setMessage(L10n.text("불러오는 중"))
+            .setNegativeButton(L10n.text("닫기"), null)
+            .create();
+    AlertDialog shown = loading;
+    shown.setOnDismissListener(
+        d -> {
+          if (loading == shown) close();
+        });
+    loading.show();
+    execute(
         () -> {
           try {
             JSONObject response =
                 host.request(
                     "/api/extensions/vorssaint/settings?widgetId="
                         + URLEncoder.encode(widgetId, "UTF-8")
-                        + (selectedGroup == null
-                            ? ""
-                            : "&group=" + URLEncoder.encode(selectedGroup, "UTF-8")),
+                        + (group == null ? "" : "&group=" + URLEncoder.encode(group, "UTF-8")),
                     "GET",
                     null);
             ui.post(
                 () -> {
-                  if (!current()) return;
+                  reading = false;
+                  if (!current() || ticket != revision) return;
                   model = response;
                   JSONObject all = response.optJSONObject("copy");
                   copy =
@@ -91,7 +152,8 @@ final class UtilitySettings {
           } catch (Exception e) {
             ui.post(
                 () -> {
-                  if (current()) error(e);
+                  reading = false;
+                  if (current() && ticket == revision) error(e);
                 });
           }
         });
@@ -131,7 +193,7 @@ final class UtilitySettings {
               open();
             });
       }
-      categories.show();
+      show(categories);
       return;
     }
     ClientSettingsPanel panel =
@@ -167,7 +229,7 @@ final class UtilitySettings {
             selectedGroup = "all";
             open();
           });
-    panel.show();
+    show(panel);
   }
 
   private String choiceLabel(JSONObject field, Object value) {
@@ -228,18 +290,19 @@ final class UtilitySettings {
     }
     panel.action(text("apply"), "", () -> save(patch));
     panel.action(label(model.optJSONObject("group").optJSONObject("label")), "", this::groups);
-    panel.show();
+    show(panel);
   }
 
   private void save(Map<String, Object> patch) {
-    if (!current() || patch.isEmpty()) return;
-    AlertDialog progress =
+    if (!current() || patch.isEmpty() || saving) return;
+    saving = true;
+    progress =
         new AlertDialog.Builder(L10n.context(activity))
             .setTitle("Vorssaint")
             .setMessage(text("applying"))
             .setCancelable(false)
             .show();
-    executor.execute(
+    execute(
         () -> {
           try {
             JSONObject request =
@@ -253,6 +316,7 @@ final class UtilitySettings {
             ui.post(
                 () -> {
                   progress.dismiss();
+                  saving = false;
                   if (!current()) return;
                   Toast.makeText(
                           activity,
@@ -268,6 +332,7 @@ final class UtilitySettings {
             ui.post(
                 () -> {
                   progress.dismiss();
+                  saving = false;
                   if (current()) error(e);
                 });
           }
@@ -276,10 +341,8 @@ final class UtilitySettings {
 
   private void error(Exception error) {
     String message = String.valueOf(error.getMessage());
-    new AlertDialog.Builder(L10n.context(activity))
-        .setTitle("Vorssaint")
-        .setMessage(text(message.contains("CONFLICT") ? "conflict" : "unavailable"))
-        .setPositiveButton(L10n.text("확인"), null)
-        .show();
+    String detail = text(message.contains("CONFLICT") ? "conflict" : "unavailable");
+    if (currentPanel != null) Toast.makeText(activity, detail, Toast.LENGTH_LONG).show();
+    else show(panel("Vorssaint", detail, new HashMap<>(), new HashMap<>()));
   }
 }

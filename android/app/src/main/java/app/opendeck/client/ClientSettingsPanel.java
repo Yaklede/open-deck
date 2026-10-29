@@ -82,6 +82,17 @@ final class ClientSettingsPanel {
   private final String theme;
   private Runnable reopen;
   private boolean reopening;
+  private Runnable onClosed;
+
+  ClientSettingsPanel onClosed(Runnable action) {
+    onClosed = action;
+    return this;
+  }
+
+  void dismiss() {
+    for (AlertDialog child : childDialogs) child.dismiss();
+    dialog.dismiss();
+  }
 
   ClientSettingsPanel onThemeChanged(Runnable reopen) {
     this.reopen = reopen;
@@ -420,6 +431,7 @@ final class ClientSettingsPanel {
         d -> {
           openDialogs.remove(dialog);
           openPanels.remove(this);
+          if (onClosed != null) onClosed.run();
         });
     if (dialog.getWindow() != null) {
       int width =

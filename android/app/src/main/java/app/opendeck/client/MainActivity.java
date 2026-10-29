@@ -30,6 +30,13 @@ public class MainActivity extends Activity {
   private final Handler ui = new Handler(Looper.getMainLooper());
   private final ExecutorService commands =
       new ThreadPoolExecutor(0, 4, 15, TimeUnit.SECONDS, new SynchronousQueue<>());
+  private final ExecutorService controlRequests =
+      new ThreadPoolExecutor(2, 2, 15, TimeUnit.SECONDS, new ArrayBlockingQueue<>(2));
+  private final PanelSession utilitySession = new PanelSession();
+  private MacControlsPanel macControlsPanel;
+  private UtilitySettings utilitySettingsPanel;
+  private JSONObject macControlCopy;
+  private String fanQuickOperation = "";
   private final Map<String, Long> pending = new HashMap<>();
   private final Map<String, Integer> colors = new HashMap<>();
   private long serverTime = 0, receivedAt = 0, lastReconnectAt = -5000;
@@ -203,6 +210,7 @@ public class MainActivity extends Activity {
   @Override
   public void onPause() {
     foreground = false;
+    closeUtilityPanels();
     stopHostDiscovery();
     ui.removeCallbacks(cornerSettings);
     setIdleDimmed(false);
@@ -3325,12 +3333,14 @@ public class MainActivity extends Activity {
 
   @Override
   public void onDestroy() {
+    closeUtilityPanels();
     pairingGeneration++;
     stopped = true;
     connected = false;
     disconnectEvents();
     if (events != null) events.interrupt();
     commands.shutdownNow();
+    controlRequests.shutdownNow();
     stopHostDiscovery();
     discoveryRequests.shutdownNow();
     streamDeadlines.shutdownNow();
@@ -3505,7 +3515,10 @@ public class MainActivity extends Activity {
     HttpURLConnection c =
         PinnedConnection.open(base + route, wifiPin, settingBool("allowInsecureWifi"));
     c.setConnectTimeout(2200);
-    c.setReadTimeout(route.startsWith("/api/extensions/vorssaint/") ? 45000 : 12000);
+    c.setReadTimeout(
+        route.startsWith("/api/extensions/vorssaint/")
+            ? method.equals("GET") ? 4500 : route.endsWith("/control") ? 15000 : 45000
+            : 12000);
     c.setRequestMethod(method);
     if (pairedToken != null) c.setRequestProperty("Authorization", "Bearer " + pairedToken);
     if (body != null) {
@@ -3721,6 +3734,7 @@ public class MainActivity extends Activity {
                     config = cfg;
                     cacheNavigationCatalog(cfg);
                   }
+                  if (changed) renderedConfig = configJson;
                   receiveDeviceSettings(snapshot.optJSONObject("device"));
                   if (cfg != null && firstConfig) {
                     firstConfig = false;
@@ -4340,6 +4354,7 @@ public class MainActivity extends Activity {
     requestedNavigationPage = "";
     navigationProfileRequested = false;
     if (id.equals(pageId)) return;
+    closeUtilityPanels();
     int current = 0;
     for (int i = 0; i < pages.length(); i++)
       if (pages.optJSONObject(i).optString("id").equals(pageId)) current = i;
@@ -4606,6 +4621,8 @@ public class MainActivity extends Activity {
     if (!widget.optString("provider").equals("vorssaint")
         || widget.optString("utilityGroup").isEmpty()
             && widget.optString("utilityControl").isEmpty()) return false;
+    long ticket = utilitySession.begin();
+    if (ticket == 0) return true;
     long generation = pairingGeneration;
     String pairedToken = token;
     UtilitySettings.Host controlHost =
@@ -4616,7 +4633,9 @@ public class MainActivity extends Activity {
           }
 
           public boolean current() {
-            return generation == pairingGeneration
+            return utilitySession.current(ticket)
+                && foreground
+                && generation == pairingGeneration
                 && pairedToken != null
                 && pairedToken.equals(token)
                 && streamFresh();
@@ -4628,27 +4647,119 @@ public class MainActivity extends Activity {
             : settingString("language");
     if (!widget.optString("utilityControl").isEmpty()
         && !widget.optString("utilityControl").equals("preferences"))
-      new MacControlsPanel(
+      macControlsPanel =
+          new MacControlsPanel(
               this,
               ui,
-              commands,
-              controlHost,
-              settingString("theme"),
-              language,
-              widget.optString("id"))
-          .open();
-    else
-      new UtilitySettings(
-              this,
-              ui,
-              commands,
+              controlRequests,
               controlHost,
               settingString("theme"),
               language,
               widget.optString("id"),
-              widget.optString("utilityControl").equals("preferences") ? "all" : null)
-          .open();
+              widget.optString("utilityControl"),
+              widget.optString("label"),
+              macRuntime(),
+              macControlCopy == null ? macProvider().optJSONObject("controlText") : macControlCopy,
+              macControlCopy != null,
+              result -> macControlCopy = result.optJSONObject("copy"),
+              () -> utilitySession.end(ticket));
+    else
+      utilitySettingsPanel =
+          new UtilitySettings(
+              this,
+              ui,
+              controlRequests,
+              controlHost,
+              settingString("theme"),
+              language,
+              widget.optString("id"),
+              widget.optString("utilityControl").equals("preferences") ? "all" : null,
+              () -> utilitySession.end(ticket));
+    if (widget.optString("utilityControl").equals("preferences")
+        || widget.optString("utilityControl").isEmpty()) utilitySettingsPanel.open();
+    else macControlsPanel.open();
     return true;
+  }
+
+  private void closeUtilityPanels() {
+    if (macControlsPanel != null) macControlsPanel.close();
+    if (utilitySettingsPanel != null) utilitySettingsPanel.close();
+  }
+
+  private JSONObject macProvider() {
+    JSONObject providers = state.optJSONObject("extensions");
+    JSONObject provider = providers == null ? null : providers.optJSONObject("vorssaint");
+    return provider == null ? new JSONObject() : provider;
+  }
+
+  private JSONObject macRuntime() {
+    JSONObject runtime = macProvider().optJSONObject("runtime");
+    return runtime == null ? new JSONObject() : runtime;
+  }
+
+  private void quickFan(JSONObject widget, boolean maximum) {
+    JSONObject runtime = macRuntime(), fan = runtime.optJSONObject("fan");
+    if (!fanQuickOperation.isEmpty() || runtime.optBoolean("applying")) return;
+    if (!streamFresh()
+        || !runtime.optBoolean("available")
+        || runtime.optBoolean("stale")
+        || fan == null
+        || !fan.optBoolean("controllable")) {
+      Toast.makeText(this, L10n.text("맥 연결을 기다리는 중입니다."), Toast.LENGTH_SHORT).show();
+      return;
+    }
+    fanQuickOperation = maximum ? "fan.manual" : "fan.system";
+    String operation = fanQuickOperation, pairedToken = token;
+    long generation = pairingGeneration;
+    deck.refresh(widget.optString("id"));
+    touchFeedback(HapticFeedbackConstants.KEYBOARD_TAP);
+    try {
+      controlRequests.execute(
+          () -> {
+            try {
+              JSONObject parameters = new JSONObject();
+              if (maximum) parameters.put("level", 100);
+              JSONObject response =
+                  requestWithToken(
+                      "/api/extensions/vorssaint/control",
+                      "POST",
+                      new JSONObject()
+                          .put("widgetId", widget.optString("id"))
+                          .put("operation", operation)
+                          .put("parameters", parameters),
+                      pairedToken);
+              ui.post(
+                  () -> {
+                    if (generation != pairingGeneration || !pairedToken.equals(token)) return;
+                    fanQuickOperation = "";
+                    JSONObject value = response.optJSONObject("state");
+                    if (value != null && value.optLong("at") >= macRuntime().optLong("at")) {
+                      try {
+                        macProvider().put("runtime", value);
+                      } catch (JSONException ignored) {
+                      }
+                    }
+                    if (deck != null) {
+                      deck.renderSignatures.remove("utility");
+                      deck.refresh(widget.optString("id"));
+                    }
+                  });
+            } catch (Exception error) {
+              ui.post(
+                  () -> {
+                    if (generation != pairingGeneration || !pairedToken.equals(token)) return;
+                    fanQuickOperation = "";
+                    Toast.makeText(
+                            this, deck.macControlText(macProvider(), "failed"), Toast.LENGTH_LONG)
+                        .show();
+                    if (deck != null) deck.refresh(widget.optString("id"));
+                  });
+            }
+          });
+    } catch (RejectedExecutionException busy) {
+      fanQuickOperation = "";
+      deck.refresh(widget.optString("id"));
+    }
   }
 
   private String lastButtonId = "";
@@ -4816,6 +4927,9 @@ public class MainActivity extends Activity {
   }
 
   private void resetDeviceIdentity() {
+    closeUtilityPanels();
+    macControlCopy = null;
+    fanQuickOperation = "";
     stopHostDiscovery();
     recoveryPolicy.connected();
     recoveryAppliedAttempt = 0;
@@ -5566,6 +5680,8 @@ public class MainActivity extends Activity {
     final Map<String, Tile> cachedTiles = new HashMap<>();
     final Map<String, JSONObject> activeWidgets = new HashMap<>();
     String cachedConfig = "";
+    JSONObject signatureState;
+    final Map<String, String> renderSignatures = new HashMap<>();
     JSONObject drawingPage;
     final Map<String, PageBackdrop> backdrops = new HashMap<>();
     final Map<String, List<RectF>> emptyCells = new HashMap<>();
@@ -5875,7 +5991,7 @@ public class MainActivity extends Activity {
       boolean interrupted = swiping || swipeSettle != null;
       finishPageTransition();
       if (interrupted) gestureBlocked = true;
-      String nextConfig = config.toString();
+      String nextConfig = renderedConfig.isEmpty() ? config.toString() : renderedConfig;
       int count =
           activePage().optJSONArray("widgets") == null
               ? 0
@@ -6118,6 +6234,33 @@ public class MainActivity extends Activity {
       if (tile != null && tile.getVisibility() != View.GONE) tile.invalidate();
     }
 
+    String stateSignature(String key) {
+      if (signatureState != state) {
+        signatureState = state;
+        renderSignatures.clear();
+      }
+      String cached = renderSignatures.get(key);
+      if (cached != null) return cached;
+      String value;
+      switch (key) {
+        case "os":
+          value =
+              String.valueOf(osProvider()) + String.valueOf(state.optJSONArray("notifications"));
+          break;
+        case "utility":
+          value = String.valueOf(macProvider());
+          break;
+        case "grafana":
+          value =
+              String.valueOf(state.optJSONObject("grafana")) + String.valueOf(monitorInboxData());
+          break;
+        default:
+          value = String.valueOf(state.opt(key));
+      }
+      renderSignatures.put(key, value);
+      return value;
+    }
+
     void updateState() {
       String status =
           connected
@@ -6129,41 +6272,34 @@ public class MainActivity extends Activity {
         headerStatus = status;
         invalidate();
       }
-      String osSignature =
-          String.valueOf(osProvider()) + String.valueOf(state.optJSONArray("notifications"));
-      JSONObject providers = state.optJSONObject("extensions");
-      String utilitySignature =
-          String.valueOf(providers == null ? null : providers.optJSONObject("vorssaint"));
-      String systemSignature = String.valueOf(state.optJSONObject("system"));
-      String grafanaSignature =
-          String.valueOf(state.optJSONObject("grafana"))
-              + ":"
-              + String.valueOf(monitorInboxData())
-              + ":"
-              + streamFresh()
-              + ":"
-              + hostNow() / 5000;
       for (Tile tile : cachedTiles.values()) {
         if (tile.getVisibility() != View.VISIBLE) continue;
         String next;
-        if (tile.type.equals("system")) next = systemSignature;
+        if (tile.type.equals("system")) next = stateSignature("system");
         else if (tile.type.equals("grafana"))
-          next = grafanaSignature + grafanaProject(tile.widget).optString("value");
+          next =
+              stateSignature("grafana")
+                  + ":"
+                  + streamFresh()
+                  + ":"
+                  + hostNow() / 5000
+                  + grafanaProject(tile.widget).optString("value");
         else if (tile.type.equals("gauges"))
           next = state.optInt("cpu") + ":" + state.optInt("memory");
         else if (tile.type.equals("volume"))
           next = state.optInt("volume") + ":" + state.optBoolean("muted");
-        else if (tile.type.equals("timer")) next = String.valueOf(state.optJSONObject("timers"));
-        else if (tile.type.equals("graph")) next = String.valueOf(state.optJSONObject("history"));
-        else if (tile.type.equals("todo")) next = String.valueOf(state.optJSONObject("todos"));
-        else if (tile.widget.optString("provider").equals("jimin-os")) next = osSignature;
-        else if (tile.widget.optString("provider").equals("vorssaint")) next = utilitySignature;
+        else if (tile.type.equals("timer")) next = stateSignature("timers");
+        else if (tile.type.equals("graph")) next = stateSignature("history");
+        else if (tile.type.equals("todo")) next = stateSignature("todos");
+        else if (tile.widget.optString("provider").equals("jimin-os")) next = stateSignature("os");
+        else if (tile.widget.optString("provider").equals("vorssaint"))
+          next = stateSignature("utility");
         else next = "static";
         if (tile.widget.has("stateVariable")) next += ":active=" + widgetActive(tile.widget);
         if (tile.widget.has("binding")
             || tile.widget.optString("label").contains("{{")
             || tile.widget.optString("activeLabel").contains("{{"))
-          next += String.valueOf(state.optJSONObject("variables"));
+          next += stateSignature("variables");
         if (!next.equals(tile.signature)) {
           tile.signature = next;
           tile.setContentDescription(template(effectiveWidget(tile.widget).optString("label")));
@@ -6275,11 +6411,47 @@ public class MainActivity extends Activity {
     }
 
     private class Tile extends View {
+      static final int FAN_AUTOMATIC = 0x0f010001, FAN_MAXIMUM = 0x0f010002;
       final JSONObject widget, ownerPage;
       final String id, type;
       final RectF bounds = new RectF();
       String signature = "";
       long clockMinute = -1, freshnessBucket = -1;
+
+      @Override
+      public void onInitializeAccessibilityNodeInfo(
+          android.view.accessibility.AccessibilityNodeInfo info) {
+        super.onInitializeAccessibilityNodeInfo(info);
+        if (widget.optString("utilityControl").equals("fan")) {
+          info.addAction(
+              new android.view.accessibility.AccessibilityNodeInfo.AccessibilityAction(
+                  FAN_AUTOMATIC, macControlText(macProvider(), "system")));
+          info.addAction(
+              new android.view.accessibility.AccessibilityNodeInfo.AccessibilityAction(
+                  FAN_MAXIMUM, macControlText(macProvider(), "maximum")));
+          StringBuilder reading = new StringBuilder(widget.optString("label"));
+          JSONObject fan = macRuntime().optJSONObject("fan");
+          JSONArray fans = fan == null ? null : fan.optJSONArray("fans");
+          for (int i = 0; fans != null && i < fans.length(); i++)
+            reading
+                .append(", FAN ")
+                .append(i + 1)
+                .append(" ")
+                .append(Math.round(fans.optJSONObject(i).optDouble("actualRPM")))
+                .append(" RPM");
+          info.setContentDescription(reading.toString());
+        }
+      }
+
+      @Override
+      public boolean performAccessibilityAction(int action, Bundle arguments) {
+        if (widget.optString("utilityControl").equals("fan")
+            && (action == FAN_AUTOMATIC || action == FAN_MAXIMUM)) {
+          quickFan(widget, action == FAN_MAXIMUM);
+          return true;
+        }
+        return super.performAccessibilityAction(action, arguments);
+      }
 
       Tile(JSONObject w, JSONObject page) {
         super(MainActivity.this);
@@ -8022,16 +8194,16 @@ public class MainActivity extends Activity {
         for (int i = 0; i < count; i++) {
           JSONObject f = fans.optJSONObject(i);
           float x = r.left + (i + .5f) * r.width() / count;
-          label(c, "FAN " + (i + 1), x, r.top + dp(68), 12, muted, Paint.Align.CENTER);
+          label(c, "FAN " + (i + 1), x, r.top + dp(55), 12, muted, Paint.Align.CENTER);
           label(
               c,
               String.valueOf(Math.round(f.optDouble("actualRPM"))),
               x,
-              r.top + dp(117),
-              42,
+              r.top + dp(113),
+              Math.min(54, r.width() / Math.max(1, count) / dp(5)),
               fresh ? ink : muted,
               Paint.Align.CENTER);
-          label(c, "RPM", x, r.top + dp(140), 11, muted, Paint.Align.CENTER);
+          label(c, "RPM", x, r.top + dp(134), 11, muted, Paint.Align.CENTER);
           label(
               c,
               macControlText(provider, "target")
@@ -8039,7 +8211,7 @@ public class MainActivity extends Activity {
                   + Math.round(f.optDouble("targetRPM"))
                   + " RPM",
               x,
-              r.top + dp(165),
+              r.top + dp(151),
               12,
               muted,
               Paint.Align.CENTER);
@@ -8058,8 +8230,36 @@ public class MainActivity extends Activity {
                         + " "
                         + new java.text.SimpleDateFormat("HH:mm:ss", Locale.getDefault())
                             .format(new Date(runtime.optLong("at")));
-        label(c, hint, r.left + dp(20), r.bottom - dp(17), 12, muted, Paint.Align.LEFT);
-        label(c, "›", r.right - dp(19), r.bottom - dp(16), 24, muted, Paint.Align.RIGHT);
+        RectF automatic = fanQuickBounds(r, false), maximum = fanQuickBounds(r, true);
+        boolean enabled =
+            fresh
+                && fan != null
+                && fan.optBoolean("controllable")
+                && !runtime.optBoolean("applying")
+                && fanQuickOperation.isEmpty();
+        monitorText(
+            c,
+            hint,
+            new RectF(r.left, r.top, automatic.left - dp(5), r.bottom),
+            r.bottom - dp(24),
+            10,
+            muted);
+        drawFanQuick(
+            c,
+            automatic,
+            macControlText(
+                provider, fanQuickOperation.equals("fan.system") ? "applying" : "system"),
+            mode.equals("system"),
+            enabled,
+            accent);
+        drawFanQuick(
+            c,
+            maximum,
+            macControlText(
+                provider, fanQuickOperation.equals("fan.manual") ? "applying" : "maximum"),
+            mode.equals("manual") && fan != null && fan.optInt("level") == 100,
+            enabled,
+            accent);
         return;
       }
       String value = "—", detail = "";
@@ -8109,6 +8309,41 @@ public class MainActivity extends Activity {
           fresh || control.equals("preferences") ? ink : muted);
       monitorText(c, detail, body, r.bottom - dp(18), 11, muted);
       label(c, "›", r.right - dp(19), r.bottom - dp(16), 24, muted, Paint.Align.RIGHT);
+    }
+
+    RectF fanQuickBounds(RectF card, boolean maximum) {
+      float width = Math.min(dp(150), (card.width() - dp(52)) / 3);
+      float right = card.right - dp(18) - (maximum ? 0 : width + dp(10));
+      return new RectF(right - width, card.bottom - dp(56), right, card.bottom - dp(12));
+    }
+
+    void drawFanQuick(
+        Canvas c, RectF r, String title, boolean selected, boolean enabled, int accent) {
+      paint.setStyle(Paint.Style.FILL);
+      paint.setColor(selected ? color("#354c60") : color("#253644"));
+      c.drawRoundRect(r, dp(10), dp(10), paint);
+      label(
+          c,
+          title,
+          r.centerX(),
+          r.centerY() + dp(5),
+          13,
+          enabled ? selected ? color("#e5eff8") : accent : color("#657789"),
+          Paint.Align.CENTER);
+    }
+
+    boolean fanQuickTap(JSONObject widget, RectF card, float x, float y) {
+      if (!widget.optString("provider").equals("vorssaint")
+          || !widget.optString("utilityControl").equals("fan")) return false;
+      if (fanQuickBounds(card, false).contains(x, y)) {
+        quickFan(widget, false);
+        return true;
+      }
+      if (fanQuickBounds(card, true).contains(x, y)) {
+        quickFan(widget, true);
+        return true;
+      }
+      return false;
     }
 
     void drawOSAction(Canvas c, JSONObject widget, RectF r, JSONObject style) {
@@ -8610,9 +8845,10 @@ public class MainActivity extends Activity {
             else if (type.equals("agenda")
                 || type.equals("inbox")
                 || type.equals("notification-feed")) osList(w, null);
-            else if (type.equals("button"))
-              dispatchButton(w, System.currentTimeMillis() - downAt > 650 ? "long" : "tap");
-            else if (type.equals("page")) navigate(w.optString("targetPage"));
+            else if (type.equals("button")) {
+              if (!fanQuickTap(w, rects.get(downIndex), x, y))
+                dispatchButton(w, System.currentTimeMillis() - downAt > 650 ? "long" : "tap");
+            } else if (type.equals("page")) navigate(w.optString("targetPage"));
             else if (type.equals("system")) systemDetails(w);
             else if (type.equals("grafana")) {
               if (w.optString("metric").equals("system")

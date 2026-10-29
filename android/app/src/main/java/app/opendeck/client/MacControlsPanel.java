@@ -15,6 +15,7 @@ import java.net.URLEncoder;
 import java.text.SimpleDateFormat;
 import java.util.*;
 import java.util.concurrent.Executor;
+import java.util.function.Consumer;
 import org.json.*;
 
 /** Native live controls. Sliders commit on release; readings never rebuild a dragged control. */
@@ -26,9 +27,14 @@ final class MacControlsPanel {
   private final String language, widgetId;
   private final Context context;
   private final int ink, muted, background, surface, accent;
+  private final String title;
+  private final Runnable onClosed;
+  private final Consumer<JSONObject> onLoaded;
+  private final boolean seededForm;
   private JSONObject copy = new JSONObject(), state = new JSONObject();
   private String control = "", structure = "";
   private AlertDialog dialog;
+  private AlertDialog childDialog;
   private LinearLayout content;
   private TextView status;
   private final ArrayList<Runnable> updates = new ArrayList<>();
@@ -44,13 +50,29 @@ final class MacControlsPanel {
       UtilitySettings.Host host,
       String theme,
       String language,
-      String widgetId) {
+      String widgetId,
+      String control,
+      String title,
+      JSONObject initialState,
+      JSONObject initialCopy,
+      boolean seededForm,
+      Consumer<JSONObject> onLoaded,
+      Runnable onClosed) {
     this.activity = activity;
     this.ui = ui;
     this.executor = executor;
     this.host = host;
     this.language = language;
     this.widgetId = widgetId;
+    this.control = control;
+    this.title = title;
+    this.state = initialState == null ? new JSONObject() : initialState;
+    JSONObject translated =
+        initialCopy == null ? null : initialCopy.optJSONObject(language.equals("ko") ? "ko" : "en");
+    this.copy = translated == null ? new JSONObject() : translated;
+    this.seededForm = seededForm;
+    this.onLoaded = onLoaded;
+    this.onClosed = onClosed;
     boolean light =
         theme.equals("light")
             || theme.equals("system")
@@ -81,12 +103,66 @@ final class MacControlsPanel {
   }
 
   void open() {
+    long openedAt = android.os.SystemClock.elapsedRealtime();
+    if (seededForm) render();
+    else {
+      content = vertical();
+      content.setPadding(dp(22), dp(18), dp(22), dp(18));
+      content.setBackgroundColor(background);
+      content.addView(text(title, 23, ink));
+      status = text(t("loading"), 15, muted);
+      content.addView(status);
+      Button close = new Button(context);
+      close.setText(t("close"));
+      close.setOnClickListener(v -> close());
+      content.addView(close);
+      showDialog();
+    }
+    content
+        .getViewTreeObserver()
+        .addOnDrawListener(
+            new android.view.ViewTreeObserver.OnDrawListener() {
+              boolean recorded;
+
+              public void onDraw() {
+                if (recorded) return;
+                recorded = true;
+                android.util.Log.d(
+                    "OpenDeckUI",
+                    "mac-panel-first-frame-ms="
+                        + (android.os.SystemClock.elapsedRealtime() - openedAt));
+                ui.post(
+                    () -> {
+                      if (content.getViewTreeObserver().isAlive())
+                        content.getViewTreeObserver().removeOnDrawListener(this);
+                    });
+              }
+            });
     fetch(true);
+  }
+
+  void close() {
+    if (closed) return;
+    closed = true;
+    ui.removeCallbacks(poll);
+    if (childDialog != null) childDialog.dismiss();
+    if (dialog != null) dialog.dismiss();
+    onClosed.run();
   }
 
   private void schedule() {
     ui.removeCallbacks(poll);
     if (alive()) ui.postDelayed(poll, 2500);
+  }
+
+  private void execute(Runnable work) {
+    try {
+      executor.execute(work);
+    } catch (java.util.concurrent.RejectedExecutionException busy) {
+      reading = saving = false;
+      if (status != null) status.setText(t("busy"));
+      schedule();
+    }
   }
 
   private void fetch(boolean initial) {
@@ -99,7 +175,7 @@ final class MacControlsPanel {
     }
     reading = true;
     final int ticket = generation;
-    executor.execute(
+    execute(
         () -> {
           try {
             JSONObject result =
@@ -116,6 +192,7 @@ final class MacControlsPanel {
                     schedule();
                     return;
                   }
+                  onLoaded.accept(result);
                   JSONObject all = result.optJSONObject("copy");
                   copy =
                       all == null
@@ -136,11 +213,7 @@ final class MacControlsPanel {
                   if (status != null) {
                     status.setText(t("stale"));
                     enabled(false);
-                  } else if (initial)
-                    new AlertDialog.Builder(context)
-                        .setMessage(String.valueOf(e.getMessage()))
-                        .setPositiveButton(L10n.text("확인"), null)
-                        .show();
+                  }
                   schedule();
                 });
           }
@@ -225,7 +298,7 @@ final class MacControlsPanel {
     generation++;
     enabled(false);
     status.setText(t("applying"));
-    executor.execute(
+    execute(
         () -> {
           try {
             JSONObject body =
@@ -367,15 +440,15 @@ final class MacControlsPanel {
     else if (control.equals("awake")) awake();
     status = text("", 12, muted);
     content.addView(status);
+    showDialog();
+  }
+
+  private void showDialog() {
     if (dialog == null) {
       ScrollView scroll = new ScrollView(context);
       scroll.addView(content);
       dialog = new AlertDialog.Builder(context).setView(scroll).create();
-      dialog.setOnDismissListener(
-          d -> {
-            closed = true;
-            ui.removeCallbacks(poll);
-          });
+      dialog.setOnDismissListener(d -> close());
       dialog.show();
     }
     if (dialog.getWindow() != null) {
@@ -570,6 +643,11 @@ final class MacControlsPanel {
             .setNegativeButton(t("close"), null)
             .setPositiveButton(t("apply"), null)
             .create();
+    childDialog = editor;
+    editor.setOnDismissListener(
+        d -> {
+          if (childDialog == editor) childDialog = null;
+        });
     editor.setOnShowListener(
         d ->
             editor

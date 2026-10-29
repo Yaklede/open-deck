@@ -290,6 +290,16 @@ export class MacControls {
   read() {
     if (this.controlBusy) return Promise.resolve(this.state());
     if (this.reading) return this.reading;
+    // The native agent already samples every two seconds. Opening a form should
+    // use that sample instead of putting another SMC read ahead of the UI.
+    if (
+      this.child &&
+      this.ready &&
+      this.data &&
+      this.clock() - this.data.at >= 0 &&
+      this.clock() - this.data.at <= 2500
+    )
+      return Promise.resolve(this.state());
     this.reading = this.request("read")
       .catch((error) => {
         this.ready = false;
