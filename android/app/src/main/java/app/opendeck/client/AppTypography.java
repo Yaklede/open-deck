@@ -36,10 +36,10 @@ final class AppTypography {
   static void apply(View view) {
     if (view instanceof TextView text) {
       Typeface previous = text.getTypeface();
-      text.setTypeface(
-          previous != null && previous.isBold()
-              ? bold(view.getContext())
-              : body(view.getContext()));
+      Typeface fixed =
+          previous != null && previous.isBold() ? bold(view.getContext()) : body(view.getContext());
+      text.setTypeface(fixed);
+      if (text instanceof Switch toggle) toggle.setSwitchTypeface(fixed);
     }
     if (view instanceof ViewGroup group)
       for (int i = 0; i < group.getChildCount(); i++) apply(group.getChildAt(i));
