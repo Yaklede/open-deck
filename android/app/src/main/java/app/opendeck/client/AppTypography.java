@@ -39,6 +39,7 @@ final class AppTypography {
       Typeface fixed =
           previous != null && previous.isBold() ? bold(view.getContext()) : body(view.getContext());
       text.setTypeface(fixed);
+      text.setIncludeFontPadding(false);
       if (text instanceof Switch toggle) toggle.setSwitchTypeface(fixed);
     }
     if (view instanceof ViewGroup group)
