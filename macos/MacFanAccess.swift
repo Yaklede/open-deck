@@ -54,7 +54,7 @@ final class MacFanAccess {
         task_fan_stage=$(/usr/bin/mktemp /Library/PrivilegedHelperTools/.opendeck-fan.XXXXXX)
         trap '/bin/rm -f "$task_fan_stage"' EXIT
         /usr/bin/install -o root -g wheel -m 755 \(quote(source.path)) "$task_fan_stage"
-        /usr/bin/codesign --verify --strict -R \(quote(requirement)) "$task_fan_stage"
+        /usr/bin/codesign --verify --strict \(quote("-R=" + requirement)) "$task_fan_stage"
         /bin/launchctl bootout system/\(Self.label) >/dev/null 2>&1 || true
         /bin/mv -f "$task_fan_stage" \(quote(installed.path))
         /bin/cat > /Library/LaunchDaemons/\(Self.label).plist <<'OPEN_DECK_FAN_PLIST'
@@ -70,7 +70,14 @@ final class MacFanAccess {
             let result = NSAppleScript(source: "do shell script \"" + escaped + "\" with administrator privileges")?.executeAndReturnError(&failure)
             DispatchQueue.main.async {
                 self.installing = false
-                self.error = result == nil || failure != nil ? "FAN_AUTHORIZATION_FAILED" : ""
+                let number = failure?["NSAppleScriptErrorNumber"] as? Int ?? 0
+                let detail = String((failure?["NSAppleScriptErrorMessage"] as? String ?? "").prefix(1500))
+                self.error = result == nil || failure != nil ? "FAN_AUTHORIZATION_FAILED_\(number)" : ""
+                if let data = try? JSONSerialization.data(withJSONObject: ["at": Date().timeIntervalSince1970, "code": number, "message": detail], options: [.sortedKeys]) {
+                    let file = self.dataDirectory.appendingPathComponent("mac-control-install.log")
+                    try? data.write(to: file, options: .atomic)
+                    try? FileManager.default.setAttributes([.posixPermissions: 0o600], ofItemAtPath: file.path)
+                }
                 self.refresh()
             }
         }
