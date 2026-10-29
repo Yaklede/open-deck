@@ -20,11 +20,45 @@ const app = "/Applications/Vorssaint.app";
 const fields = new Map(
   catalog.features.flatMap((f) => f.fields.map((x) => [x.key, x])),
 );
+const essentials = {
+  windowLayout: {
+    enabledKeys: [
+      "windowLayoutShortcutsEnabled",
+      "windowGestureEnabled",
+      "windowEdgeSnapEnabled",
+    ],
+    defaults: {
+      windowLayoutShortcutsEnabled: true,
+      windowEdgeSnapEnabled: true,
+    },
+  },
+  clipboardHistory: {
+    enabledKeys: ["clipboardHistoryEnabled"],
+    defaults: { clipboardHistoryEnabled: true },
+  },
+  pastePlain: {
+    enabledKeys: ["pastePlainEnabled"],
+    defaults: { pastePlainEnabled: true },
+  },
+  quitWindowProtection: {
+    enabledKeys: ["quitProtectionQuitEnabled", "quitProtectionCloseEnabled"],
+    defaults: { quitProtectionQuitEnabled: true },
+  },
+  keepAwake: { control: "awake" },
+  soundOutputSwitcher: { control: "audio" },
+};
+function groupFeatures(group) {
+  return group === "essentials"
+    ? Object.keys(essentials).map((id) =>
+        catalog.features.find((f) => f.id === id),
+      )
+    : catalog.features.filter((f) => f.group === group);
+}
 const error = (code, status = 400) =>
   Object.assign(Error(code), { code, status });
 export function validatePatch(group, patch) {
   if (
-    !catalog.groups.some((g) => g.id === group) ||
+    !(group === "essentials" || catalog.groups.some((g) => g.id === group)) ||
     !patch ||
     typeof patch !== "object" ||
     Array.isArray(patch) ||
@@ -33,9 +67,7 @@ export function validatePatch(group, patch) {
   )
     throw error("INVALID_PATCH");
   const allowed = new Set(
-    catalog.features
-      .filter((f) => f.group === group)
-      .flatMap((f) => f.fields.map((x) => x.key)),
+    groupFeatures(group).flatMap((f) => f.fields.map((x) => x.key)),
   );
   for (const [key, value] of Object.entries(patch)) {
     const f = fields.get(key);
@@ -228,7 +260,7 @@ export class Vorssaint {
   }
   async settings(group) {
     if (this.getOptions().enabled !== true) throw error("DISABLED", 403);
-    if (!catalog.groups.some((g) => g.id === group))
+    if (group !== "essentials" && !catalog.groups.some((g) => g.id === group))
       throw error("INVALID_GROUP");
     const data = await this.read();
     return {
@@ -240,12 +272,34 @@ export class Vorssaint {
         status: this.state().status,
       },
       revision: data.revision,
-      group: catalog.groups.find((g) => g.id === group),
-      features: catalog.features.filter((f) => f.group === group),
+      group:
+        group === "essentials"
+          ? {
+              id: "essentials",
+              label: { ko: "업무 기능", en: "Work essentials" },
+            }
+          : catalog.groups.find((g) => g.id === group),
+      features: groupFeatures(group).map((feature) => {
+        if (group !== "essentials") return feature;
+        const preset = essentials[feature.id];
+        if (preset.control) return { ...feature, control: preset.control };
+        const availabilityKey = "featureAvailable." + feature.id;
+        return {
+          ...feature,
+          activation: {
+            availabilityKey,
+            enabledKeys: preset.enabledKeys,
+            defaults: preset.defaults,
+          },
+          enabled:
+            data.values[availabilityKey] === true &&
+            preset.enabledKeys.some((key) => data.values[key] === true),
+        };
+      }),
       values: Object.fromEntries(
-        catalog.features
-          .filter((f) => f.group === group)
-          .flatMap((f) => f.fields.map((x) => [x.key, data.values[x.key]])),
+        groupFeatures(group).flatMap((f) =>
+          f.fields.map((x) => [x.key, data.values[x.key]]),
+        ),
       ),
       applyMode: "restart-app",
       catalogVersion: catalog.upstreamVersion,

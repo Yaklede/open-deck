@@ -15,7 +15,17 @@
     "applying": "Vorssaint 설정을 적용하는 중…",
     "availableOn": "Vorssaint에 표시됨",
     "availableOff": "Vorssaint에서 숨김",
-    "categories": "설정 분류"
+    "categories": "설정 분류",
+    "essentials": "업무 기능",
+    "essentialsDescription": "필요한 기능만 직접 켜서 사용하세요. 창 배치·클립보드·서식 없는 붙여넣기·종료 보호는 Mac에서 동작하며, 변경은 저장하고 적용을 눌러야 반영됩니다.",
+    "enableFeature": "기능 사용",
+    "enabled": "사용 중",
+    "disabled": "꺼짐",
+    "manualControl": "버튼을 눌러 직접 실행",
+    "macBehavior": "Mac 동작 설정",
+    "activationHint": "이 기능을 켜고 저장하면 Mac의 실제 동작이 활성화됩니다.",
+    "allCategories": "전체 설정 분류",
+    "nativeUnavailable": "이 프로필에 해당 직접 제어 카드가 없습니다."
   },
   "en": {
     "description": "Choose features and options, then save. Applying restarts Vorssaint only; your Mac and other apps keep running.",
@@ -33,6 +43,16 @@
     "applying": "Applying Vorssaint settings…",
     "availableOn": "Shown in Vorssaint",
     "availableOff": "Hidden in Vorssaint",
-    "categories": "Setting categories"
+    "categories": "Setting categories",
+    "essentials": "Work essentials",
+    "essentialsDescription": "Enable only what you need. Window layout, clipboard, plain paste and quit protection run on the Mac; edits apply only after Save and apply.",
+    "enableFeature": "Enable feature",
+    "enabled": "Enabled",
+    "disabled": "Off",
+    "manualControl": "Run manually from the tablet",
+    "macBehavior": "Behavior on your Mac",
+    "activationHint": "Enabling and saving activates the behavior on your Mac.",
+    "allCategories": "All setting categories",
+    "nativeUnavailable": "This profile has no matching direct-control card."
   }
 }

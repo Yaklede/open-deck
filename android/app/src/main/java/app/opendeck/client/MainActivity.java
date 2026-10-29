@@ -148,10 +148,7 @@ public class MainActivity extends Activity {
   @Override
   public void onCreate(Bundle b) {
     super.onCreate(b);
-    font =
-        new Typeface.Builder(getAssets(), "NotoSansKR.ttf")
-            .setFontVariationSettings("'wght' 500")
-            .build();
+    font = AppTypography.body(this);
     prefs = getSharedPreferences("open-deck", MODE_PRIVATE);
     loadConnectionLog();
     loadClientSettings();
@@ -4640,6 +4637,23 @@ public class MainActivity extends Activity {
                 && pairedToken.equals(token)
                 && streamFresh();
           }
+
+          public boolean openControl(String control) {
+            if (generation != pairingGeneration || !pairedToken.equals(token)) return false;
+            JSONArray pages = config.optJSONArray("pages");
+            for (int i = 0; pages != null && i < pages.length(); i++) {
+              JSONArray widgets = pages.optJSONObject(i).optJSONArray("widgets");
+              for (int j = 0; widgets != null && j < widgets.length(); j++) {
+                JSONObject candidate = widgets.optJSONObject(j);
+                if (candidate.optString("provider").equals("vorssaint")
+                    && candidate.optString("utilityControl").equals(control)) {
+                  utilityButton(candidate);
+                  return true;
+                }
+              }
+            }
+            return false;
+          }
         };
     String language =
         settingString("language").equals("system")
@@ -4673,7 +4687,7 @@ public class MainActivity extends Activity {
               settingString("theme"),
               language,
               widget.optString("id"),
-              widget.optString("utilityControl").equals("preferences") ? "all" : null,
+              widget.optString("utilityControl").equals("preferences") ? "essentials" : null,
               () -> utilitySession.end(ticket));
     if (widget.optString("utilityControl").equals("preferences")
         || widget.optString("utilityControl").isEmpty()) utilitySettingsPanel.open();

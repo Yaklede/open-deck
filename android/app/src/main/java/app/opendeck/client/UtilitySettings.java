@@ -15,6 +15,10 @@ final class UtilitySettings {
     JSONObject request(String route, String method, JSONObject body) throws Exception;
 
     boolean current();
+
+    default boolean openControl(String control) {
+      return false;
+    }
   }
 
   private final Activity activity;
@@ -52,7 +56,7 @@ final class UtilitySettings {
     this.language = language;
     this.widgetId = widgetId;
     this.selectedGroup = selectedGroup;
-    this.categoryMenu = "all".equals(selectedGroup);
+    this.categoryMenu = "all".equals(selectedGroup) || "essentials".equals(selectedGroup);
     this.onClosed = onClosed;
   }
 
@@ -126,7 +130,7 @@ final class UtilitySettings {
         d -> {
           if (loading == shown) close();
         });
-    loading.show();
+    AppTypography.show(loading);
     execute(
         () -> {
           try {
@@ -184,6 +188,13 @@ final class UtilitySettings {
       ClientSettingsPanel categories =
           panel(text("categories"), text("description"), new HashMap<>(), new HashMap<>());
       JSONArray groups = model.optJSONArray("groups");
+      categories.action(
+          text("essentials"),
+          text("essentialsDescription"),
+          () -> {
+            selectedGroup = "essentials";
+            open();
+          });
       for (int i = 0; groups != null && i < groups.length(); i++) {
         JSONObject group = groups.optJSONObject(i);
         categories.action(
@@ -200,10 +211,12 @@ final class UtilitySettings {
     ClientSettingsPanel panel =
         panel(
             label(model.optJSONObject("group").optJSONObject("label")),
-            "Vorssaint "
-                + model.optJSONObject("app").optString("version")
-                + "\n"
-                + text("description"),
+            "essentials".equals(selectedGroup)
+                ? text("essentialsDescription")
+                : "Vorssaint "
+                    + model.optJSONObject("app").optString("version")
+                    + "\n"
+                    + text("description"),
             new HashMap<>(),
             new HashMap<>());
     panel.note(text("permission"));
@@ -215,16 +228,29 @@ final class UtilitySettings {
         String id = feature.optString("id");
         JSONObject values = model.optJSONObject("values");
         String state =
-            id.equals("general")
-                ? ""
-                : values != null && values.optBoolean("featureAvailable." + id)
-                    ? text("availableOn")
-                    : text("availableOff");
-        panel.action(label(feature.optJSONObject("label")), state, () -> feature(feature));
+            feature.has("control")
+                ? text("manualControl")
+                : feature.has("activation")
+                    ? text(feature.optBoolean("enabled") ? "enabled" : "disabled")
+                    : id.equals("general")
+                        ? ""
+                        : values != null && values.optBoolean("featureAvailable." + id)
+                            ? text("availableOn")
+                            : text("availableOff");
+        panel.action(
+            label(feature.optJSONObject("label")),
+            state,
+            () -> {
+              if (feature.has("control")) {
+                close();
+                if (!host.openControl(feature.optString("control")))
+                  Toast.makeText(activity, text("nativeUnavailable"), Toast.LENGTH_LONG).show();
+              } else feature(feature);
+            });
       }
     if (categoryMenu)
       panel.action(
-          text("categories"),
+          text("allCategories"),
           "",
           () -> {
             selectedGroup = "all";
@@ -253,14 +279,56 @@ final class UtilitySettings {
         values.put(k, all.opt(k));
       }
     }
+    JSONObject activation = feature.optJSONObject("activation");
+    values.put("$enabled", feature.optBoolean("enabled"));
     ClientSettingsPanel panel =
-        panel(label(feature.optJSONObject("label")), text("description"), values, patch);
+        activation == null
+            ? panel(label(feature.optJSONObject("label")), text("description"), values, patch)
+            : new ClientSettingsPanel(
+                activity,
+                new ClientSettingsPanel.Host() {
+                  public Object value(String key) {
+                    return key.equals("theme") ? theme : values.get(key);
+                  }
+
+                  public void save(String key, Object value) {
+                    values.put(key, value);
+                    if (key.equals("$enabled")) {
+                      boolean enabled = Boolean.TRUE.equals(value);
+                      String available = activation.optString("availabilityKey");
+                      values.put(available, enabled);
+                      patch.put(available, enabled);
+                      JSONArray keys = activation.optJSONArray("enabledKeys");
+                      boolean any = false;
+                      for (int i = 0; keys != null && i < keys.length(); i++)
+                        any |= Boolean.TRUE.equals(values.get(keys.optString(i)));
+                      JSONObject defaults = activation.optJSONObject("defaults");
+                      for (int i = 0; keys != null && i < keys.length(); i++) {
+                        String name = keys.optString(i);
+                        boolean next =
+                            enabled
+                                && (any
+                                    ? Boolean.TRUE.equals(values.get(name))
+                                    : defaults != null && defaults.optBoolean(name));
+                        values.put(name, next);
+                        patch.put(name, next);
+                      }
+                      ClientSettingsPanel.refreshOpenPanels();
+                    } else patch.put(key, value);
+                  }
+                },
+                label(feature.optJSONObject("label")),
+                text("macBehavior"));
+    if (activation != null) {
+      panel.toggle("$enabled", text("enableFeature"), text("activationHint"));
+    }
     JSONArray fields = feature.optJSONArray("fields");
     for (int i = 0; fields != null && i < fields.length(); i++) {
       JSONObject field = fields.optJSONObject(i);
       String key = field.optString("key"),
           title = label(field.optJSONObject("label")),
           kind = field.optString("kind");
+      if (activation != null && key.equals(activation.optString("availabilityKey"))) continue;
       if (kind.equals("boolean")) panel.toggle(key, title, "");
       else if (kind.equals("integer")) {
         Map<String, Object> options = new LinkedHashMap<>();
@@ -302,7 +370,8 @@ final class UtilitySettings {
             .setTitle("Vorssaint")
             .setMessage(text("applying"))
             .setCancelable(false)
-            .show();
+            .create();
+    AppTypography.show(progress);
     execute(
         () -> {
           try {

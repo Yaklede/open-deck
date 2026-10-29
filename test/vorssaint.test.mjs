@@ -112,6 +112,59 @@ test("utility patches are typed, range checked, choice checked and category scop
   ])
     assert.throws(() => validatePatch(group, patch));
 });
+
+test("six work essentials are read-only until an explicit save and remain category scoped", async (t) => {
+  const { p, fake } = provider(t);
+  for (const f of catalog.features)
+    for (const field of f.fields)
+      if (field.kind === "boolean") fake.external(field.key, false);
+  const before = await p.settings("essentials");
+  assert.deepEqual(
+    before.features.map((f) => f.id),
+    [
+      "windowLayout",
+      "clipboardHistory",
+      "pastePlain",
+      "quitWindowProtection",
+      "keepAwake",
+      "soundOutputSwitcher",
+    ],
+  );
+  assert.deepEqual(fake.calls, ["read"]);
+  assert.ok(
+    before.features
+      .filter((f) => f.activation)
+      .every((f) => f.enabled === false),
+  );
+  assert.deepEqual(
+    before.features.filter((f) => f.control).map((f) => f.control),
+    ["awake", "audio"],
+  );
+  await p.update("essentials", before.revision, {
+    "featureAvailable.pastePlain": true,
+    pastePlainEnabled: true,
+  });
+  const enabled = await p.settings("essentials");
+  assert.equal(
+    enabled.features.find((f) => f.id === "pastePlain").enabled,
+    true,
+  );
+  assert.equal(enabled.values.clipboardHistoryEnabled, false);
+  assert.equal(enabled.values.quitProtectionQuitEnabled, false);
+  await p.update("essentials", enabled.revision, {
+    "featureAvailable.pastePlain": false,
+    pastePlainEnabled: false,
+  });
+  assert.equal(
+    (await p.settings("essentials")).features.find((f) => f.id === "pastePlain")
+      .enabled,
+    false,
+  );
+  assert.throws(() => validatePatch("essentials", { appAppearance: "dark" }));
+  assert.throws(() =>
+    validatePatch("essentials", { clipboardHistoryEnabled: "true" }),
+  );
+});
 test("a save preserves unrelated settings, verifies revision, quits before write and restarts once", async (t) => {
   const { p, fake, dir } = provider(t);
   const before = await p.settings("general");
@@ -252,6 +305,14 @@ test("paired devices configure only a visible utility group, and profile scope c
   assert.equal((await api(url, "GET", undefined, undefined, true)).status, 401);
   const before = await api(url, "GET", undefined, token);
   assert.equal(before.status, 200);
+  const essentials = await api(
+    url + "&group=essentials",
+    "GET",
+    undefined,
+    token,
+  );
+  assert.equal(essentials.status, 200);
+  assert.equal(essentials.data.features.length, 6);
   assert.equal(
     (
       await api(
@@ -312,6 +373,10 @@ test("paired devices configure only a visible utility group, and profile scope c
     token,
   );
   assert.equal((await api(url, "GET", undefined, token)).status, 403);
+  assert.equal(
+    (await api(url + "&group=essentials", "GET", undefined, token)).status,
+    403,
+  );
   assert.equal(
     (await api("/api/admin/extensions", "POST", { id: "vorssaint" }, token))
       .status,

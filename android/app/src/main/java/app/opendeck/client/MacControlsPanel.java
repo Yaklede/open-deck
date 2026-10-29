@@ -4,7 +4,6 @@ import android.app.Activity;
 import android.app.AlertDialog;
 import android.content.Context;
 import android.graphics.Color;
-import android.graphics.Typeface;
 import android.graphics.drawable.GradientDrawable;
 import android.os.Handler;
 import android.text.InputType;
@@ -225,7 +224,7 @@ final class MacControlsPanel {
     v.setText(value);
     v.setTextSize(size);
     v.setTextColor(color);
-    v.setTypeface(Typeface.create("sans-serif", Typeface.NORMAL));
+    v.setTypeface(AppTypography.body(context));
     v.setPadding(dp(2), dp(5), dp(2), dp(5));
     return v;
   }
@@ -423,7 +422,7 @@ final class MacControlsPanel {
     content.removeAllViews();
     LinearLayout header = row(content);
     TextView title = text(t(control) + " · Mac", 23, ink);
-    title.setTypeface(Typeface.create("sans-serif", Typeface.BOLD));
+    title.setTypeface(AppTypography.bold(context));
     header.addView(title, new LinearLayout.LayoutParams(0, -2, 1));
     Button close = new Button(context);
     close.setText(t("close"));
@@ -450,8 +449,8 @@ final class MacControlsPanel {
       dialog = new AlertDialog.Builder(context).setView(scroll).create();
       dialog.setCanceledOnTouchOutside(false);
       dialog.setOnDismissListener(d -> close());
-      dialog.show();
-    }
+      AppTypography.show(dialog);
+    } else AppTypography.apply(dialog);
     if (dialog.getWindow() != null) {
       dialog.getWindow().setBackgroundDrawableResource(android.R.color.transparent);
       int width =
@@ -609,12 +608,12 @@ final class MacControlsPanel {
   private void curve() {
     LinearLayout form = vertical();
     form.setPadding(dp(20), dp(8), dp(20), dp(8));
-    Spinner sensor = new Spinner(context);
+    Spinner sensor = new Spinner(context, Spinner.MODE_DROPDOWN);
     String[] ids = {"hottestSoC", "averageSoC", "hottestCPU", "averageCPU", "hottestGPU"};
     String[] names = new String[ids.length];
     for (int i = 0; i < ids.length; i++) names[i] = t(ids[i]);
     sensor.setAdapter(
-        new ArrayAdapter<>(context, android.R.layout.simple_spinner_dropdown_item, names));
+        AppTypography.choices(context, android.R.layout.simple_spinner_dropdown_item, names));
     form.addView(text(t("sensor"), 14, muted));
     form.addView(sensor);
     JSONObject configuration = object("fan").optJSONObject("configuration");
@@ -686,7 +685,7 @@ final class MacControlsPanel {
                         error.setText(t("curveInvalid"));
                       }
                     }));
-    editor.show();
+    AppTypography.show(editor);
   }
 
   private EditText number(LinearLayout parent, String label, int value) {
@@ -695,6 +694,7 @@ final class MacControlsPanel {
     input.setText(String.valueOf(value));
     input.setTextColor(ink);
     input.setInputType(InputType.TYPE_CLASS_NUMBER | InputType.TYPE_NUMBER_FLAG_SIGNED);
+    input.setTypeface(AppTypography.body(context));
     input.setContentDescription(label);
     parent.addView(input);
     return input;
@@ -771,16 +771,18 @@ final class MacControlsPanel {
         labels.add(d.optString("name"));
       }
     }
-    new AlertDialog.Builder(context)
-        .setTitle(t(direction))
-        .setItems(
-            labels.toArray(new String[0]),
-            (d, n) ->
-                send(
-                    "audio.device",
-                    parameters("deviceId", choices.get(n).optInt("id"), "direction", direction)))
-        .setNegativeButton(t("close"), null)
-        .show();
+    AppTypography.show(
+        new AlertDialog.Builder(context)
+            .setTitle(t(direction))
+            .setItems(
+                labels.toArray(new String[0]),
+                (d, n) ->
+                    send(
+                        "audio.device",
+                        parameters(
+                            "deviceId", choices.get(n).optInt("id"), "direction", direction)))
+            .setNegativeButton(t("close"), null)
+            .create());
   }
 
   private void displays() {

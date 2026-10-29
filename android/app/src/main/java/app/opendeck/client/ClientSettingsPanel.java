@@ -4,7 +4,6 @@ import android.app.Activity;
 import android.app.AlertDialog;
 import android.content.Context;
 import android.graphics.Color;
-import android.graphics.Typeface;
 import android.graphics.drawable.GradientDrawable;
 import android.os.Handler;
 import android.os.Looper;
@@ -154,6 +153,7 @@ final class ClientSettingsPanel {
     view.setTextSize(size);
     view.setTextColor(color);
     view.setIncludeFontPadding(false);
+    view.setTypeface(AppTypography.body(context));
     return view;
   }
 
@@ -165,7 +165,7 @@ final class ClientSettingsPanel {
 
   void section(String title) {
     TextView label = text(title, 12, accent);
-    label.setTypeface(null, Typeface.BOLD);
+    label.setTypeface(AppTypography.bold(context));
     label.setPadding(0, dp(18), 0, dp(8));
     content.addView(label);
   }
@@ -244,7 +244,7 @@ final class ClientSettingsPanel {
                 ListView list = picker[0].getListView();
                 pickerValues[0] = selected.choices().values().toArray();
                 list.setAdapter(
-                    new ArrayAdapter<>(
+                    AppTypography.choices(
                         context,
                         android.R.layout.select_dialog_singlechoice,
                         selected.choices().keySet().toArray(new String[0])));
@@ -279,7 +279,7 @@ final class ClientSettingsPanel {
           if (range != null)
             builder.setNeutralButton(
                 L10n.text("직접 입력"), (d, which) -> numericInput(key, title, range, binding));
-          picker[0] = builder.show();
+          picker[0] = AppTypography.show(builder.create());
           openDialogs.add(picker[0]);
           childDialogs.add(picker[0]);
           picker[0].setOnDismissListener(d -> openDialogs.remove((AlertDialog) d));
@@ -300,6 +300,7 @@ final class ClientSettingsPanel {
     field.setPadding(dp(20), dp(10), dp(20), dp(10));
     String hint = range.min() + "–" + range.max() + range.unit();
     if (range.min() == -1) hint += "\n−1 · " + L10n.text("기기 설정 따르기");
+    String instructions = hint;
     AlertDialog prompt =
         new AlertDialog.Builder(context)
             .setTitle(title)
@@ -321,7 +322,8 @@ final class ClientSettingsPanel {
                         binding.change(value, next -> host.save(key, next));
                         prompt.dismiss();
                       } catch (IllegalArgumentException e) {
-                        field.setError(L10n.error(e.getMessage()));
+                        AppTypography.validationMessage(
+                            prompt, instructions + "\n" + L10n.error(e.getMessage()));
                       }
                     }));
     prompt.setOnDismissListener(
@@ -332,7 +334,7 @@ final class ClientSettingsPanel {
         });
     openDialogs.add(prompt);
     childDialogs.add(prompt);
-    prompt.show();
+    AppTypography.show(prompt);
   }
 
   void slider(String key, String title, int min, int max, int step, String unit) {
@@ -417,14 +419,15 @@ final class ClientSettingsPanel {
                         save.accept(field.getText().toString().trim());
                         prompt.dismiss();
                       } catch (Exception e) {
-                        field.setError(L10n.error(e.getMessage()));
+                        AppTypography.validationMessage(
+                            prompt, message + "\n" + L10n.error(e.getMessage()));
                       }
                     }));
-    prompt.show();
+    AppTypography.show(prompt);
   }
 
   void show() {
-    dialog.show();
+    AppTypography.show(dialog);
     openDialogs.add(dialog);
     openPanels.add(this);
     dialog.setOnDismissListener(
