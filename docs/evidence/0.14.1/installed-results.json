@@ -1,0 +1,11 @@
+{
+  "macBuildInfo": {
+    "version": "0.14.1",
+    "build": 26,
+    "commit": "451ba407fbb09a4962c19b4e53077cf089a7c0e2"
+  },
+  "physicalTabletVersion": "0.14.1",
+  "physicalTabletOnline": true,
+  "installedApkBytesMatchRelease": true,
+  "noCrashInCurrentProcess": true
+}

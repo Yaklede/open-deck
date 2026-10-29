@@ -1,0 +1,13 @@
+{
+  "rapidFanDetailTaps": 12,
+  "activityAndDialogWindows": 2,
+  "windowsAfterOneClose": 1,
+  "windowsAfterLateResponseGrace": 1,
+  "windowsAfterImmediateCancel": 1,
+  "firstFrameMs": [
+    38,
+    47
+  ],
+  "processAlive": true,
+  "verified": true
+}
