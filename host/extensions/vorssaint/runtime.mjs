@@ -290,9 +290,19 @@ export class MacControls {
   read() {
     if (this.controlBusy) return Promise.resolve(this.state());
     if (this.reading) return this.reading;
-    this.reading = this.request("read").finally(() => {
-      this.reading = null;
-    });
+    this.reading = this.request("read")
+      .catch((error) => {
+        this.ready = false;
+        this.error = String(
+          error.code || error.message || "MAC_CONTROLS_UNAVAILABLE",
+        ).slice(0, 100);
+        this.onChange();
+        if (!this.data) throw error;
+        return this.state();
+      })
+      .finally(() => {
+        this.reading = null;
+      });
     return this.reading;
   }
   async control(control, operation, parameters) {

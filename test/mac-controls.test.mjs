@@ -205,10 +205,21 @@ test("native disconnection marks retained readings stale and bounded reconnect r
   assert.equal(f.controls.state().available, false);
   assert.equal(f.controls.state().stale, true);
   assert.equal(f.controls.state().at, at);
+  const retained = await f.controls.read();
+  assert.equal(retained.available, false);
+  assert.equal(retained.stale, true);
+  assert.equal(retained.at, at);
+  assert.equal(retained.error, "MAC_CONTROLS_DISCONNECTED");
   await assert.rejects(
-    f.controls.read(),
+    f.controls.control("fan", "fan.manual", { level: 50 }),
     (e) => e.code === "MAC_CONTROLS_DISCONNECTED",
   );
+  const cold = new MacControls({ dir: f.dir, binary: "missing" });
+  await assert.rejects(
+    cold.read(),
+    (e) => e.code === "MAC_CONTROLS_NOT_INSTALLED",
+  );
+  cold.close();
   f.clock(120000);
   f.controls.ensure();
   assert.equal(f.controls.state().available, false);
