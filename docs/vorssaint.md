@@ -48,6 +48,17 @@ sudo rm /Library/LaunchDaemons/app.opendeck.host.fan-control.plist
 sudo rm /Library/PrivilegedHelperTools/app.opendeck.host.fan-control
 ```
 
+## Work essentials
+
+The tablet's advanced-settings entry opens **업무 기능** first. It groups six useful functions:
+
+- Window layout, clipboard history, paste as plain text and quit/window-close protection configure the corresponding behavior in the installed Vorssaint Mac app. Their master switches edit local drafts; only **저장하고 적용** writes them. Existing settings are read as they are and are never enabled by opening the page. Enabling a preset installs/shows its feature and enables its selected behavior options together; disabling it turns off its behavior keys.
+- Keep awake and audio output switching open the existing native direct-control panels. Opening them neither starts a keep-awake session nor changes an audio device.
+
+**전체 설정 분류** still opens all nine categories. Clipboard history search/content and individual window-placement commands remain Mac interactions; this hub configures their Mac behavior rather than transferring clipboard content to the tablet. No new clipboard reader or background collector is installed.
+
+All new tablet dialogs, buttons, switches, numeric inputs, native choice lists and lazy spinner rows use the bundled Noto Sans KR typeface. Normal and bold fonts are cached; system font padding is disabled to keep the dialogs compact. Rebuilding a live control form reapplies the same typography.
+
 ## Advanced Vorssaint preferences
 
 Install official [Vorssaint 3.4.2](https://github.com/vorssaint/vorssaint-utils/releases/tag/v3.4.2) at `/Applications/Vorssaint.app` to use **세부 환경설정**. These settings target upstream commit `833967fd45153fc9dc95651d34c867f5c4aee7f1` and the `com.vorssaint.utils` preference interface.

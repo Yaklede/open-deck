@@ -1,0 +1,9 @@
+{
+  "verifiedControls": [
+    "잠자기 방지",
+    "오디오 출력 전환"
+  ],
+  "bothOpenedNativeControlPanel": true,
+  "noSessionStartedOrDeviceChanged": true,
+  "verified": true
+}

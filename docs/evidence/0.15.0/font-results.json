@@ -1,0 +1,24 @@
+{
+  "bundledFamily": "Noto Sans KR",
+  "weights": [
+    500,
+    700
+  ],
+  "dialogAudits": 35,
+  "textViewObservations": 510,
+  "mismatches": 0,
+  "lazyDropdownRowAudits": 15,
+  "nativeListRowAudits": 2,
+  "covered": [
+    "titles",
+    "body",
+    "buttons",
+    "switches",
+    "checkboxes",
+    "numeric inputs",
+    "native choice lists",
+    "spinner selected row",
+    "spinner dropdown rows"
+  ],
+  "verified": true
+}
