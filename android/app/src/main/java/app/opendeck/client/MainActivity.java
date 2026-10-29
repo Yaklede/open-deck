@@ -8316,12 +8316,13 @@ public class MainActivity extends Activity {
       paint.setStyle(Paint.Style.FILL);
       paint.setColor(selected ? color("#354c60") : color("#253644"));
       c.drawRoundRect(r, dp(10), dp(10), paint);
+      float size = Math.min(title.length() > 5 ? 13 : 26, r.width() / dp(3));
       label(
           c,
-          title,
+          ellipsize(title, r.width() - dp(24), size),
           r.centerX(),
-          r.centerY() + dp(9),
-          Math.min(26, r.width() / dp(3)),
+          r.centerY() + dp(size * .35f),
+          size,
           enabled ? selected ? color("#e5eff8") : accent : color("#657789"),
           Paint.Align.CENTER);
     }
