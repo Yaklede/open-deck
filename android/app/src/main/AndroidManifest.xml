@@ -1,7 +1,9 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
     <uses-permission android:name="android.permission.INTERNET"/>
-    <application android:label="Open Deck" android:allowBackup="false" android:theme="@android:style/Theme.Material.NoActionBar" android:networkSecurityConfig="@xml/network_security" android:supportsRtl="true" android:icon="@drawable/opendeck_icon">
-        <activity android:name=".MainActivity" android:exported="true" android:configChanges="orientation|screenSize|keyboardHidden">
+    <uses-permission android:name="android.permission.VIBRATE"/>
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
+    <application android:localeConfig="@xml/locales_config" android:label="Open Deck" android:allowBackup="false" android:theme="@android:style/Theme.Material.NoActionBar" android:networkSecurityConfig="@xml/network_security" android:supportsRtl="true" android:icon="@drawable/opendeck_icon">
+        <activity android:name=".MainActivity" android:exported="true" android:launchMode="singleTop" android:configChanges="orientation|screenSize|keyboardHidden">
             <intent-filter><action android:name="android.intent.action.MAIN"/><category android:name="android.intent.category.LAUNCHER"/></intent-filter>
         </activity>
     </application>

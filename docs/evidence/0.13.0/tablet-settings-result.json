@@ -1,0 +1,9 @@
+{
+  "physicalDevice": true,
+  "verificationApplicationId": "app.opendeck.verify0130",
+  "draftDidNotChangeMac": true,
+  "tabletSaveChangedMacPreference": true,
+  "macReadBackMatched": true,
+  "cancelDidNotChangeMac": true,
+  "officialAppRunningAfterApply": true
+}

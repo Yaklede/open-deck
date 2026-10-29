@@ -1,0 +1,10 @@
+{
+  "rapidPageSwitches": 20,
+  "finalPage": "Mac tools",
+  "frameSamples": 120,
+  "medianFrameMs": 10.47,
+  "p95FrameMs": 12.13,
+  "p99FrameMs": 14.59,
+  "pageTransitionMs": 180,
+  "verified": true
+}

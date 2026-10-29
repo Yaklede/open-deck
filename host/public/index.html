@@ -12,7 +12,9 @@
         <span>◈</span>
         <div>Open Deck<small>YOUR DESK, CONNECTED.</small></div>
       </div>
-      <div class="eyebrow">WORKSPACE</div>
+      <div class="eyebrow">PROFILE</div>
+      <select id="profileSelect" aria-label="프로필 선택"></select>
+      <button id="manageProfiles" class="subtle">프로필 관리</button>
       <nav id="pages"></nav>
       <button id="addPage" class="subtle">＋ 새 페이지</button>
       <select id="template" aria-label="페이지 템플릿">
@@ -24,6 +26,8 @@
         <span class="dot"></span>USB + Wi-Fi · 로컬 연결<small
           >개인 설정은 이 맥에만 저장됩니다.</small
         ><button id="devicesToggle" class="subtle">연결된 기기</button>
+        <button id="monitorInboxToggle" class="subtle">운영 알림함</button>
+        <button id="settingsToggle" class="subtle">⚙ 앱 설정</button>
       </div>
     </aside>
     <main>
@@ -85,6 +89,15 @@
           ><button id="pack">자동 정렬</button><span>태블릿 미리보기</span>
         </div>
         <div class="palette" id="palette"></div>
+        <div class="selection-tools">
+          <span id="selectionCount">Shift+클릭으로 여러 위젯 선택</span
+          ><button id="copyWidgets">복사</button
+          ><button id="pasteWidgets">붙여넣기</button
+          ><button id="copyStyle">스타일 복사</button
+          ><button id="pasteStyle">스타일 적용</button
+          ><button id="moveWidgets">페이지로 이동</button
+          ><button id="deleteWidgets">선택 삭제</button>
+        </div>
         <div id="board"></div>
         <div class="hint" id="previewHint">
           드래그로 이동 · 오른쪽 아래 모서리로 크기 조절 · 방향키 이동 /
@@ -98,6 +111,11 @@
         <button id="addAutomation">＋ 시간 자동화 추가</button>
       </section>
       <section id="dataArea" hidden>
+        <h2>Jimin OS</h2>
+        <p>
+          일정과 업무 요청을 태블릿에 연결하고, 자주 쓰는 기능을 한 번에 열어요.
+        </p>
+        <div id="ecosystem"></div>
         <h2>변수</h2>
         <p>위젯에서 {{변수명}}으로 표시하거나 토글·슬라이더에 연결하세요.</p>
         <div id="variables"></div>
@@ -124,7 +142,7 @@
         <div id="deviceList"></div>
       </section>
       <footer>
-        <span id="saved">Ready</span><span>OPEN DECK · 0.3.0</span>
+        <span id="saved">Ready</span><span>OPEN DECK · 0.15.0</span>
       </footer>
     </main>
     <section id="inspector" hidden>
@@ -146,7 +164,7 @@
           <button id="addAction">＋ 단계</button>
         </div>
         <div id="actions"></div>
-        <details>
+        <details class="advanced-actions">
           <summary>고급 동작 JSON</summary>
           <textarea id="actionsJson" rows="8"></textarea
           ><button id="applyJson">적용</button>

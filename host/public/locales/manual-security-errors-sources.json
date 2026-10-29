@@ -1,0 +1,184 @@
+[
+  {
+    "source": "관리자 계정 파일을 확인하세요.",
+    "files": [
+      "host/account.mjs"
+    ]
+  },
+  {
+    "source": "관리자 계정이 이미 있습니다.",
+    "files": [
+      "host/account.mjs"
+    ]
+  },
+  {
+    "source": "관리자 로그인이 필요합니다.",
+    "files": [
+      "host/account.mjs",
+      "host/server.mjs"
+    ]
+  },
+  {
+    "source": "로그인 유지 시간은 1~720시간이어야 합니다.",
+    "files": [
+      "host/account.mjs"
+    ]
+  },
+  {
+    "source": "먼저 비밀 저장소를 설정하세요.",
+    "files": [
+      "host/secret-vault.mjs"
+    ]
+  },
+  {
+    "source": "먼저 저장소 복구 키를 보관하세요.",
+    "files": [
+      "host/secret-vault.mjs"
+    ]
+  },
+  {
+    "source": "먼저 저장소 복구 키를 생성하고 보관 확인을 완료하세요.",
+    "files": [
+      "host/secret-vault.mjs"
+    ]
+  },
+  {
+    "source": "백업 복구 키를 확인하세요.",
+    "files": [
+      "host/secret-vault.mjs"
+    ]
+  },
+  {
+    "source": "복구 키를 다시 생성하고 보관 확인을 완료하세요.",
+    "files": [
+      "host/account.mjs",
+      "host/secret-vault.mjs"
+    ]
+  },
+  {
+    "source": "비밀 식별자는 영문·숫자·밑줄·하이픈 1~80자여야 합니다.",
+    "files": [
+      "host/secret-vault.mjs"
+    ]
+  },
+  {
+    "source": "비밀 이름과 값(1~4096자)을 확인하세요.",
+    "files": [
+      "host/secret-vault.mjs"
+    ]
+  },
+  {
+    "source": "비밀 저장소 데이터가 손상되었습니다.",
+    "files": [
+      "host/secret-vault.mjs"
+    ]
+  },
+  {
+    "source": "비밀 저장소 키 파일을 확인하세요.",
+    "files": [
+      "host/secret-vault.mjs"
+    ]
+  },
+  {
+    "source": "비밀 저장소가 이미 있습니다.",
+    "files": [
+      "host/secret-vault.mjs"
+    ]
+  },
+  {
+    "source": "비밀 저장소가 잠겨 있습니다. 암호 또는 복구 키로 해제하세요.",
+    "files": [
+      "host/secret-vault.mjs"
+    ]
+  },
+  {
+    "source": "비밀은 최대 200개까지 보관할 수 있습니다.",
+    "files": [
+      "host/secret-vault.mjs"
+    ]
+  },
+  {
+    "source": "사용자명과 복구 키를 확인하세요.",
+    "files": [
+      "host/account.mjs"
+    ]
+  },
+  {
+    "source": "사용자명은 1~80자로 입력하세요.",
+    "files": [
+      "host/account.mjs"
+    ]
+  },
+  {
+    "source": "시도가 너무 많습니다. 1분 후 다시 시도하세요.",
+    "files": [
+      "host/security-storage.mjs"
+    ]
+  },
+  {
+    "source": "안전한 보안 저장소가 필요합니다.",
+    "files": [
+      "host/security-storage.mjs"
+    ]
+  },
+  {
+    "source": "안전한 보안 파일이 필요합니다.",
+    "files": [
+      "host/security-storage.mjs"
+    ]
+  },
+  {
+    "source": "암호는 8~256자여야 합니다.",
+    "files": [
+      "host/security-storage.mjs"
+    ]
+  },
+  {
+    "source": "암호화 백업이 손상되었거나 복구 키가 다릅니다.",
+    "files": [
+      "host/secret-vault.mjs"
+    ]
+  },
+  {
+    "source": "암호화 설정을 확인하세요.",
+    "files": [
+      "host/secret-vault.mjs"
+    ]
+  },
+  {
+    "source": "암호화 키 정보를 확인하세요.",
+    "files": [
+      "host/secret-vault.mjs"
+    ]
+  },
+  {
+    "source": "암호화 파일 형식을 확인하세요.",
+    "files": [
+      "host/secret-vault.mjs"
+    ]
+  },
+  {
+    "source": "인증 정보를 확인하세요.",
+    "files": [
+      "host/security-storage.mjs"
+    ]
+  },
+  {
+    "source": "저장소 복구 키를 확인하세요.",
+    "files": [
+      "host/secret-vault.mjs"
+    ]
+  },
+  {
+    "source": "저장소 암호를 확인하세요.",
+    "files": [
+      "host/secret-vault.mjs"
+    ]
+  },
+  {
+    "source": "지원하지 않는 암호화 형식입니다.",
+    "files": [
+      "host/secret-vault.mjs"
+    ]
+  }
+]

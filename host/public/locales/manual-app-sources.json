@@ -1,0 +1,375 @@
+[
+  {
+    "source": "ADB 도구 다운로드·설치",
+    "files": [
+      "host/public/settings-ui.mjs"
+    ]
+  },
+  {
+    "source": "ADB 도구를 설치하고 연결 경로를 저장했습니다.",
+    "files": [
+      "host/public/settings-ui.mjs"
+    ],
+    "english": "ADB tools installed and connection path saved."
+  },
+  {
+    "source": "Android 도구 다운로드에 실패했습니다.",
+    "files": [
+      "host/system-tools.mjs"
+    ]
+  },
+  {
+    "source": "Android 도구 목록을 확인할 수 없습니다.",
+    "files": [
+      "host/system-tools.mjs"
+    ]
+  },
+  {
+    "source": "Android 도구 체크섬 검증에 실패했습니다.",
+    "files": [
+      "host/system-tools.mjs"
+    ]
+  },
+  {
+    "source": "Android 도구를 이미 설치 중입니다.",
+    "files": [
+      "host/system-tools.mjs"
+    ]
+  },
+  {
+    "source": "HTTP Wi-Fi는 사설 네트워크에서 암호화하지 않는 연결을 직접 허용한 경우에만 사용할 수 있습니다.",
+    "files": [
+      "android/app/src/main/java/app/opendeck/client/PinnedConnection.java"
+    ]
+  },
+  {
+    "source": "HTTPS 암호화 사용",
+    "files": [
+      "host/public/settings-ui.mjs"
+    ]
+  },
+  {
+    "source": "HTTPS 연결 방식",
+    "files": [
+      "host/public/settings-ui.mjs"
+    ]
+  },
+  {
+    "source": "HTTP와 HTTPS 포트는 서로 달라야 합니다.",
+    "files": [
+      "host/settings.mjs"
+    ]
+  },
+  {
+    "source": "HTTP와 HTTPS 함께 사용",
+    "files": [
+      "host/public/settings-ui.mjs"
+    ]
+  },
+  {
+    "source": "Open Deck 0.9.0\n맥 호스트 + 네이티브 Android 컨트롤 패널\nMIT 오픈소스 · 계정과 구독 없음\nhttps://github.com/Yaklede/open-deck",
+    "files": [
+      "macos/OpenDeck.swift"
+    ]
+  },
+  {
+    "source": "System / 기기 설정",
+    "files": [
+      "android/app/src/main/java/app/opendeck/client/LocalePolicy.java"
+    ]
+  },
+  {
+    "source": "Wi-Fi · 암호화 안 됨",
+    "files": [
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
+    "source": "계정 · 보안",
+    "files": [
+      "host/public/settings-ui.mjs"
+    ]
+  },
+  {
+    "source": "계정 작업을 확인하세요.",
+    "files": [
+      "host/server.mjs"
+    ]
+  },
+  {
+    "source": "공개 CA 인증서 내보내기",
+    "files": [
+      "host/public/settings-ui.mjs"
+    ]
+  },
+  {
+    "source": "공개 연결 포트",
+    "files": [
+      "host/public/settings-ui.mjs"
+    ]
+  },
+  {
+    "source": "공식 Android 다운로드 주소가 아닙니다.",
+    "files": [
+      "host/system-tools.mjs"
+    ]
+  },
+  {
+    "source": "공식 도구 URL·크기·체크섬을 확인할 수 없습니다.",
+    "files": [
+      "host/system-tools.mjs"
+    ]
+  },
+  {
+    "source": "공식 도구 압축 파일에 ADB가 없습니다.",
+    "files": [
+      "host/system-tools.mjs"
+    ]
+  },
+  {
+    "source": "공식 플랫폼 도구를 다운로드하고 검증하는 중…",
+    "files": [
+      "host/public/settings-ui.mjs"
+    ],
+    "english": "Downloading and verifying official platform tools…"
+  },
+  {
+    "source": "관리자 계정 설정에서 암호를 변경하세요.",
+    "files": [
+      "host/server.mjs"
+    ]
+  },
+  {
+    "source": "기본 포트를 HTTPS로 대체",
+    "files": [
+      "host/public/settings-ui.mjs"
+    ]
+  },
+  {
+    "source": "기본값은 HTTPS입니다. 암호화를 끄거나 HTTP 병행을 선택하면 공개 HTTP 연결의 데이터가 암호화되지 않습니다. 태블릿도 비암호화 연결을 명시적으로 허용해야 사용합니다.",
+    "files": [
+      "host/public/settings-ui.mjs"
+    ]
+  },
+  {
+    "source": "기본값은 꺼짐입니다. 이 옵션을 켜면 사설 LAN의 HTTP 주소에 연결할 수 있으며 페어링 토큰과 데이터가 암호화되지 않습니다. 신뢰하는 네트워크에서만 사용하세요.",
+    "files": [
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
+    "source": "기존 도구 파일이 변경되어 자동 교체하지 않았습니다.",
+    "files": [
+      "host/system-tools.mjs"
+    ]
+  },
+  {
+    "source": "다운로드 크기 제한을 넘었습니다.",
+    "files": [
+      "host/system-tools.mjs"
+    ]
+  },
+  {
+    "source": "도구 설치 폴더를 확인하세요.",
+    "files": [
+      "host/system-tools.mjs"
+    ]
+  },
+  {
+    "source": "로컬 CA로 인증서 재발급",
+    "files": [
+      "host/public/settings-ui.mjs"
+    ]
+  },
+  {
+    "source": "로컬 인증기관 재생성",
+    "files": [
+      "host/public/settings-ui.mjs"
+    ]
+  },
+  {
+    "source": "로컬 인증기관이 만료되었습니다. 인증기관을 재생성하세요.",
+    "files": [
+      "host/network.mjs"
+    ]
+  },
+  {
+    "source": "로컬 인증기관이 아직 없습니다.",
+    "files": [
+      "host/network.mjs"
+    ]
+  },
+  {
+    "source": "맥 호스트 + 네이티브 Android 컨트롤 패널",
+    "files": [
+      "macos/OpenDeck.swift"
+    ]
+  },
+  {
+    "source": "먼저 로컬 백업 암호화를 켜세요.",
+    "files": [
+      "host/backups.mjs"
+    ]
+  },
+  {
+    "source": "무료 · 오픈소스",
+    "files": [
+      "macos/OpenDeck.swift"
+    ]
+  },
+  {
+    "source": "백업 복구 키",
+    "files": [
+      "host/public/settings-ui.mjs"
+    ],
+    "english": "Backup recovery key"
+  },
+  {
+    "source": "복구 키로 보호해 내보내기",
+    "files": [
+      "host/public/settings-ui.mjs"
+    ]
+  },
+  {
+    "source": "사설 IP와 포트를 입력하세요. HTTPS를 우선 사용하며 HTTP 연결은 암호화되지 않습니다.",
+    "files": [
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
+    "source": "설치된 도구 경로를 확인하세요.",
+    "files": [
+      "host/system-tools.mjs"
+    ]
+  },
+  {
+    "source": "신뢰 정보가 변경됩니다. 연결된 태블릿은 USB로 신뢰 정보를 다시 받아야 합니다. 계속할까요?",
+    "files": [
+      "host/public/settings-ui.mjs"
+    ],
+    "english": "Trust information will change. Connected tablets need USB to refresh trust. Continue?"
+  },
+  {
+    "source": "암호화 백업",
+    "files": [
+      "host/backups.mjs"
+    ]
+  },
+  {
+    "source": "암호화 비밀 저장소를 사용할 수 없습니다.",
+    "files": [
+      "host/backups.mjs"
+    ]
+  },
+  {
+    "source": "암호화됨",
+    "files": [
+      "host/public/settings-ui.mjs"
+    ],
+    "english": "Encrypted"
+  },
+  {
+    "source": "암호화됨 · 저장소 잠금 해제 필요",
+    "files": [
+      "host/public/settings-ui.mjs"
+    ],
+    "english": "Encrypted · unlock the vault to restore"
+  },
+  {
+    "source": "암호화하지 않는 LAN 호스트를 찾았습니다. 연결 전에 주소를 확인하세요.",
+    "files": [
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
+    "source": "암호화하지 않는 Wi-Fi 허용",
+    "files": [
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
+    "source": "앱 종료 시 ADB 서버 정지",
+    "files": [
+      "host/public/settings-ui.mjs"
+    ]
+  },
+  {
+    "source": "언어",
+    "files": [
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
+    "source": "예: https://192.168.0.10:8841",
+    "files": [
+      "android/app/src/main/java/app/opendeck/client/MainActivity.java"
+    ]
+  },
+  {
+    "source": "예상하지 못한 Android 도구 경로입니다.",
+    "files": [
+      "host/system-tools.mjs"
+    ]
+  },
+  {
+    "source": "인증서 체인을 확인할 수 없습니다.",
+    "files": [
+      "host/network.mjs"
+    ]
+  },
+  {
+    "source": "인증서를 발급했습니다. USB로 태블릿 신뢰 정보를 갱신하세요.",
+    "files": [
+      "host/public/settings-ui.mjs"
+    ],
+    "english": "Certificate issued. Refresh tablet trust over USB."
+  },
+  {
+    "source": "저장소 작업을 확인하세요.",
+    "files": [
+      "host/server.mjs"
+    ]
+  },
+  {
+    "source": "추가 HTTPS 포트",
+    "files": [
+      "host/public/settings-ui.mjs"
+    ]
+  },
+  {
+    "source": "켜면 다른 개발 도구가 공유하는 ADB 연결도 종료됩니다. 기본값은 끔입니다.",
+    "files": [
+      "host/public/settings-ui.mjs"
+    ]
+  },
+  {
+    "source": "편집기 잠금을 먼저 해제하세요.",
+    "files": [
+      "host/server.mjs"
+    ]
+  },
+  {
+    "source": "함께 사용 모드에서만 적용합니다.",
+    "files": [
+      "host/public/settings-ui.mjs"
+    ]
+  },
+  {
+    "source": "현재 자동 설치는 macOS에서 지원됩니다.",
+    "files": [
+      "host/system-tools.mjs"
+    ]
+  },
+  {
+    "source": "호스트가 준비되지 않았습니다. 다른 앱이 포트 8840을 사용 중인지 확인하세요. 로그: {0}",
+    "files": [
+      "macos/OpenDeck.swift"
+    ]
+  },
+  {
+    "source": "호스트를 시작하지 못했습니다: {0}",
+    "files": [
+      "macos/OpenDeck.swift"
+    ]
+  }
+]

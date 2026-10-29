@@ -1,0 +1,16 @@
+{
+  "deckUnchanged": true,
+  "hostPreferencesUnchanged": true,
+  "pairingsAndDeviceSettingsPreserved": true,
+  "macBuildInfo": {
+    "version": "0.15.0",
+    "build": 27,
+    "commit": "a515eba32b9e4409904e4a318d93bca6c8994747"
+  },
+  "tabletOnline": true,
+  "tabletVersion": "0.15.0",
+  "installedApkMatchesRelease": true,
+  "installedFontMatchesBundledAsset": true,
+  "allFourMacBehaviorsRemainOff": true,
+  "sixEntriesAvailable": true
+}

@@ -1,6 +1,7 @@
 import { spawn } from "node:child_process";
 import os from "node:os";
 import crypto from "node:crypto";
+import { MonitorAlerts } from "./monitor-alerts.mjs";
 import { chrome } from "./chrome.mjs";
 export function command(executable, args, timeout = 3000) {
   return new Promise((resolve, reject) => {
@@ -36,7 +37,7 @@ export function command(executable, args, timeout = 3000) {
   });
 }
 export class Engine {
-  constructor(config, onChange = () => {}, runner = command) {
+  constructor(config, onChange = () => {}, runner = command, options = {}) {
     this.config = config;
     this.onChange = onChange;
     this.runner = runner;
@@ -53,6 +54,7 @@ export class Engine {
     this.todos = {};
     this.history = { cpu: [], memory: [] };
     this.integrations = {};
+    this.monitorAlerts = new MonitorAlerts(options);
     this.navigation = null;
     this.volumeWrite = Promise.resolve();
     this.volumeRevision = 0;
@@ -61,10 +63,19 @@ export class Engine {
     return this.config.pages.flatMap((p) => p.widgets).find((w) => w.id === id);
   }
   state() {
+    const system = this.systemMonitor?.state() || { status: "unavailable" };
+    const grafana = this.grafana?.state() || { widgets: {} };
+    const monitoring = this.monitorAlerts.evaluate(this.config, {
+      system,
+      grafana,
+    });
     return {
       at: Date.now(),
       cpu: this.cpu,
       memory: this.memory,
+      system,
+      grafana,
+      monitoring,
       volume: this.volume,
       muted: this.muted,
       running: [...this.running],
@@ -74,6 +85,13 @@ export class Engine {
       todos: this.todos,
       history: this.history,
       integrations: this.integrations,
+      extensions: this.extensions?.state() || {},
+      notifications: [
+        ...(this.extensions?.notifications || []),
+        ...monitoring.notifications,
+      ]
+        .sort((a, b) => a.createdAt - b.createdAt)
+        .slice(-80),
     };
   }
   metrics() {
@@ -109,6 +127,7 @@ export class Engine {
       if (this.history[key].length > 120) this.history[key].shift();
     }
     this.connectors?.tick();
+    this.grafana?.tick();
     this.cpu = total ? Math.round(100 * (1 - idle / total)) : 0;
     if (process.platform !== "darwin" || this.memory === 0)
       this.memory = Math.round(100 * (1 - os.freemem() / os.totalmem()));
@@ -120,7 +139,20 @@ export class Engine {
           end: 0,
           finished: true,
         });
-    if (process.platform === "darwin" && !this.readingMemory) {
+    const system = this.systemMonitor?.state();
+    if (
+      system?.status === "connected" &&
+      system.memory?.totalBytes &&
+      system.memory.usedBytes !== null
+    )
+      this.memory = Math.round(
+        (system.memory.usedBytes / system.memory.totalBytes) * 100,
+      );
+    if (
+      process.platform === "darwin" &&
+      system?.status !== "connected" &&
+      !this.readingMemory
+    ) {
       this.readingMemory = true;
       this.runner("/usr/bin/vm_stat", [], 1500)
         .then((text) => {
@@ -419,6 +451,13 @@ export class Engine {
         case "http":
           if (!this.connectors) throw Error("연동이 준비되지 않았습니다.");
           await this.connectors.run(a.integrationId);
+          break;
+        case "extension":
+          await this.extensions.invoke(
+            a.extensionId,
+            a.operation,
+            a.parameters || {},
+          );
           break;
         case "plugin":
           if (!this.plugins) throw Error("플러그인이 연결되지 않았습니다.");

@@ -1,6 +1,6 @@
 {
   "name": "open-deck",
-  "version": "0.3.0",
+  "version": "0.15.0",
   "private": true,
   "type": "module",
   "description": "A local-first macro deck with a macOS host and a native Android companion",
@@ -14,5 +14,8 @@
   },
   "dependencies": {
     "ws": "8.22.0"
+  },
+  "devDependencies": {
+    "@babel/parser": "7.29.7"
   }
 }

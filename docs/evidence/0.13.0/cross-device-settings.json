@@ -1,0 +1,13 @@
+{
+  "macEditorToTablet": {
+    "saved": "light",
+    "observedTablet": "밝게"
+  },
+  "tabletToMacEditor": {
+    "saved": "system",
+    "observedMacEditor": "시스템 설정"
+  },
+  "all151ValuesRestored": true,
+  "appRunning": true,
+  "appVersion": "3.4.2"
+}

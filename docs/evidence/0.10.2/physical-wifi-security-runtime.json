@@ -1,0 +1,395 @@
+{
+  "appVersion": "0.10.2",
+  "verifiedAt": "2026-10-23T09:10:56.983760+00:00",
+  "result": "pass",
+  "scope": {
+    "sharedSetting": "allowInsecureWifi",
+    "physicalAndroidStages": 5,
+    "androidAndHostValueChecks": 10,
+    "macNativeHarnessChecks": 3,
+    "transportChecksPerStage": 6,
+    "transportChecksTotal": 30,
+    "valueChecksPassed": 13,
+    "transportChecksPassed": 30,
+    "directAndroidTransportUiChecksPassed": 5,
+    "mismatches": 0
+  },
+  "surfaces": {
+    "android": "Physical tablet using isolated verification APK",
+    "mac": "Isolated native WKWebView harness using shipped settings-ui",
+    "transport": "HTTPS-only Wi-Fi to the synthetic LAN listener18842; wireless ADB is the control channel and bootstrap reverse18840 is absent at each result"
+  },
+  "sequence": [
+    {
+      "step": "01-wifi-default-false",
+      "expected": false,
+      "androidNativeControl": false,
+      "syntheticHostValue": false,
+      "appVersion": "0.10.2",
+      "appVersionCode": 18,
+      "settingsRevision": 2,
+      "transportChecks": {
+        "bootstrapReverseAbsent": true,
+        "exactPairedDeviceUsesWifi": true,
+        "remoteAddressMatchesSelectedTablet": true,
+        "onlyHttps18842Advertised": true,
+        "stableConnectionSnapshot": true,
+        "wirelessAdbTargetMatched": true
+      },
+      "recordedAt": "2026-10-23T09:07:38.923571+00:00",
+      "result": "pass",
+      "capture": "01-wifi-default-false.json"
+    },
+    {
+      "step": "02-wifi-mac-ui-true",
+      "expected": true,
+      "androidNativeControl": true,
+      "syntheticHostValue": true,
+      "appVersion": "0.10.2",
+      "appVersionCode": 18,
+      "settingsRevision": 3,
+      "transportChecks": {
+        "bootstrapReverseAbsent": true,
+        "exactPairedDeviceUsesWifi": true,
+        "remoteAddressMatchesSelectedTablet": true,
+        "onlyHttps18842Advertised": true,
+        "stableConnectionSnapshot": true,
+        "wirelessAdbTargetMatched": true
+      },
+      "recordedAt": "2026-10-23T09:08:17.276914+00:00",
+      "result": "pass",
+      "capture": "02-wifi-mac-ui-true.json"
+    },
+    {
+      "step": "03-wifi-app-restart-true",
+      "expected": true,
+      "androidNativeControl": true,
+      "syntheticHostValue": true,
+      "appVersion": "0.10.2",
+      "appVersionCode": 18,
+      "settingsRevision": 4,
+      "transportChecks": {
+        "bootstrapReverseAbsent": true,
+        "exactPairedDeviceUsesWifi": true,
+        "remoteAddressMatchesSelectedTablet": true,
+        "onlyHttps18842Advertised": true,
+        "stableConnectionSnapshot": true,
+        "wirelessAdbTargetMatched": true
+      },
+      "recordedAt": "2026-10-23T09:08:29.177059+00:00",
+      "result": "pass",
+      "capture": "03-wifi-app-restart-true.json"
+    },
+    {
+      "step": "04-wifi-device-false",
+      "expected": false,
+      "androidNativeControl": false,
+      "syntheticHostValue": false,
+      "appVersion": "0.10.2",
+      "appVersionCode": 18,
+      "settingsRevision": 5,
+      "transportChecks": {
+        "bootstrapReverseAbsent": true,
+        "exactPairedDeviceUsesWifi": true,
+        "remoteAddressMatchesSelectedTablet": true,
+        "onlyHttps18842Advertised": true,
+        "stableConnectionSnapshot": true,
+        "wirelessAdbTargetMatched": true
+      },
+      "recordedAt": "2026-10-23T09:08:53.082293+00:00",
+      "result": "pass",
+      "capture": "04-wifi-device-false.json"
+    },
+    {
+      "step": "05-wifi-both-restart-false",
+      "expected": false,
+      "androidNativeControl": false,
+      "syntheticHostValue": false,
+      "appVersion": "0.10.2",
+      "appVersionCode": 18,
+      "settingsRevision": 6,
+      "transportChecks": {
+        "bootstrapReverseAbsent": true,
+        "exactPairedDeviceUsesWifi": true,
+        "remoteAddressMatchesSelectedTablet": true,
+        "onlyHttps18842Advertised": true,
+        "stableConnectionSnapshot": true,
+        "wirelessAdbTargetMatched": true
+      },
+      "recordedAt": "2026-10-23T09:09:35.371604+00:00",
+      "result": "pass",
+      "capture": "05-wifi-both-restart-false.json"
+    }
+  ],
+  "macHarnessChecks": [
+    {
+      "capture": "02-mac-ui-true.json",
+      "surface": "isolated native WKWebView harness using shipped settings-ui",
+      "observed": true,
+      "result": "pass",
+      "accessibilityControlRecorded": true
+    },
+    {
+      "capture": "04-mac-ui-after-device-false.json",
+      "surface": "isolated native WKWebView harness using shipped settings-ui",
+      "observed": false,
+      "result": "pass",
+      "accessibilityControlRecorded": true
+    },
+    {
+      "capture": "05-mac-ui-after-both-restart.json",
+      "surface": "isolated native WKWebView harness using shipped settings-ui",
+      "observed": false,
+      "result": "pass",
+      "accessibilityControlRecorded": true
+    }
+  ],
+  "directAndroidConnectionUi": {
+    "capture": "00-active-connection-ui.json",
+    "recordedAt": "2026-10-23T09:07:29.053405+00:00",
+    "checks": {
+      "androidConnectionInfoReadDirectly": true,
+      "androidConnectionShownConnected": true,
+      "androidActiveUrlHttps18842": true,
+      "wifiOnlySelected": true,
+      "bootstrapReverseRemovedBeforeEvidence": true
+    },
+    "result": "pass"
+  },
+  "sourceComparison": {
+    "verificationApkSource": "ff27316",
+    "productionApkSource": "452b0cf",
+    "sourceProvenance": "Commit identities supplied by the root build/test runner; installed package version is checked separately.",
+    "files": [
+      {
+        "file": "android/app/src/main/java/app/opendeck/client/PinnedConnection.java",
+        "identical": true,
+        "verificationSha256": "46ed541d80f1bd692939a987c3bcb752503890a3d9db1760f85a10bb3a0c8988",
+        "productionSha256": "46ed541d80f1bd692939a987c3bcb752503890a3d9db1760f85a10bb3a0c8988"
+      },
+      {
+        "file": "android/app/src/main/java/app/opendeck/client/ClientSettingsPolicy.java",
+        "identical": true,
+        "verificationSha256": "d8bbeda4139546c2281ab8eba7eef74b841e1912be3abc8f9d03e883b441b80f",
+        "productionSha256": "d8bbeda4139546c2281ab8eba7eef74b841e1912be3abc8f9d03e883b441b80f"
+      },
+      {
+        "file": "android/app/src/main/java/app/opendeck/client/ClientSettingsSync.java",
+        "identical": true,
+        "verificationSha256": "0bc139c676f817b06091fb65bda4b5110a3b48e17e7cd7ef6084e942ad9fa6a9",
+        "productionSha256": "0bc139c676f817b06091fb65bda4b5110a3b48e17e7cd7ef6084e942ad9fa6a9"
+      },
+      {
+        "file": "android/app/src/main/java/app/opendeck/client/SettingsControlBinding.java",
+        "identical": true,
+        "verificationSha256": "a3d97292556645f67cff22385554b09308b1429756216e9149dd2f7ceb16d992",
+        "productionSha256": "a3d97292556645f67cff22385554b09308b1429756216e9149dd2f7ceb16d992"
+      },
+      {
+        "file": "android/app/src/main/java/app/opendeck/client/ClientSettingsPanel.java",
+        "identical": true,
+        "verificationSha256": "d33295669eb8be98160b3f53f29f2b1635745bba909bbc73eb046250bc3d2496",
+        "productionSha256": "d33295669eb8be98160b3f53f29f2b1635745bba909bbc73eb046250bc3d2496"
+      },
+      {
+        "file": "android/app/src/main/AndroidManifest.xml",
+        "identical": true,
+        "verificationSha256": "5b9246bedfb0fb1d4c9b138db8f0b7f4bcac6727a857f261857d87902c249337",
+        "productionSha256": "5b9246bedfb0fb1d4c9b138db8f0b7f4bcac6727a857f261857d87902c249337"
+      },
+      {
+        "file": "android/app/src/main/res/xml/network_security.xml",
+        "identical": true,
+        "verificationSha256": "02c137467870044b4987bc7273cda297300122cdd2593fa3b1be9ae99dc72ac8",
+        "productionSha256": "02c137467870044b4987bc7273cda297300122cdd2593fa3b1be9ae99dc72ac8"
+      },
+      {
+        "file": "host/server.mjs",
+        "identical": true,
+        "verificationSha256": "cf26dbafa695f48bae57ebdefb4503f4537b99fa8b2e351a91eff3cd89ab2121",
+        "productionSha256": "cf26dbafa695f48bae57ebdefb4503f4537b99fa8b2e351a91eff3cd89ab2121"
+      },
+      {
+        "file": "host/settings.mjs",
+        "identical": true,
+        "verificationSha256": "b4c891d9a21338d8670da337ad89b7f6d96767f542e8f302baceb06539455f54",
+        "productionSha256": "b4c891d9a21338d8670da337ad89b7f6d96767f542e8f302baceb06539455f54"
+      },
+      {
+        "file": "host/network.mjs",
+        "identical": true,
+        "verificationSha256": "3fc2b33ac252c35aaa9b81ac3adeac98397ae41242c7b69ec501a9a63d313aaf",
+        "productionSha256": "3fc2b33ac252c35aaa9b81ac3adeac98397ae41242c7b69ec501a9a63d313aaf"
+      },
+      {
+        "file": "host/network-listeners.mjs",
+        "identical": true,
+        "verificationSha256": "4ddd68421192328f581398c01d6d86e1887f5ef9eb8dc47336a1db7e579a524a",
+        "productionSha256": "4ddd68421192328f581398c01d6d86e1887f5ef9eb8dc47336a1db7e579a524a"
+      },
+      {
+        "file": "host/public/settings-ui.mjs",
+        "identical": true,
+        "verificationSha256": "76ad5552f77ac138d358cc36abe4046f47a2f1e1a5d4d2c1f54cebe7f4a11a1d",
+        "productionSha256": "76ad5552f77ac138d358cc36abe4046f47a2f1e1a5d4d2c1f54cebe7f4a11a1d"
+      },
+      {
+        "file": "host/public/device-drafts.mjs",
+        "identical": true,
+        "verificationSha256": "5bfb8c069e31544e3fb3aa3380e8070bcee3d0b86a290550dd1179d6cc1d5124",
+        "productionSha256": "5bfb8c069e31544e3fb3aa3380e8070bcee3d0b86a290550dd1179d6cc1d5124"
+      }
+    ],
+    "mainActivityMethods": [
+      {
+        "method": "requestWithToken",
+        "identical": true,
+        "verificationSha256": "f12ef074482190ef7755b3d1719034222b5c5b95f074b0182ef4dc6fb3ecd4e7",
+        "productionSha256": "f12ef074482190ef7755b3d1719034222b5c5b95f074b0182ef4dc6fb3ecd4e7"
+      },
+      {
+        "method": "wifiAvailable",
+        "identical": true,
+        "verificationSha256": "1ea521227736ea329980ac3fe91e4b8615af77af812dad83a5943cf6ee2ed741",
+        "productionSha256": "1ea521227736ea329980ac3fe91e4b8615af77af812dad83a5943cf6ee2ed741"
+      },
+      {
+        "method": "endpoints",
+        "identical": true,
+        "verificationSha256": "0fcd0a878a98341bc5a191da87c0a127c752784f6d3987b52823e87adea72879",
+        "productionSha256": "0fcd0a878a98341bc5a191da87c0a127c752784f6d3987b52823e87adea72879"
+      },
+      {
+        "method": "learnNetwork",
+        "identical": true,
+        "verificationSha256": "789ffde18f1b0a8b125537c3895e7f01ce4e2abdfb4b60ce1eb9913deddabbe3",
+        "productionSha256": "789ffde18f1b0a8b125537c3895e7f01ce4e2abdfb4b60ce1eb9913deddabbe3"
+      },
+      {
+        "method": "validWifiUrl",
+        "identical": true,
+        "verificationSha256": "050ab72b885518455986c74df1c4ef688b3932f55840125d5b01072591e7c2c3",
+        "productionSha256": "050ab72b885518455986c74df1c4ef688b3932f55840125d5b01072591e7c2c3"
+      },
+      {
+        "method": "reconnect",
+        "identical": true,
+        "verificationSha256": "e0a11ee89eb72781685a92449f4fc56db1a37b6e2467886b0ba535eb31b09255",
+        "productionSha256": "e0a11ee89eb72781685a92449f4fc56db1a37b6e2467886b0ba535eb31b09255"
+      },
+      {
+        "method": "connectionSettings",
+        "identical": true,
+        "verificationSha256": "c692c9c1d209470bf228aa746cd103c19581f7497ff157445fc46f10e8dc913d",
+        "productionSha256": "c692c9c1d209470bf228aa746cd103c19581f7497ff157445fc46f10e8dc913d"
+      },
+      {
+        "method": "saveClientSetting",
+        "identical": true,
+        "verificationSha256": "db562029893e226c0f559591d5f9003327ff6041b3d7074151c5fb63d5d9a1ab",
+        "productionSha256": "db562029893e226c0f559591d5f9003327ff6041b3d7074151c5fb63d5d9a1ab"
+      },
+      {
+        "method": "flushDeviceSettings",
+        "identical": true,
+        "verificationSha256": "04aa5c6e2dbef96297b4bc6fa66b063843e8c7fc053e525dda0a5b36614338a1",
+        "productionSha256": "04aa5c6e2dbef96297b4bc6fa66b063843e8c7fc053e525dda0a5b36614338a1"
+      },
+      {
+        "method": "receiveDeviceSettings",
+        "identical": true,
+        "verificationSha256": "ab14632d3e35a91aea88d477a816a8649a7d3e5dad8c5bf0b5c7c0c4a79dab59",
+        "productionSha256": "ab14632d3e35a91aea88d477a816a8649a7d3e5dad8c5bf0b5c7c0c4a79dab59"
+      },
+      {
+        "method": "persistClientSettings",
+        "identical": true,
+        "verificationSha256": "1e769c47e2c819230a04b60d48bed15e3ef5ce4564059f9772aba9a47a21704d",
+        "productionSha256": "1e769c47e2c819230a04b60d48bed15e3ef5ce4564059f9772aba9a47a21704d"
+      },
+      {
+        "method": "loadClientSettings",
+        "identical": true,
+        "verificationSha256": "33c97e3c30d7d5655388867e08f1bba60cc1f089d2e9e911f817940d30cc5dbe",
+        "productionSha256": "33c97e3c30d7d5655388867e08f1bba60cc1f089d2e9e911f817940d30cc5dbe"
+      },
+      {
+        "method": "deviceSettings",
+        "identical": true,
+        "verificationSha256": "de0ce9b756037c33377fbf01569e333bfd9c6a11ae725585e0a039b4cd67eb54",
+        "productionSha256": "de0ce9b756037c33377fbf01569e333bfd9c6a11ae725585e0a039b4cd67eb54"
+      }
+    ],
+    "eventLoopMatchesExceptNavigationLabelCache": true,
+    "securitySettingAndTransportCodeIdentical": true,
+    "knownDifference": "Production adds offline profile/page label metadata caching. The verification variant also uses its separate application ID and bootstrap port18840 instead of production8840.",
+    "fullApkBinaryIdentityClaimed": false
+  },
+  "limitations": [
+    "The native Mac surface is a separate verification harness, not the shipping Mac application shell.",
+    "The verification APK was built from ff27316, while production was built from452b0cf. The audited setting, pinning, networking, sync and settings UI code is identical; offline navigation label caching differs.",
+    "This verifies preference synchronization and persistence over encrypted Wi-Fi. It does not test plaintext HTTP transport acceptance.",
+    "Each stage verifies host-side paired-device identity, peer address, TLS-only endpoints and tunnel absence. A separate initial direct Android connection-info UI observation confirms the active HTTPS URL and Wi-Fi-only mode; this direct URL observation is not repeated by the helper at every stage."
+  ],
+  "sourceCaptures": [
+    {
+      "filename": "00-active-connection-ui.json",
+      "sha256": "0fa154846b5482f2d548c411ae073b04b28f31ce37af7a78f81478f7b078c12c"
+    },
+    {
+      "filename": "01-wifi-default-false.json",
+      "sha256": "b680b2bf6a4cae5365c217965bb08edac0a8b42e106e7995302418e0cd510e2f"
+    },
+    {
+      "filename": "02-wifi-mac-ui-true.json",
+      "sha256": "3667d6e7662143088c7a5735db11d27d056989b9493711175742a8c04e2080f6"
+    },
+    {
+      "filename": "03-wifi-app-restart-true.json",
+      "sha256": "3b16dfcd96b8b039916b3a4ccdf9e967145e5bf712dd19ace7b96fa5b070ce5d"
+    },
+    {
+      "filename": "04-wifi-device-false.json",
+      "sha256": "b8c18f4b47d50fac615c98c4d03ad1141637e17fee6f73620fb63e5b325ec427"
+    },
+    {
+      "filename": "05-wifi-both-restart-false.json",
+      "sha256": "50b955019b72bfce1b5e9b89f382b4a56ebbf5dc046573f5bd567f3242b5daf6"
+    },
+    {
+      "filename": "02-mac-ui-true.json",
+      "sha256": "82cea8ddd64a74ce69646e5f33cae8f573b5602337bdbbc6200464399c49f3a2"
+    },
+    {
+      "filename": "04-mac-ui-after-device-false.json",
+      "sha256": "b40af40f0c3989d08f81024c116e826e9f09c32cb4697bfc46f52d1f1d936041"
+    },
+    {
+      "filename": "05-mac-ui-after-both-restart.json",
+      "sha256": "8e37b738eddd9a2c754c2770c6dde7f10e7359d6b64e7fcbd66548348e27260c"
+    },
+    {
+      "filename": "02-wifi-mac-ui-true.png",
+      "sha256": "5fa03b399cec4d22b9a9db444b5b14b90fcdcf14e0b5e19c85d039ab1dbe9cb4"
+    },
+    {
+      "filename": "03-wifi-app-restart-true.png",
+      "sha256": "dd599c13d0aa1a0cce2a3c758499567a25b1d3ea3c7d438b6d5873f93cbad606"
+    },
+    {
+      "filename": "04-wifi-device-false.png",
+      "sha256": "6b0ddbdf3b3e5f9679b147cd68d191c35a8e1961b5d7a918db4f2918c4aa0829"
+    },
+    {
+      "filename": "05-wifi-both-restart-false.png",
+      "sha256": "399d7f559121afa2fb401d2b5b2b2af37e7ea012942a14d0bf417bc55376949a"
+    }
+  ],
+  "publicScreenshot": {
+    "filename": "physical-wifi-security-enabled.png",
+    "source": "02-wifi-mac-ui-true.png",
+    "sha256": "5fa03b399cec4d22b9a9db444b5b14b90fcdcf14e0b5e19c85d039ab1dbe9cb4",
+    "visualPrivacyReview": "Synthetic blank fixture background and generic tablet model only; no IP address, token, device identifier, personal deck name or work content visible.",
+    "edited": false
+  }
+}

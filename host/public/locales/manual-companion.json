@@ -1,0 +1,42 @@
+{
+  "연결된 태블릿 앱 자동 업데이트": {
+    "en": "Automatically update connected tablet apps",
+    "ar": "تحديث تطبيقات الأجهزة اللوحية المتصلة تلقائيًا",
+    "pt-BR": "Atualizar automaticamente os apps dos tablets conectados",
+    "cs": "Automaticky aktualizovat aplikace připojených tabletů",
+    "nl": "Apps op verbonden tablets automatisch bijwerken",
+    "fr": "Mettre à jour automatiquement les applications des tablettes connectées",
+    "de": "Apps verbundener Tablets automatisch aktualisieren",
+    "hi": "कनेक्ट किए गए टैबलेट के ऐप अपने-आप अपडेट करें",
+    "id": "Perbarui aplikasi tablet yang terhubung secara otomatis",
+    "it": "Aggiorna automaticamente le app dei tablet collegati",
+    "ja": "接続したタブレットのアプリを自動更新",
+    "pl": "Automatycznie aktualizuj aplikacje podłączonych tabletów",
+    "ru": "Автоматически обновлять приложения подключённых планшетов",
+    "zh": "自动更新已连接平板电脑的应用",
+    "es": "Actualizar automáticamente las apps de las tabletas conectadas",
+    "zh-TW": "自動更新已連線平板的應用程式",
+    "tr": "Bağlı tabletlerin uygulamalarını otomatik güncelle",
+    "uk": "Автоматично оновлювати застосунки підключених планшетів"
+  },
+  "Open Deck이 이미 설치된 ADB 기기만 업데이트합니다. 새 버전과 체크섬을 확인하며 기존 앱과 서명이 일치해야 설치됩니다. 기본값은 끔입니다.": {
+    "en": "Only updates ADB devices that already have Open Deck. Checks the version and checksum; Android requires the existing app signature. Off by default.",
+    "ar": "يُحدّث فقط أجهزة ADB المثبت عليها Open Deck بالفعل. يتحقق من الإصدار والمجموع الاختباري، ويشترط Android مطابقة توقيع التطبيق الحالي. معطّل افتراضيًا.",
+    "pt-BR": "Atualiza apenas dispositivos ADB que já tenham o Open Deck. Verifica a versão e a soma de verificação; o Android exige a assinatura do app existente. Desativado por padrão.",
+    "cs": "Aktualizuje pouze zařízení ADB, na kterých je již nainstalován Open Deck. Kontroluje verzi a kontrolní součet; Android vyžaduje shodný podpis se stávající aplikací. Ve výchozím stavu vypnuto.",
+    "nl": "Werkt alleen ADB-apparaten bij waarop Open Deck al is geïnstalleerd. Controleert de versie en controlesom; Android vereist de handtekening van de bestaande app. Standaard uitgeschakeld.",
+    "fr": "Met à jour uniquement les appareils ADB sur lesquels Open Deck est déjà installé. Vérifie la version et la somme de contrôle ; Android exige la signature de l’application existante. Désactivé par défaut.",
+    "de": "Aktualisiert nur ADB-Geräte, auf denen Open Deck bereits installiert ist. Prüft Version und Prüfsumme; Android verlangt die Signatur der vorhandenen App. Standardmäßig deaktiviert.",
+    "hi": "केवल उन ADB डिवाइसों को अपडेट करता है जिन पर Open Deck पहले से इंस्टॉल है। संस्करण और चेकसम जाँचे जाते हैं; Android को मौजूदा ऐप के हस्ताक्षर से मेल होना ज़रूरी है। डिफ़ॉल्ट रूप से बंद है।",
+    "id": "Hanya memperbarui perangkat ADB yang sudah memiliki Open Deck. Memeriksa versi dan checksum; Android mewajibkan tanda tangan yang sama dengan aplikasi yang terpasang. Nonaktif secara default.",
+    "it": "Aggiorna solo i dispositivi ADB su cui Open Deck è già installato. Controlla versione e checksum; Android richiede la firma dell’app esistente. Disattivato per impostazione predefinita.",
+    "ja": "Open DeckがすでにインストールされているADB端末のみ更新します。バージョンとチェックサムを確認し、Androidでは既存アプリと同じ署名が必要です。初期設定はオフです。",
+    "pl": "Aktualizuje tylko urządzenia ADB, na których Open Deck jest już zainstalowany. Sprawdza wersję i sumę kontrolną; Android wymaga podpisu zgodnego z istniejącą aplikacją. Domyślnie wyłączone.",
+    "ru": "Обновляет только устройства ADB, на которых Open Deck уже установлен. Проверяет версию и контрольную сумму; Android требует совпадения подписи с установленным приложением. По умолчанию отключено.",
+    "zh": "仅更新已安装Open Deck的ADB设备。会检查版本和校验和；Android要求与现有应用的签名一致。默认关闭。",
+    "es": "Solo actualiza dispositivos ADB que ya tengan Open Deck instalado. Comprueba la versión y la suma de verificación; Android exige la firma de la app existente. Desactivado de forma predeterminada.",
+    "zh-TW": "僅更新已安裝Open Deck的ADB裝置。會檢查版本與校驗碼；Android要求與現有應用程式的簽章相同。預設關閉。",
+    "tr": "Yalnızca Open Deck’in zaten yüklü olduğu ADB cihazlarını günceller. Sürümü ve sağlama toplamını denetler; Android, mevcut uygulamanın imzasıyla eşleşme gerektirir. Varsayılan olarak kapalıdır.",
+    "uk": "Оновлює лише пристрої ADB, на яких Open Deck уже встановлено. Перевіряє версію та контрольну суму; Android вимагає збігу підпису з установленим застосунком. Типово вимкнено."
+  }
+}

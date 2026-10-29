@@ -35,7 +35,7 @@ export async function setSecret(id, value) {
     { timeout: 5000 },
   );
 }
-async function secret(id) {
+export async function readSecret(id) {
   if (process.platform !== "darwin") return "";
   try {
     return (
@@ -56,10 +56,18 @@ async function secret(id) {
     return "";
   }
 }
-export async function httpRequest(i, fetcher = fetch) {
-  const headers = { Accept: "application/json" };
+export async function httpRequest(
+  i,
+  fetcher = fetch,
+  userAgent = "OpenDeck",
+  secretReader = readSecret,
+) {
+  const headers = {
+    Accept: "application/json",
+    "User-Agent": userAgent || "OpenDeck",
+  };
   if (i.auth) {
-    const token = await secret(i.id);
+    const token = await secretReader(i.id);
     if (!token) throw Error("맥에서 연동 인증 토큰을 등록하세요.");
     headers.Authorization = "Bearer " + token;
   }
@@ -120,7 +128,12 @@ export class Connectors {
     this.status[id] = { state: "loading", at: Date.now() };
     this.onChange();
     try {
-      const value = await httpRequest(i);
+      const value = await httpRequest(
+        i,
+        fetch,
+        this.getSettings?.().http.userAgent,
+        this.secret,
+      );
       if (this.closed) return;
       const current = this.getConfig().integrations.find((x) => x.id === id);
       if (!current) return;

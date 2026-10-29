@@ -1,0 +1,15 @@
+{
+  "checks": [
+    "Unset Mac controls match Android defaults: System theme and 80 ms vibration",
+    "Android changes update open Mac controls without replacing the focused input, selection, or local edits",
+    "Device draft persists across category switches",
+    "Individual Apply sends only local fields and preserves another device/app draft",
+    "Footer Save saves app settings and all remaining device edits",
+    "Cmd+S saves a text field before blur",
+    "After saving, subsequent Android edits remain live",
+    "Discard restores newest server values and clears unsaved status",
+    "Closing with confirmed discard clears only settings drafts and its unload warning"
+  ],
+  "pageErrors": [],
+  "passed": true
+}

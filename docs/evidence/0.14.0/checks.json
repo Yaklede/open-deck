@@ -1,0 +1,32 @@
+{
+  "version": "0.14.0",
+  "build": 25,
+  "status": "released-and-verified",
+  "hostTests": {
+    "passed": 284,
+    "failed": 0
+  },
+  "androidReleaseLint": {
+    "errors": 0,
+    "warnings": 22
+  },
+  "physicalTabletModel": "Samsung Galaxy Tab S7 (SM-T870)",
+  "actualFanTelemetryVerified": 2,
+  "actualFanSpeedWriteVerified": true,
+  "actualManualSlider95Verified": true,
+  "fanCurveHardwareVerification": "native tablet editor applied; actual target RPM read back",
+  "systemAutomaticRestoreVerified": true,
+  "nativeClientCrashRecoveryVerified": true,
+  "lastDataRetainedAndMarkedStale": true,
+  "nativeClientRecoverySeconds": 2.755,
+  "brightnessNativeSliderVerified": true,
+  "audioNativeSliderVerified": true,
+  "realKeepAwakeAssertionVerified": true,
+  "macAndAndroidAppsRestarted": true,
+  "existingPagesPairingsAndSettingsPreserved": true,
+  "administratorInstalledModuleVerified": true,
+  "hardwareSettingsRestoredAfterTests": true,
+  "macRebootPerformed": false,
+  "publishedReleaseUpdated": true,
+  "publicDownloadsAndChecksumsVerified": true
+}

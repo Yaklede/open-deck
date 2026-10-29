@@ -1,0 +1,2354 @@
+{
+  "id": "vorssaint",
+  "name": "Vorssaint",
+  "upstreamVersion": "3.4.2",
+  "upstreamCommit": "833967fd45153fc9dc95651d34c867f5c4aee7f1",
+  "domain": "com.vorssaint.utils",
+  "groups": [
+    {
+      "id": "energyDisplay",
+      "label": {
+        "ko": "에너지·화면",
+        "en": "Energy & displays"
+      },
+      "icon": "power"
+    },
+    {
+      "id": "windowsDock",
+      "label": {
+        "ko": "창·Dock",
+        "en": "Windows & Dock"
+      },
+      "icon": "window"
+    },
+    {
+      "id": "mouseKeyboard",
+      "label": {
+        "ko": "마우스·키보드",
+        "en": "Mouse & keyboard"
+      },
+      "icon": "keyboard"
+    },
+    {
+      "id": "sound",
+      "label": {
+        "ko": "소리",
+        "en": "Sound"
+      },
+      "icon": "volume"
+    },
+    {
+      "id": "clipboardFiles",
+      "label": {
+        "ko": "클립보드·파일",
+        "en": "Clipboard & files"
+      },
+      "icon": "clipboard"
+    },
+    {
+      "id": "dynamicIsland",
+      "label": {
+        "ko": "Dynamic Island",
+        "en": "Dynamic Island"
+      },
+      "icon": "spark"
+    },
+    {
+      "id": "monitor",
+      "label": {
+        "ko": "메뉴 막대 모니터",
+        "en": "Menu bar monitoring"
+      },
+      "icon": "gauges"
+    },
+    {
+      "id": "tools",
+      "label": {
+        "ko": "앱·도구",
+        "en": "Apps & tools"
+      },
+      "icon": "tools"
+    },
+    {
+      "id": "general",
+      "label": {
+        "ko": "공통 설정",
+        "en": "General"
+      },
+      "icon": "settings"
+    }
+  ],
+  "features": [
+    {
+      "id": "switcher",
+      "group": "windowsDock",
+      "label": {
+        "ko": "앱 전환",
+        "en": "Switcher"
+      },
+      "fields": [
+        {
+          "key": "featureAvailable.switcher",
+          "label": {
+            "ko": "기능 표시",
+            "en": "Show feature"
+          },
+          "kind": "boolean",
+          "default": true
+        },
+        {
+          "key": "switcherEnabled",
+          "label": {
+            "ko": "동작 켜기",
+            "en": "Switcher"
+          },
+          "kind": "boolean",
+          "default": true
+        }
+      ]
+    },
+    {
+      "id": "dockPreview",
+      "group": "windowsDock",
+      "label": {
+        "ko": "Dock 미리보기",
+        "en": "Dock preview"
+      },
+      "fields": [
+        {
+          "key": "featureAvailable.dockPreview",
+          "label": {
+            "ko": "기능 표시",
+            "en": "Show feature"
+          },
+          "kind": "boolean",
+          "default": true
+        },
+        {
+          "key": "dockPreviewEnabled",
+          "label": {
+            "ko": "동작 켜기",
+            "en": "Dock preview"
+          },
+          "kind": "boolean",
+          "default": false
+        }
+      ]
+    },
+    {
+      "id": "dockClick",
+      "group": "windowsDock",
+      "label": {
+        "ko": "Dock 클릭 동작",
+        "en": "Dock click"
+      },
+      "fields": [
+        {
+          "key": "featureAvailable.dockClick",
+          "label": {
+            "ko": "기능 표시",
+            "en": "Show feature"
+          },
+          "kind": "boolean",
+          "default": true
+        },
+        {
+          "key": "dockClickMinimize",
+          "label": {
+            "ko": "창 최소화",
+            "en": "Dock click minimize"
+          },
+          "kind": "boolean",
+          "default": false
+        },
+        {
+          "key": "dockClickHide",
+          "label": {
+            "ko": "앱 숨기기",
+            "en": "Dock click hide"
+          },
+          "kind": "boolean",
+          "default": false
+        },
+        {
+          "key": "dockClickCycleWindows",
+          "label": {
+            "ko": "창 순환",
+            "en": "Dock click cycle windows"
+          },
+          "kind": "boolean",
+          "default": false
+        }
+      ]
+    },
+    {
+      "id": "windowMaximizer",
+      "group": "windowsDock",
+      "label": {
+        "ko": "초록 버튼 최대화",
+        "en": "Window maximizer"
+      },
+      "fields": [
+        {
+          "key": "featureAvailable.windowMaximizer",
+          "label": {
+            "ko": "기능 표시",
+            "en": "Show feature"
+          },
+          "kind": "boolean",
+          "default": true
+        },
+        {
+          "key": "windowMaximizeEnabled",
+          "label": {
+            "ko": "동작 켜기",
+            "en": "Window maximize"
+          },
+          "kind": "boolean",
+          "default": false
+        }
+      ]
+    },
+    {
+      "id": "windowLayout",
+      "group": "windowsDock",
+      "label": {
+        "ko": "창 배치",
+        "en": "Window layout"
+      },
+      "fields": [
+        {
+          "key": "featureAvailable.windowLayout",
+          "label": {
+            "ko": "기능 표시",
+            "en": "Show feature"
+          },
+          "kind": "boolean",
+          "default": true
+        },
+        {
+          "key": "windowLayoutShortcutsEnabled",
+          "label": {
+            "ko": "창 배치 단축키",
+            "en": "Layout shortcuts"
+          },
+          "kind": "boolean",
+          "default": false
+        },
+        {
+          "key": "windowGestureEnabled",
+          "label": {
+            "ko": "드래그 제스처",
+            "en": "Drag gestures"
+          },
+          "kind": "boolean",
+          "default": false
+        },
+        {
+          "key": "windowEdgeSnapEnabled",
+          "label": {
+            "ko": "화면 가장자리 배치",
+            "en": "Screen edge snapping"
+          },
+          "kind": "boolean",
+          "default": false
+        }
+      ]
+    },
+    {
+      "id": "autoQuit",
+      "group": "windowsDock",
+      "label": {
+        "ko": "마지막 창을 닫으면 종료",
+        "en": "Auto quit"
+      },
+      "fields": [
+        {
+          "key": "featureAvailable.autoQuit",
+          "label": {
+            "ko": "기능 표시",
+            "en": "Show feature"
+          },
+          "kind": "boolean",
+          "default": true
+        },
+        {
+          "key": "autoQuitEnabled",
+          "label": {
+            "ko": "동작 켜기",
+            "en": "Auto quit"
+          },
+          "kind": "boolean",
+          "default": false
+        }
+      ]
+    },
+    {
+      "id": "spacesOrder",
+      "group": "windowsDock",
+      "label": {
+        "ko": "데스크탑 순서 고정",
+        "en": "Spaces order"
+      },
+      "fields": [
+        {
+          "key": "featureAvailable.spacesOrder",
+          "label": {
+            "ko": "기능 표시",
+            "en": "Show feature"
+          },
+          "kind": "boolean",
+          "default": false
+        },
+        {
+          "key": "spacesOrderEnabled",
+          "label": {
+            "ko": "동작 켜기",
+            "en": "Spaces order"
+          },
+          "kind": "boolean",
+          "default": false
+        }
+      ]
+    },
+    {
+      "id": "scrollInverter",
+      "group": "mouseKeyboard",
+      "label": {
+        "ko": "스크롤 방향",
+        "en": "Scroll inverter"
+      },
+      "fields": [
+        {
+          "key": "featureAvailable.scrollInverter",
+          "label": {
+            "ko": "기능 표시",
+            "en": "Show feature"
+          },
+          "kind": "boolean",
+          "default": true
+        },
+        {
+          "key": "scrollInverterEnabled",
+          "label": {
+            "ko": "세로 방향 반전",
+            "en": "Scroll inverter"
+          },
+          "kind": "boolean",
+          "default": false
+        },
+        {
+          "key": "scrollInverterHorizontalEnabled",
+          "label": {
+            "ko": "가로 방향 반전",
+            "en": "Scroll inverter horizontal"
+          },
+          "kind": "boolean",
+          "default": false
+        }
+      ]
+    },
+    {
+      "id": "scrollHorizontal",
+      "group": "mouseKeyboard",
+      "label": {
+        "ko": "가로 스크롤",
+        "en": "Scroll horizontal"
+      },
+      "fields": [
+        {
+          "key": "featureAvailable.scrollHorizontal",
+          "label": {
+            "ko": "기능 표시",
+            "en": "Show feature"
+          },
+          "kind": "boolean",
+          "default": false
+        },
+        {
+          "key": "scrollHorizontalEnabled",
+          "label": {
+            "ko": "동작 켜기",
+            "en": "Scroll horizontal"
+          },
+          "kind": "boolean",
+          "default": false
+        }
+      ]
+    },
+    {
+      "id": "focusFollowsMouse",
+      "group": "mouseKeyboard",
+      "label": {
+        "ko": "마우스를 따라 창 활성화",
+        "en": "Focus follows mouse"
+      },
+      "fields": [
+        {
+          "key": "featureAvailable.focusFollowsMouse",
+          "label": {
+            "ko": "기능 표시",
+            "en": "Show feature"
+          },
+          "kind": "boolean",
+          "default": false
+        },
+        {
+          "key": "focusFollowsMouseEnabled",
+          "label": {
+            "ko": "동작 켜기",
+            "en": "Focus follows mouse"
+          },
+          "kind": "boolean",
+          "default": false
+        },
+        {
+          "key": "focusFollowsMouseDelayMilliseconds",
+          "label": {
+            "ko": "창 활성화 대기",
+            "en": "Activation delay"
+          },
+          "kind": "integer",
+          "default": 250,
+          "min": 100,
+          "max": 3000,
+          "unit": "ms"
+        },
+        {
+          "key": "focusFollowsMouseRaise",
+          "label": {
+            "ko": "창을 앞으로 가져오기",
+            "en": "Raise window"
+          },
+          "kind": "boolean",
+          "default": true
+        },
+        {
+          "key": "focusFollowsMouseWaitForStop",
+          "label": {
+            "ko": "마우스가 멈춘 뒤 활성화",
+            "en": "Wait for pointer stop"
+          },
+          "kind": "boolean",
+          "default": true
+        }
+      ]
+    },
+    {
+      "id": "smoothScroll",
+      "group": "mouseKeyboard",
+      "label": {
+        "ko": "부드러운 스크롤",
+        "en": "Smooth scroll"
+      },
+      "fields": [
+        {
+          "key": "featureAvailable.smoothScroll",
+          "label": {
+            "ko": "기능 표시",
+            "en": "Show feature"
+          },
+          "kind": "boolean",
+          "default": true
+        },
+        {
+          "key": "smoothScrollEnabled",
+          "label": {
+            "ko": "동작 켜기",
+            "en": "Smooth scroll"
+          },
+          "kind": "boolean",
+          "default": false
+        },
+        {
+          "key": "smoothScrollStep",
+          "label": {
+            "ko": "스크롤 거리",
+            "en": "Scroll distance"
+          },
+          "kind": "integer",
+          "default": 40,
+          "min": 20,
+          "max": 100,
+          "unit": ""
+        },
+        {
+          "key": "smoothScrollResponse",
+          "label": {
+            "ko": "반응 속도",
+            "en": "Response"
+          },
+          "kind": "integer",
+          "default": 65,
+          "min": 0,
+          "max": 100,
+          "unit": ""
+        },
+        {
+          "key": "smoothScrollCoast",
+          "label": {
+            "ko": "관성",
+            "en": "Coast"
+          },
+          "kind": "integer",
+          "default": 0,
+          "min": 0,
+          "max": 100,
+          "unit": ""
+        }
+      ]
+    },
+    {
+      "id": "linearScroll",
+      "group": "mouseKeyboard",
+      "label": {
+        "ko": "일정한 스크롤",
+        "en": "Linear scroll"
+      },
+      "fields": [
+        {
+          "key": "featureAvailable.linearScroll",
+          "label": {
+            "ko": "기능 표시",
+            "en": "Show feature"
+          },
+          "kind": "boolean",
+          "default": false
+        },
+        {
+          "key": "linearScrollEnabled",
+          "label": {
+            "ko": "동작 켜기",
+            "en": "Linear scroll"
+          },
+          "kind": "boolean",
+          "default": false
+        }
+      ]
+    },
+    {
+      "id": "mouseAcceleration",
+      "group": "mouseKeyboard",
+      "label": {
+        "ko": "마우스 가속 끄기",
+        "en": "Mouse acceleration"
+      },
+      "fields": [
+        {
+          "key": "featureAvailable.mouseAcceleration",
+          "label": {
+            "ko": "기능 표시",
+            "en": "Show feature"
+          },
+          "kind": "boolean",
+          "default": true
+        },
+        {
+          "key": "mouseAccelerationDisabled",
+          "label": {
+            "ko": "동작 켜기",
+            "en": "Mouse acceleration disabled"
+          },
+          "kind": "boolean",
+          "default": false
+        }
+      ]
+    },
+    {
+      "id": "mouseNavigation",
+      "group": "mouseKeyboard",
+      "label": {
+        "ko": "뒤로·앞으로 버튼",
+        "en": "Mouse navigation"
+      },
+      "fields": [
+        {
+          "key": "featureAvailable.mouseNavigation",
+          "label": {
+            "ko": "기능 표시",
+            "en": "Show feature"
+          },
+          "kind": "boolean",
+          "default": true
+        },
+        {
+          "key": "mouseNavigationEnabled",
+          "label": {
+            "ko": "동작 켜기",
+            "en": "Mouse navigation"
+          },
+          "kind": "boolean",
+          "default": false
+        }
+      ]
+    },
+    {
+      "id": "mouseButtonShortcuts",
+      "group": "mouseKeyboard",
+      "label": {
+        "ko": "마우스 버튼 단축키",
+        "en": "Mouse button shortcuts"
+      },
+      "fields": [
+        {
+          "key": "featureAvailable.mouseButtonShortcuts",
+          "label": {
+            "ko": "기능 표시",
+            "en": "Show feature"
+          },
+          "kind": "boolean",
+          "default": true
+        },
+        {
+          "key": "mouseButtonShortcutsEnabled",
+          "label": {
+            "ko": "추가 버튼 단축키",
+            "en": "Mouse button shortcuts"
+          },
+          "kind": "boolean",
+          "default": false
+        },
+        {
+          "key": "mouseSpacesGestureEnabled",
+          "label": {
+            "ko": "드래그로 데스크탑 전환",
+            "en": "Mouse spaces gesture"
+          },
+          "kind": "boolean",
+          "default": false
+        }
+      ]
+    },
+    {
+      "id": "middleClick",
+      "group": "mouseKeyboard",
+      "label": {
+        "ko": "트랙패드 가운데 클릭",
+        "en": "Middle click"
+      },
+      "fields": [
+        {
+          "key": "featureAvailable.middleClick",
+          "label": {
+            "ko": "기능 표시",
+            "en": "Show feature"
+          },
+          "kind": "boolean",
+          "default": true
+        },
+        {
+          "key": "middleClickEnabled",
+          "label": {
+            "ko": "동작 켜기",
+            "en": "Middle click"
+          },
+          "kind": "boolean",
+          "default": false
+        }
+      ]
+    },
+    {
+      "id": "mouseClickDebounce",
+      "group": "mouseKeyboard",
+      "label": {
+        "ko": "마우스 중복 클릭 방지",
+        "en": "Mouse click debounce"
+      },
+      "fields": [
+        {
+          "key": "featureAvailable.mouseClickDebounce",
+          "label": {
+            "ko": "기능 표시",
+            "en": "Show feature"
+          },
+          "kind": "boolean",
+          "default": true
+        },
+        {
+          "key": "mouseClickDebounceEnabled",
+          "label": {
+            "ko": "동작 켜기",
+            "en": "Mouse click debounce"
+          },
+          "kind": "boolean",
+          "default": false
+        },
+        {
+          "key": "mouseClickDebounceWindowMs",
+          "label": {
+            "ko": "중복 클릭 간격",
+            "en": "Debounce interval"
+          },
+          "kind": "integer",
+          "default": 25,
+          "min": 5,
+          "max": 100,
+          "unit": "ms"
+        }
+      ]
+    },
+    {
+      "id": "keyboardDebounce",
+      "group": "mouseKeyboard",
+      "label": {
+        "ko": "키보드 중복 입력 방지",
+        "en": "Keyboard debounce"
+      },
+      "fields": [
+        {
+          "key": "featureAvailable.keyboardDebounce",
+          "label": {
+            "ko": "기능 표시",
+            "en": "Show feature"
+          },
+          "kind": "boolean",
+          "default": true
+        },
+        {
+          "key": "keyboardDebounceEnabled",
+          "label": {
+            "ko": "동작 켜기",
+            "en": "Keyboard debounce"
+          },
+          "kind": "boolean",
+          "default": false
+        },
+        {
+          "key": "keyboardDebounceWindowMs",
+          "label": {
+            "ko": "중복 입력 간격",
+            "en": "Debounce interval"
+          },
+          "kind": "integer",
+          "default": 5,
+          "min": 0,
+          "max": 500,
+          "unit": "ms"
+        }
+      ]
+    },
+    {
+      "id": "textSnippets",
+      "group": "mouseKeyboard",
+      "label": {
+        "ko": "텍스트 자동 입력",
+        "en": "Text snippets"
+      },
+      "fields": [
+        {
+          "key": "featureAvailable.textSnippets",
+          "label": {
+            "ko": "기능 표시",
+            "en": "Show feature"
+          },
+          "kind": "boolean",
+          "default": true
+        },
+        {
+          "key": "textSnippetsEnabled",
+          "label": {
+            "ko": "텍스트 자동 확장",
+            "en": "Text snippets"
+          },
+          "kind": "boolean",
+          "default": false
+        },
+        {
+          "key": "snippetLibraryEnabled",
+          "label": {
+            "ko": "저장된 문구 목록",
+            "en": "Snippet library"
+          },
+          "kind": "boolean",
+          "default": false
+        }
+      ]
+    },
+    {
+      "id": "superKey",
+      "group": "mouseKeyboard",
+      "label": {
+        "ko": "Super 키",
+        "en": "Super key"
+      },
+      "fields": [
+        {
+          "key": "featureAvailable.superKey",
+          "label": {
+            "ko": "기능 표시",
+            "en": "Show feature"
+          },
+          "kind": "boolean",
+          "default": true
+        },
+        {
+          "key": "superKeyEnabled",
+          "label": {
+            "ko": "동작 켜기",
+            "en": "Super key"
+          },
+          "kind": "boolean",
+          "default": false
+        }
+      ]
+    },
+    {
+      "id": "quitWindowProtection",
+      "group": "mouseKeyboard",
+      "label": {
+        "ko": "창 닫기·종료 보호",
+        "en": "Quit window protection"
+      },
+      "fields": [
+        {
+          "key": "featureAvailable.quitWindowProtection",
+          "label": {
+            "ko": "기능 표시",
+            "en": "Show feature"
+          },
+          "kind": "boolean",
+          "default": true
+        },
+        {
+          "key": "quitProtectionQuitEnabled",
+          "label": {
+            "ko": "앱 종료 보호",
+            "en": "Quit protection quit"
+          },
+          "kind": "boolean",
+          "default": false
+        },
+        {
+          "key": "quitProtectionCloseEnabled",
+          "label": {
+            "ko": "창 닫기 보호",
+            "en": "Quit protection close"
+          },
+          "kind": "boolean",
+          "default": false
+        }
+      ]
+    },
+    {
+      "id": "clipboardHistory",
+      "group": "clipboardFiles",
+      "label": {
+        "ko": "클립보드 기록",
+        "en": "Clipboard history"
+      },
+      "fields": [
+        {
+          "key": "featureAvailable.clipboardHistory",
+          "label": {
+            "ko": "기능 표시",
+            "en": "Show feature"
+          },
+          "kind": "boolean",
+          "default": true
+        },
+        {
+          "key": "clipboardHistoryEnabled",
+          "label": {
+            "ko": "동작 켜기",
+            "en": "Clipboard history"
+          },
+          "kind": "boolean",
+          "default": false
+        }
+      ]
+    },
+    {
+      "id": "pastePlain",
+      "group": "clipboardFiles",
+      "label": {
+        "ko": "서식 없이 붙여넣기",
+        "en": "Paste plain"
+      },
+      "fields": [
+        {
+          "key": "featureAvailable.pastePlain",
+          "label": {
+            "ko": "기능 표시",
+            "en": "Show feature"
+          },
+          "kind": "boolean",
+          "default": true
+        },
+        {
+          "key": "pastePlainEnabled",
+          "label": {
+            "ko": "동작 켜기",
+            "en": "Paste plain"
+          },
+          "kind": "boolean",
+          "default": false
+        }
+      ]
+    },
+    {
+      "id": "finderCutPaste",
+      "group": "clipboardFiles",
+      "label": {
+        "ko": "Finder 잘라내기·붙여넣기",
+        "en": "Finder cut paste"
+      },
+      "fields": [
+        {
+          "key": "featureAvailable.finderCutPaste",
+          "label": {
+            "ko": "기능 표시",
+            "en": "Show feature"
+          },
+          "kind": "boolean",
+          "default": true
+        },
+        {
+          "key": "finderCutPasteEnabled",
+          "label": {
+            "ko": "파일 잘라내기",
+            "en": "Finder cut paste"
+          },
+          "kind": "boolean",
+          "default": false
+        },
+        {
+          "key": "finderPasteImageAsFile",
+          "label": {
+            "ko": "이미지를 PNG 파일로 붙여넣기",
+            "en": "Finder paste image as file"
+          },
+          "kind": "boolean",
+          "default": false
+        }
+      ]
+    },
+    {
+      "id": "finderRename",
+      "group": "clipboardFiles",
+      "label": {
+        "ko": "Finder 이름 변경",
+        "en": "Finder rename"
+      },
+      "fields": [
+        {
+          "key": "featureAvailable.finderRename",
+          "label": {
+            "ko": "기능 표시",
+            "en": "Show feature"
+          },
+          "kind": "boolean",
+          "default": true
+        },
+        {
+          "key": "finderRenameEnabled",
+          "label": {
+            "ko": "동작 켜기",
+            "en": "Finder rename"
+          },
+          "kind": "boolean",
+          "default": false
+        }
+      ]
+    },
+    {
+      "id": "shelf",
+      "group": "clipboardFiles",
+      "label": {
+        "ko": "파일 선반",
+        "en": "Shelf"
+      },
+      "fields": [
+        {
+          "key": "featureAvailable.shelf",
+          "label": {
+            "ko": "기능 표시",
+            "en": "Show feature"
+          },
+          "kind": "boolean",
+          "default": true
+        },
+        {
+          "key": "shelfEnabled",
+          "label": {
+            "ko": "동작 켜기",
+            "en": "Shelf"
+          },
+          "kind": "boolean",
+          "default": false
+        }
+      ]
+    },
+    {
+      "id": "urlCleaner",
+      "group": "clipboardFiles",
+      "label": {
+        "ko": "링크 정리",
+        "en": "Url cleaner"
+      },
+      "fields": [
+        {
+          "key": "featureAvailable.urlCleaner",
+          "label": {
+            "ko": "기능 표시",
+            "en": "Show feature"
+          },
+          "kind": "boolean",
+          "default": true
+        },
+        {
+          "key": "urlCleanerEnabled",
+          "label": {
+            "ko": "동작 켜기",
+            "en": "Url cleaner"
+          },
+          "kind": "boolean",
+          "default": false
+        }
+      ]
+    },
+    {
+      "id": "diskImageInstaller",
+      "group": "clipboardFiles",
+      "label": {
+        "ko": "디스크 이미지 설치",
+        "en": "Disk image installer"
+      },
+      "fields": [
+        {
+          "key": "featureAvailable.diskImageInstaller",
+          "label": {
+            "ko": "기능 표시",
+            "en": "Show feature"
+          },
+          "kind": "boolean",
+          "default": false
+        }
+      ]
+    },
+    {
+      "id": "mixer",
+      "group": "sound",
+      "label": {
+        "ko": "앱별 음량",
+        "en": "Mixer"
+      },
+      "fields": [
+        {
+          "key": "featureAvailable.mixer",
+          "label": {
+            "ko": "기능 표시",
+            "en": "Show feature"
+          },
+          "kind": "boolean",
+          "default": true
+        }
+      ]
+    },
+    {
+      "id": "soundOutputSwitcher",
+      "group": "sound",
+      "label": {
+        "ko": "오디오 출력 전환",
+        "en": "Sound output switcher"
+      },
+      "fields": [
+        {
+          "key": "featureAvailable.soundOutputSwitcher",
+          "label": {
+            "ko": "기능 표시",
+            "en": "Show feature"
+          },
+          "kind": "boolean",
+          "default": true
+        },
+        {
+          "key": "soundOutputSwitcherEnabled",
+          "label": {
+            "ko": "동작 켜기",
+            "en": "Sound output switcher"
+          },
+          "kind": "boolean",
+          "default": false
+        }
+      ]
+    },
+    {
+      "id": "audioPriority",
+      "group": "sound",
+      "label": {
+        "ko": "오디오 장치 우선순위",
+        "en": "Audio priority"
+      },
+      "fields": [
+        {
+          "key": "featureAvailable.audioPriority",
+          "label": {
+            "ko": "기능 표시",
+            "en": "Show feature"
+          },
+          "kind": "boolean",
+          "default": false
+        },
+        {
+          "key": "audioPriorityOutputEnabled",
+          "label": {
+            "ko": "출력 우선순위",
+            "en": "Audio priority output"
+          },
+          "kind": "boolean",
+          "default": true
+        },
+        {
+          "key": "audioPriorityInputEnabled",
+          "label": {
+            "ko": "입력 우선순위",
+            "en": "Audio priority input"
+          },
+          "kind": "boolean",
+          "default": true
+        }
+      ]
+    },
+    {
+      "id": "micMute",
+      "group": "sound",
+      "label": {
+        "ko": "마이크 음소거",
+        "en": "Mic mute"
+      },
+      "fields": [
+        {
+          "key": "featureAvailable.micMute",
+          "label": {
+            "ko": "기능 표시",
+            "en": "Show feature"
+          },
+          "kind": "boolean",
+          "default": true
+        }
+      ]
+    },
+    {
+      "id": "musicBlock",
+      "group": "sound",
+      "label": {
+        "ko": "음악 앱 자동 실행 방지",
+        "en": "Music block"
+      },
+      "fields": [
+        {
+          "key": "featureAvailable.musicBlock",
+          "label": {
+            "ko": "기능 표시",
+            "en": "Show feature"
+          },
+          "kind": "boolean",
+          "default": true
+        },
+        {
+          "key": "musicBlockEnabled",
+          "label": {
+            "ko": "동작 켜기",
+            "en": "Music block"
+          },
+          "kind": "boolean",
+          "default": false
+        }
+      ]
+    },
+    {
+      "id": "keepAwake",
+      "group": "energyDisplay",
+      "label": {
+        "ko": "잠자기 방지",
+        "en": "Keep awake"
+      },
+      "fields": [
+        {
+          "key": "featureAvailable.keepAwake",
+          "label": {
+            "ko": "기능 표시",
+            "en": "Show feature"
+          },
+          "kind": "boolean",
+          "default": true
+        },
+        {
+          "key": "keepAwakeAutoStart",
+          "label": {
+            "ko": "앱을 시작하면 잠자기 방지",
+            "en": "Keep awake when the app starts"
+          },
+          "kind": "boolean",
+          "default": false
+        },
+        {
+          "key": "defaultDurationMinutes",
+          "label": {
+            "ko": "유지 시간",
+            "en": "Duration"
+          },
+          "kind": "integer",
+          "default": 0,
+          "choices": [0, 15, 30, 60, 120],
+          "min": 0,
+          "max": 1440,
+          "unit": "min",
+          "choiceLabels": {
+            "0": {
+              "ko": "제한 없음",
+              "en": "No limit"
+            }
+          }
+        },
+        {
+          "key": "batteryLimitPercent",
+          "label": {
+            "ko": "중단할 배터리 잔량",
+            "en": "Stop at battery level"
+          },
+          "kind": "integer",
+          "default": 10,
+          "choices": [0, 5, 10, 15, 20],
+          "min": 0,
+          "max": 20,
+          "unit": "%",
+          "choiceLabels": {
+            "0": {
+              "ko": "제한 없음",
+              "en": "No limit"
+            }
+          }
+        },
+        {
+          "key": "keepAwakeAllowDisplaySleep",
+          "label": {
+            "ko": "화면 잠자기 허용",
+            "en": "Allow display sleep"
+          },
+          "kind": "boolean",
+          "default": false
+        },
+        {
+          "key": "keepAwakePauseWhenLocked",
+          "label": {
+            "ko": "잠금 중 일시 정지",
+            "en": "Pause while locked"
+          },
+          "kind": "boolean",
+          "default": false
+        },
+        {
+          "key": "keepAwakeExternalDisplay",
+          "label": {
+            "ko": "외부 화면 연결 시 자동 실행",
+            "en": "Start with external display"
+          },
+          "kind": "boolean",
+          "default": false
+        },
+        {
+          "key": "keepAwakeConnectedToPower",
+          "label": {
+            "ko": "전원 연결 시 자동 실행",
+            "en": "Start on AC power"
+          },
+          "kind": "boolean",
+          "default": false
+        }
+      ]
+    },
+    {
+      "id": "brightness",
+      "group": "energyDisplay",
+      "label": {
+        "ko": "디스플레이 밝기",
+        "en": "Brightness"
+      },
+      "fields": [
+        {
+          "key": "featureAvailable.brightness",
+          "label": {
+            "ko": "기능 표시",
+            "en": "Show feature"
+          },
+          "kind": "boolean",
+          "default": true
+        },
+        {
+          "key": "brightnessControlEnabled",
+          "label": {
+            "ko": "동작 켜기",
+            "en": "Brightness control"
+          },
+          "kind": "boolean",
+          "default": false
+        }
+      ]
+    },
+    {
+      "id": "extraBrightness",
+      "group": "energyDisplay",
+      "label": {
+        "ko": "추가 밝기",
+        "en": "Extra brightness"
+      },
+      "fields": [
+        {
+          "key": "featureAvailable.extraBrightness",
+          "label": {
+            "ko": "기능 표시",
+            "en": "Show feature"
+          },
+          "kind": "boolean",
+          "default": true
+        },
+        {
+          "key": "extraBrightnessEnabled",
+          "label": {
+            "ko": "동작 켜기",
+            "en": "Extra brightness"
+          },
+          "kind": "boolean",
+          "default": false
+        }
+      ]
+    },
+    {
+      "id": "bluetoothSleep",
+      "group": "energyDisplay",
+      "label": {
+        "ko": "잠자기 시 Bluetooth 연결 해제",
+        "en": "Bluetooth sleep"
+      },
+      "fields": [
+        {
+          "key": "featureAvailable.bluetoothSleep",
+          "label": {
+            "ko": "기능 표시",
+            "en": "Show feature"
+          },
+          "kind": "boolean",
+          "default": true
+        },
+        {
+          "key": "bluetoothSleepEnabled",
+          "label": {
+            "ko": "동작 켜기",
+            "en": "Bluetooth sleep"
+          },
+          "kind": "boolean",
+          "default": false
+        }
+      ]
+    },
+    {
+      "id": "quickLauncher",
+      "group": "tools",
+      "label": {
+        "ko": "빠른 도구 패널",
+        "en": "Quick launcher"
+      },
+      "fields": [
+        {
+          "key": "featureAvailable.quickLauncher",
+          "label": {
+            "ko": "기능 표시",
+            "en": "Show feature"
+          },
+          "kind": "boolean",
+          "default": true
+        }
+      ]
+    },
+    {
+      "id": "quickToggles",
+      "group": "tools",
+      "label": {
+        "ko": "빠른 설정",
+        "en": "Quick toggles"
+      },
+      "fields": [
+        {
+          "key": "featureAvailable.quickToggles",
+          "label": {
+            "ko": "기능 표시",
+            "en": "Show feature"
+          },
+          "kind": "boolean",
+          "default": true
+        }
+      ]
+    },
+    {
+      "id": "colorPicker",
+      "group": "tools",
+      "label": {
+        "ko": "색상 추출",
+        "en": "Color picker"
+      },
+      "fields": [
+        {
+          "key": "featureAvailable.colorPicker",
+          "label": {
+            "ko": "기능 표시",
+            "en": "Show feature"
+          },
+          "kind": "boolean",
+          "default": true
+        }
+      ]
+    },
+    {
+      "id": "screenOCR",
+      "group": "tools",
+      "label": {
+        "ko": "화면 글자 인식",
+        "en": "Screen o c r"
+      },
+      "fields": [
+        {
+          "key": "featureAvailable.screenOCR",
+          "label": {
+            "ko": "기능 표시",
+            "en": "Show feature"
+          },
+          "kind": "boolean",
+          "default": true
+        }
+      ]
+    },
+    {
+      "id": "cleaningMode",
+      "group": "tools",
+      "label": {
+        "ko": "키보드 청소 모드",
+        "en": "Cleaning mode"
+      },
+      "fields": [
+        {
+          "key": "featureAvailable.cleaningMode",
+          "label": {
+            "ko": "기능 표시",
+            "en": "Show feature"
+          },
+          "kind": "boolean",
+          "default": true
+        }
+      ]
+    },
+    {
+      "id": "mediaTools",
+      "group": "tools",
+      "label": {
+        "ko": "미디어 변환",
+        "en": "Media tools"
+      },
+      "fields": [
+        {
+          "key": "featureAvailable.mediaTools",
+          "label": {
+            "ko": "기능 표시",
+            "en": "Show feature"
+          },
+          "kind": "boolean",
+          "default": true
+        }
+      ]
+    },
+    {
+      "id": "cleaner",
+      "group": "tools",
+      "label": {
+        "ko": "파일 정리",
+        "en": "Cleaner"
+      },
+      "fields": [
+        {
+          "key": "featureAvailable.cleaner",
+          "label": {
+            "ko": "기능 표시",
+            "en": "Show feature"
+          },
+          "kind": "boolean",
+          "default": true
+        }
+      ]
+    },
+    {
+      "id": "uninstaller",
+      "group": "tools",
+      "label": {
+        "ko": "앱 삭제 도구",
+        "en": "Uninstaller"
+      },
+      "fields": [
+        {
+          "key": "featureAvailable.uninstaller",
+          "label": {
+            "ko": "기능 표시",
+            "en": "Show feature"
+          },
+          "kind": "boolean",
+          "default": true
+        }
+      ]
+    },
+    {
+      "id": "homebrew",
+      "group": "tools",
+      "label": {
+        "ko": "Homebrew 관리",
+        "en": "Homebrew"
+      },
+      "fields": [
+        {
+          "key": "featureAvailable.homebrew",
+          "label": {
+            "ko": "기능 표시",
+            "en": "Show feature"
+          },
+          "kind": "boolean",
+          "default": true
+        }
+      ]
+    },
+    {
+      "id": "appUpdates",
+      "group": "tools",
+      "label": {
+        "ko": "앱 업데이트",
+        "en": "App updates"
+      },
+      "fields": [
+        {
+          "key": "featureAvailable.appUpdates",
+          "label": {
+            "ko": "기능 표시",
+            "en": "Show feature"
+          },
+          "kind": "boolean",
+          "default": true
+        }
+      ]
+    },
+    {
+      "id": "screenshot",
+      "group": "tools",
+      "label": {
+        "ko": "스크린샷",
+        "en": "Screenshot"
+      },
+      "fields": [
+        {
+          "key": "featureAvailable.screenshot",
+          "label": {
+            "ko": "기능 표시",
+            "en": "Show feature"
+          },
+          "kind": "boolean",
+          "default": true
+        }
+      ]
+    },
+    {
+      "id": "cameraPreview",
+      "group": "tools",
+      "label": {
+        "ko": "카메라 미리보기",
+        "en": "Camera preview"
+      },
+      "fields": [
+        {
+          "key": "featureAvailable.cameraPreview",
+          "label": {
+            "ko": "기능 표시",
+            "en": "Show feature"
+          },
+          "kind": "boolean",
+          "default": true
+        }
+      ]
+    },
+    {
+      "id": "radialMenu",
+      "group": "tools",
+      "label": {
+        "ko": "원형 메뉴",
+        "en": "Radial menu"
+      },
+      "fields": [
+        {
+          "key": "featureAvailable.radialMenu",
+          "label": {
+            "ko": "기능 표시",
+            "en": "Show feature"
+          },
+          "kind": "boolean",
+          "default": true
+        },
+        {
+          "key": "radialMenuEnabled",
+          "label": {
+            "ko": "동작 켜기",
+            "en": "Radial menu"
+          },
+          "kind": "boolean",
+          "default": false
+        }
+      ]
+    },
+    {
+      "id": "scratchpad",
+      "group": "tools",
+      "label": {
+        "ko": "메모장",
+        "en": "Scratchpad"
+      },
+      "fields": [
+        {
+          "key": "featureAvailable.scratchpad",
+          "label": {
+            "ko": "기능 표시",
+            "en": "Show feature"
+          },
+          "kind": "boolean",
+          "default": true
+        }
+      ]
+    },
+    {
+      "id": "commandBar",
+      "group": "tools",
+      "label": {
+        "ko": "명령 검색",
+        "en": "Command bar"
+      },
+      "fields": [
+        {
+          "key": "featureAvailable.commandBar",
+          "label": {
+            "ko": "기능 표시",
+            "en": "Show feature"
+          },
+          "kind": "boolean",
+          "default": true
+        }
+      ]
+    },
+    {
+      "id": "screenRecorder",
+      "group": "tools",
+      "label": {
+        "ko": "화면 녹화",
+        "en": "Screen recorder"
+      },
+      "fields": [
+        {
+          "key": "featureAvailable.screenRecorder",
+          "label": {
+            "ko": "기능 표시",
+            "en": "Show feature"
+          },
+          "kind": "boolean",
+          "default": true
+        }
+      ]
+    },
+    {
+      "id": "wallpaper",
+      "group": "tools",
+      "label": {
+        "ko": "배경화면",
+        "en": "Wallpaper"
+      },
+      "fields": [
+        {
+          "key": "featureAvailable.wallpaper",
+          "label": {
+            "ko": "기능 표시",
+            "en": "Show feature"
+          },
+          "kind": "boolean",
+          "default": false
+        }
+      ]
+    },
+    {
+      "id": "killProcess",
+      "group": "tools",
+      "label": {
+        "ko": "프로세스 관리",
+        "en": "Kill process"
+      },
+      "fields": [
+        {
+          "key": "featureAvailable.killProcess",
+          "label": {
+            "ko": "기능 표시",
+            "en": "Show feature"
+          },
+          "kind": "boolean",
+          "default": false
+        }
+      ]
+    },
+    {
+      "id": "portManager",
+      "group": "tools",
+      "label": {
+        "ko": "포트 관리",
+        "en": "Port manager"
+      },
+      "fields": [
+        {
+          "key": "featureAvailable.portManager",
+          "label": {
+            "ko": "기능 표시",
+            "en": "Show feature"
+          },
+          "kind": "boolean",
+          "default": false
+        }
+      ]
+    },
+    {
+      "id": "notch",
+      "group": "dynamicIsland",
+      "label": {
+        "ko": "Dynamic Island",
+        "en": "Notch"
+      },
+      "fields": [
+        {
+          "key": "featureAvailable.notch",
+          "label": {
+            "ko": "기능 표시",
+            "en": "Show feature"
+          },
+          "kind": "boolean",
+          "default": true
+        },
+        {
+          "key": "notchEnabled",
+          "label": {
+            "ko": "동작 켜기",
+            "en": "Notch"
+          },
+          "kind": "boolean",
+          "default": false
+        }
+      ]
+    },
+    {
+      "id": "notchCalendar",
+      "group": "dynamicIsland",
+      "label": {
+        "ko": "일정",
+        "en": "Notch calendar"
+      },
+      "fields": [
+        {
+          "key": "featureAvailable.notchCalendar",
+          "label": {
+            "ko": "기능 표시",
+            "en": "Show feature"
+          },
+          "kind": "boolean",
+          "default": true
+        },
+        {
+          "key": "notchCalendarEnabled",
+          "label": {
+            "ko": "동작 켜기",
+            "en": "Notch calendar"
+          },
+          "kind": "boolean",
+          "default": true
+        }
+      ]
+    },
+    {
+      "id": "notchNotifications",
+      "group": "dynamicIsland",
+      "label": {
+        "ko": "알림",
+        "en": "Notch notifications"
+      },
+      "fields": [
+        {
+          "key": "featureAvailable.notchNotifications",
+          "label": {
+            "ko": "기능 표시",
+            "en": "Show feature"
+          },
+          "kind": "boolean",
+          "default": true
+        },
+        {
+          "key": "notchNotificationsEnabled",
+          "label": {
+            "ko": "동작 켜기",
+            "en": "Notch notifications"
+          },
+          "kind": "boolean",
+          "default": false
+        }
+      ]
+    },
+    {
+      "id": "notchGestures",
+      "group": "dynamicIsland",
+      "label": {
+        "ko": "제스처",
+        "en": "Notch gestures"
+      },
+      "fields": [
+        {
+          "key": "featureAvailable.notchGestures",
+          "label": {
+            "ko": "기능 표시",
+            "en": "Show feature"
+          },
+          "kind": "boolean",
+          "default": true
+        },
+        {
+          "key": "notchGesturesEnabled",
+          "label": {
+            "ko": "동작 켜기",
+            "en": "Notch gestures"
+          },
+          "kind": "boolean",
+          "default": true
+        }
+      ]
+    },
+    {
+      "id": "notchTimer",
+      "group": "dynamicIsland",
+      "label": {
+        "ko": "타이머",
+        "en": "Notch timer"
+      },
+      "fields": [
+        {
+          "key": "featureAvailable.notchTimer",
+          "label": {
+            "ko": "기능 표시",
+            "en": "Show feature"
+          },
+          "kind": "boolean",
+          "default": true
+        },
+        {
+          "key": "notchTimerEnabled",
+          "label": {
+            "ko": "동작 켜기",
+            "en": "Notch timer"
+          },
+          "kind": "boolean",
+          "default": true
+        }
+      ]
+    },
+    {
+      "id": "notchAccessories",
+      "group": "dynamicIsland",
+      "label": {
+        "ko": "주변 기기",
+        "en": "Notch accessories"
+      },
+      "fields": [
+        {
+          "key": "featureAvailable.notchAccessories",
+          "label": {
+            "ko": "기능 표시",
+            "en": "Show feature"
+          },
+          "kind": "boolean",
+          "default": true
+        },
+        {
+          "key": "notchAccessoriesEnabled",
+          "label": {
+            "ko": "동작 켜기",
+            "en": "Notch accessories"
+          },
+          "kind": "boolean",
+          "default": false
+        }
+      ]
+    },
+    {
+      "id": "notchLyrics",
+      "group": "dynamicIsland",
+      "label": {
+        "ko": "가사",
+        "en": "Notch lyrics"
+      },
+      "fields": [
+        {
+          "key": "featureAvailable.notchLyrics",
+          "label": {
+            "ko": "기능 표시",
+            "en": "Show feature"
+          },
+          "kind": "boolean",
+          "default": true
+        },
+        {
+          "key": "notchLyricsEnabled",
+          "label": {
+            "ko": "동작 켜기",
+            "en": "Notch lyrics"
+          },
+          "kind": "boolean",
+          "default": false
+        }
+      ]
+    },
+    {
+      "id": "notchQueue",
+      "group": "dynamicIsland",
+      "label": {
+        "ko": "재생 대기열",
+        "en": "Notch queue"
+      },
+      "fields": [
+        {
+          "key": "featureAvailable.notchQueue",
+          "label": {
+            "ko": "기능 표시",
+            "en": "Show feature"
+          },
+          "kind": "boolean",
+          "default": true
+        },
+        {
+          "key": "notchQueueEnabled",
+          "label": {
+            "ko": "동작 켜기",
+            "en": "Notch queue"
+          },
+          "kind": "boolean",
+          "default": false
+        }
+      ]
+    },
+    {
+      "id": "notchLiveEqualizer",
+      "group": "dynamicIsland",
+      "label": {
+        "ko": "실시간 오디오 파형",
+        "en": "Notch live equalizer"
+      },
+      "fields": [
+        {
+          "key": "featureAvailable.notchLiveEqualizer",
+          "label": {
+            "ko": "기능 표시",
+            "en": "Show feature"
+          },
+          "kind": "boolean",
+          "default": true
+        },
+        {
+          "key": "notchLiveEqualizer",
+          "label": {
+            "ko": "동작 켜기",
+            "en": "Notch live equalizer"
+          },
+          "kind": "boolean",
+          "default": false
+        }
+      ]
+    },
+    {
+      "id": "notchDownloads",
+      "group": "dynamicIsland",
+      "label": {
+        "ko": "다운로드",
+        "en": "Notch downloads"
+      },
+      "fields": [
+        {
+          "key": "featureAvailable.notchDownloads",
+          "label": {
+            "ko": "기능 표시",
+            "en": "Show feature"
+          },
+          "kind": "boolean",
+          "default": true
+        },
+        {
+          "key": "notchDownloadsEnabled",
+          "label": {
+            "ko": "동작 켜기",
+            "en": "Notch downloads"
+          },
+          "kind": "boolean",
+          "default": false
+        }
+      ]
+    },
+    {
+      "id": "notchAgents",
+      "group": "dynamicIsland",
+      "label": {
+        "ko": "AI 도구 상태",
+        "en": "Notch agents"
+      },
+      "fields": [
+        {
+          "key": "featureAvailable.notchAgents",
+          "label": {
+            "ko": "기능 표시",
+            "en": "Show feature"
+          },
+          "kind": "boolean",
+          "default": true
+        },
+        {
+          "key": "notchAgentsEnabled",
+          "label": {
+            "ko": "동작 켜기",
+            "en": "Notch agents"
+          },
+          "kind": "boolean",
+          "default": false
+        }
+      ]
+    },
+    {
+      "id": "notchWatch",
+      "group": "dynamicIsland",
+      "label": {
+        "ko": "화면 영역 보기",
+        "en": "Notch watch"
+      },
+      "fields": [
+        {
+          "key": "featureAvailable.notchWatch",
+          "label": {
+            "ko": "기능 표시",
+            "en": "Show feature"
+          },
+          "kind": "boolean",
+          "default": true
+        },
+        {
+          "key": "notchWatchEnabled",
+          "label": {
+            "ko": "동작 켜기",
+            "en": "Notch watch"
+          },
+          "kind": "boolean",
+          "default": true
+        }
+      ]
+    },
+    {
+      "id": "notchMascot",
+      "group": "dynamicIsland",
+      "label": {
+        "ko": "캐릭터",
+        "en": "Notch mascot"
+      },
+      "fields": [
+        {
+          "key": "featureAvailable.notchMascot",
+          "label": {
+            "ko": "기능 표시",
+            "en": "Show feature"
+          },
+          "kind": "boolean",
+          "default": false
+        },
+        {
+          "key": "notchMascotEnabled",
+          "label": {
+            "ko": "동작 켜기",
+            "en": "Notch mascot"
+          },
+          "kind": "boolean",
+          "default": false
+        }
+      ]
+    },
+    {
+      "id": "monitorCPU",
+      "group": "monitor",
+      "label": {
+        "ko": "CPU",
+        "en": "Monitor c p u"
+      },
+      "fields": [
+        {
+          "key": "featureAvailable.monitorCPU",
+          "label": {
+            "ko": "기능 표시",
+            "en": "Show feature"
+          },
+          "kind": "boolean",
+          "default": true
+        }
+      ]
+    },
+    {
+      "id": "monitorGPU",
+      "group": "monitor",
+      "label": {
+        "ko": "GPU",
+        "en": "Monitor g p u"
+      },
+      "fields": [
+        {
+          "key": "featureAvailable.monitorGPU",
+          "label": {
+            "ko": "기능 표시",
+            "en": "Show feature"
+          },
+          "kind": "boolean",
+          "default": true
+        }
+      ]
+    },
+    {
+      "id": "monitorMemory",
+      "group": "monitor",
+      "label": {
+        "ko": "메모리",
+        "en": "Monitor memory"
+      },
+      "fields": [
+        {
+          "key": "featureAvailable.monitorMemory",
+          "label": {
+            "ko": "기능 표시",
+            "en": "Show feature"
+          },
+          "kind": "boolean",
+          "default": true
+        }
+      ]
+    },
+    {
+      "id": "monitorNetwork",
+      "group": "monitor",
+      "label": {
+        "ko": "네트워크",
+        "en": "Monitor network"
+      },
+      "fields": [
+        {
+          "key": "featureAvailable.monitorNetwork",
+          "label": {
+            "ko": "기능 표시",
+            "en": "Show feature"
+          },
+          "kind": "boolean",
+          "default": true
+        }
+      ]
+    },
+    {
+      "id": "monitorDisk",
+      "group": "monitor",
+      "label": {
+        "ko": "저장 공간",
+        "en": "Monitor disk"
+      },
+      "fields": [
+        {
+          "key": "featureAvailable.monitorDisk",
+          "label": {
+            "ko": "기능 표시",
+            "en": "Show feature"
+          },
+          "kind": "boolean",
+          "default": true
+        }
+      ]
+    },
+    {
+      "id": "monitorPower",
+      "group": "monitor",
+      "label": {
+        "ko": "전원·배터리",
+        "en": "Monitor power"
+      },
+      "fields": [
+        {
+          "key": "featureAvailable.monitorPower",
+          "label": {
+            "ko": "기능 표시",
+            "en": "Show feature"
+          },
+          "kind": "boolean",
+          "default": true
+        }
+      ]
+    },
+    {
+      "id": "connectedDevices",
+      "group": "monitor",
+      "label": {
+        "ko": "연결된 기기",
+        "en": "Connected devices"
+      },
+      "fields": [
+        {
+          "key": "featureAvailable.connectedDevices",
+          "label": {
+            "ko": "기능 표시",
+            "en": "Show feature"
+          },
+          "kind": "boolean",
+          "default": true
+        }
+      ]
+    },
+    {
+      "id": "fanControl",
+      "group": "monitor",
+      "label": {
+        "ko": "팬 제어",
+        "en": "Fan control"
+      },
+      "fields": [
+        {
+          "key": "featureAvailable.fanControl",
+          "label": {
+            "ko": "기능 표시",
+            "en": "Show feature"
+          },
+          "kind": "boolean",
+          "default": false
+        }
+      ]
+    },
+    {
+      "id": "general",
+      "group": "general",
+      "label": {
+        "ko": "공통 설정",
+        "en": "General"
+      },
+      "fields": [
+        {
+          "key": "appAppearance",
+          "label": {
+            "ko": "테마",
+            "en": "Theme"
+          },
+          "kind": "enum",
+          "default": "system",
+          "choices": ["system", "light", "dark"],
+          "choiceLabels": {
+            "system": {
+              "ko": "시스템 설정",
+              "en": "System"
+            },
+            "light": {
+              "ko": "밝게",
+              "en": "Light"
+            },
+            "dark": {
+              "ko": "어둡게",
+              "en": "Dark"
+            }
+          }
+        },
+        {
+          "key": "appLanguage",
+          "label": {
+            "ko": "앱 언어",
+            "en": "App language"
+          },
+          "kind": "enum",
+          "default": "ko",
+          "choices": [
+            "en-US",
+            "pt-BR",
+            "tr",
+            "ru",
+            "es",
+            "sk",
+            "de",
+            "fr",
+            "it",
+            "ja",
+            "ko",
+            "uk",
+            "zh-Hans",
+            "zh-TW",
+            "zh-HK"
+          ],
+          "choiceLabels": {
+            "en-US": {
+              "ko": "English",
+              "en": "English"
+            },
+            "pt-BR": {
+              "ko": "Português (Brasil)",
+              "en": "Português (Brasil)"
+            },
+            "tr": {
+              "ko": "Türkçe",
+              "en": "Türkçe"
+            },
+            "ru": {
+              "ko": "Русский",
+              "en": "Русский"
+            },
+            "es": {
+              "ko": "Español",
+              "en": "Español"
+            },
+            "sk": {
+              "ko": "Slovenčina",
+              "en": "Slovenčina"
+            },
+            "de": {
+              "ko": "Deutsch",
+              "en": "Deutsch"
+            },
+            "fr": {
+              "ko": "Français",
+              "en": "Français"
+            },
+            "it": {
+              "ko": "Italiano",
+              "en": "Italiano"
+            },
+            "ja": {
+              "ko": "日本語",
+              "en": "日本語"
+            },
+            "ko": {
+              "ko": "한국어",
+              "en": "한국어"
+            },
+            "uk": {
+              "ko": "Українська",
+              "en": "Українська"
+            },
+            "zh-Hans": {
+              "ko": "简体中文",
+              "en": "简体中文"
+            },
+            "zh-TW": {
+              "ko": "繁體中文（台灣）",
+              "en": "繁體中文（台灣）"
+            },
+            "zh-HK": {
+              "ko": "繁體中文（香港）",
+              "en": "繁體中文（香港）"
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

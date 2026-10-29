@@ -1,0 +1,111 @@
+{
+  "schemaVersion": 1,
+  "sourceCommit": "ff273166f94d1d3b5cb357837f4f9f15bef8499b",
+  "finalSourceCommit": "452b0cfbaa0f22dc93fd23306c08f501f326ae9c",
+  "sourceApplicability": "The final commit changes offline profile/page label caching and its tests; the allowInsecureWifi control and synchronization code are unchanged.",
+  "appVersion": "0.10.2",
+  "androidVersionCode": 18,
+  "applicationId": "app.opendeck.verification",
+  "verifiedAt": "2026-10-22T16:16:21.115118+00:00",
+  "setting": "allowInsecureWifi",
+  "result": "pass",
+  "scope": {
+    "nativeAndroidControlComparisons": 6,
+    "mismatches": 0,
+    "hostWriter": "Authenticated API on a synthetic fixture host",
+    "androidWriter": "Actual Android connection-settings switch",
+    "macNativeSecurityControlToggled": false,
+    "hostAddressScope": "Loopback only; 127.0.0.1 listener",
+    "productionDataUsed": false,
+    "productionPairingOptedIn": false
+  },
+  "checks": [
+    {
+      "phase": "default",
+      "operation": "Open the isolated verification app connection settings with the default policy.",
+      "expected": false,
+      "androidNativeControlObserved": false,
+      "result": "pass",
+      "capture": {
+        "filename": "isolated-security-default.json",
+        "sha256": "30d6f616b4200f37ce7678fa1258d669b3023ce7cc6c6c3acee937aa33b3688f"
+      }
+    },
+    {
+      "phase": "host-true",
+      "operation": "Parent runner changes the fixture device setting to true through the host API; inspect the already-open Android setting.",
+      "expected": true,
+      "androidNativeControlObserved": true,
+      "result": "pass",
+      "capture": {
+        "filename": "isolated-security-host-true.json",
+        "sha256": "e76b4c6d96c00b81de37b43fcfbd351f7bafe034e5c5ec363745feda239b6e7e"
+      }
+    },
+    {
+      "phase": "restart-true",
+      "operation": "Parent runner restarts Android; inspect the retained true value.",
+      "expected": true,
+      "androidNativeControlObserved": true,
+      "result": "pass",
+      "capture": {
+        "filename": "isolated-security-restart-true.json",
+        "sha256": "0e8ca0ccf4e8e517b49fb9758d7cf6ab847f8c61f6c8fd9bdc4e20a5c6921ec0"
+      }
+    },
+    {
+      "phase": "android-false",
+      "operation": "Parent runner toggles the actual Android control to false; inspect the Android value.",
+      "expected": false,
+      "androidNativeControlObserved": false,
+      "result": "pass",
+      "capture": {
+        "filename": "isolated-security-android-false.json",
+        "sha256": "70b416e6cb6355bba61efa566d183c0ea11f858d3bba24e38975f602589923a2"
+      }
+    },
+    {
+      "phase": "restart-false",
+      "operation": "Parent runner restarts Android; inspect the retained false value.",
+      "expected": false,
+      "androidNativeControlObserved": false,
+      "result": "pass",
+      "capture": {
+        "filename": "isolated-security-restart-false.json",
+        "sha256": "1b6fc9a10cf24384f3ccf313a3901262cb4b6f5f87da5b1b92721a8576c81e94"
+      }
+    },
+    {
+      "phase": "both-restart-false",
+      "operation": "Parent runner restarts the fixture host and Android; inspect the retained false value.",
+      "expected": false,
+      "androidNativeControlObserved": false,
+      "result": "pass",
+      "capture": {
+        "filename": "isolated-security-both-restart-false.json",
+        "sha256": "5d75e7c3b57dbd434f87f81c5c60bae552af8aefca0767ca1b87ed0760420972"
+      }
+    }
+  ],
+  "hostAssertion": {
+    "phase": "android-false",
+    "expected": false,
+    "result": "pass",
+    "evidenceType": "Parent test runner reports an explicit host-state assertion after the Android switch change; the six capture files above record native Android controls only."
+  },
+  "macControlCoverage": {
+    "evidence": "settings-all-fields-ui-results.json",
+    "scope": "The synthetic Mac editor test covers all 30 controls, including this setting. This isolated runtime run changed the host through its API, not a native Mac security-control click."
+  },
+  "restoration": {
+    "fixtureFinalAndroidValue": false,
+    "productionSecurityPolicy": "Never enabled during this isolated test."
+  },
+  "limitations": [
+    "UI operations, process restarts, API writes and the host assertion were performed by the parent runner. This audit directly reads and checks its six native-control captures.",
+    "The verification APK and synthetic localhost fixture are separate from production pairing and data.",
+    "This tests the policy value and its synchronization/persistence; it does not establish a plaintext connection across a real Wi-Fi LAN.",
+    "The security fixture uses its own Android and host restart sequence; it does not repeat the production offline-start sequence used for the other 29 settings.",
+    "Native Mac production settings were observed with the default false value; no native Mac security opt-in click is claimed."
+  ]
+}

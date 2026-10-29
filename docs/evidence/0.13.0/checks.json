@@ -1,0 +1,29 @@
+{
+  "version": "0.13.0",
+  "build": 24,
+  "sourceCommit": "4fb746edf8597b91e19605e9e3cf90481e0194ba",
+  "hostTests": {
+    "passed": 272,
+    "failed": 0,
+    "newUtilityTests": 11
+  },
+  "localization": {
+    "catalogLanguages": 19,
+    "existingUiSourceStrings": 1558,
+    "newUtilityMetadataLanguages": [
+      "ko",
+      "en"
+    ],
+    "otherUtilityLocalesUseEnglishFallback": true
+  },
+  "androidReleaseLint": {
+    "errors": 0,
+    "warnings": 22
+  },
+  "macHelperCompiled": true,
+  "macAppSignatureVerified": true,
+  "androidSignerPreserved": true,
+  "physicalDeviceTested": true,
+  "publishedAssetsRedownloadedWithoutAuthentication": true,
+  "testServicesAndVerificationAppRemoved": true
+}

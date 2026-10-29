@@ -1,0 +1,14 @@
+{
+  "androidPackage": "app.opendeck.client",
+  "version": "0.10.2",
+  "build": 18,
+  "installedApkMatchesReleaseArtifact": true,
+  "apkSha256": "e311a9dec0d88415ddeea1ce83010118f29a77fe1cb6dc94105a5fbe8dc458c8",
+  "installedMac": {
+    "version": "0.10.2",
+    "build": 18,
+    "commit": "452b0cfbaa0f22dc93fd23306c08f501f326ae9c"
+  },
+  "temporaryVerificationAppRemoved": true,
+  "temporaryReverseRemoved": true
+}

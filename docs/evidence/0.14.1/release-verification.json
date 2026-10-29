@@ -1,0 +1,33 @@
+{
+  "version": "0.14.1",
+  "build": 26,
+  "sourceCommit": "451ba407fbb09a4962c19b4e53077cf089a7c0e2",
+  "published": true,
+  "latest": true,
+  "assets": {
+    "Open-Deck-macOS-arm64.zip": {
+      "size": 40039082,
+      "sha256": "b85fc6870620d20438a2e1affb0136db0e6bc61d4ca6e637b15c7e16c50ef162",
+      "downloadMatches": true
+    },
+    "Open-Deck-Android.apk": {
+      "size": 6214241,
+      "sha256": "68e9b981499d331f57588918205a645ce0c4ac6597895622ce8814dbcadf5b99",
+      "downloadMatches": true
+    },
+    "SHA256SUMS.txt": {
+      "size": 180,
+      "sha256": "c5a2bd0f1aa2a48af3202228166c81c807a112f19310d6831e90d5ba6e711695",
+      "downloadMatches": true
+    }
+  },
+  "macBuildInfo": {
+    "version": "0.14.1",
+    "build": 26,
+    "commit": "451ba407fbb09a4962c19b4e53077cf089a7c0e2"
+  },
+  "androidSignerPreserved": true,
+  "liveDeviceTested": true,
+  "downloadedMacSignatureValid": true,
+  "completeNativeSourceIncluded": true
+}

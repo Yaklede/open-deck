@@ -1,4 +1,10 @@
+import {
+  catalog as vorssaintCatalog,
+  upgradeVorssaintPage,
+} from "./extensions/vorssaint/index.mjs";
+import { effectivePages, profileDesignKeys } from "./public/profiles.mjs";
 import fs from "node:fs";
+import { validateMonitorSettings } from "./public/monitor-rules.mjs";
 import path from "node:path";
 import os from "node:os";
 import crypto from "node:crypto";
@@ -62,6 +68,8 @@ const types = new Set([
   "button",
   "clock",
   "gauges",
+  "system",
+  "grafana",
   "timer",
   "volume",
   "text",
@@ -73,6 +81,9 @@ const types = new Set([
   "image",
   "spacer",
   "page",
+  "agenda",
+  "inbox",
+  "notification-feed",
 ]);
 const actionTypes = new Set([
   "openApp",
@@ -88,6 +99,7 @@ const actionTypes = new Set([
   "toggleVariable",
   "http",
   "plugin",
+  "extension",
 ]);
 const color = (v) => typeof v === "string" && /^#[0-9a-f]{6}$/i.test(v);
 const integer = (v, min, max) => Number.isInteger(v) && v >= min && v <= max;
@@ -97,11 +109,39 @@ const plain = (v) =>
   !Array.isArray(v) &&
   Object.getPrototypeOf(v) === Object.prototype;
 export function validateConfig(input) {
-  const c = migrate(input);
+  const c = upgradeVorssaintPage(migrate(input));
   delete c.assets;
   if (!Array.isArray(c.pages) || !c.pages.length || c.pages.length > 40)
     throw Error("1~40개의 페이지가 필요합니다.");
   if (!integer(c.columns, 2, 12)) throw Error("열 수는 2~12입니다.");
+  c.extensions ??= {};
+  if (
+    !plain(c.extensions) ||
+    Object.keys(c.extensions).some(
+      (k) => !["jimin-os", "vorssaint"].includes(k),
+    )
+  )
+    throw Error("지원하지 않는 연결입니다.");
+  const utilities = c.extensions.vorssaint;
+  if (
+    utilities &&
+    (!plain(utilities) ||
+      Object.keys(utilities).some(
+        (k) => !["enabled", "autoStart"].includes(k),
+      ) ||
+      Object.values(utilities).some((v) => typeof v !== "boolean"))
+  )
+    throw Error("Invalid Vorssaint settings");
+  const os = c.extensions["jimin-os"];
+  if (
+    os &&
+    (!plain(os) ||
+      (os.enabled !== undefined && typeof os.enabled !== "boolean") ||
+      (os.notifications !== undefined &&
+        typeof os.notifications !== "boolean") ||
+      !integer(os.reminderMinutes ?? 10, 1, 120))
+  )
+    throw Error("Jimin OS 알림 설정을 확인하세요.");
   const ids = new Set(),
     pageIds = new Set(c.pages.map((p) => p.id));
   let count = 0;
@@ -122,6 +162,19 @@ export function validateConfig(input) {
           JSON.stringify(a.parameters || {}).length > 16384)
       )
         throw Error("플러그인 동작 정보를 확인하세요.");
+      if (
+        a.type === "extension" &&
+        (!(
+          (a.extensionId === "jimin-os" &&
+            ["navigate", "refresh"].includes(a.operation)) ||
+          (a.extensionId === "vorssaint" &&
+            ["start", "open-settings", "awake-30", "awake-off"].includes(
+              a.operation,
+            ))
+        ) ||
+          !plain(a.parameters || {}))
+      )
+        throw Error("Jimin OS 동작을 확인하세요.");
       if (a.type === "if") {
         validateActions(a.then || [], depth + 1);
         validateActions(a.else || [], depth + 1);
@@ -214,6 +267,9 @@ export function validateConfig(input) {
       !themes[p.theme]
     )
       throw Error("페이지 배치 값을 확인하세요.");
+    for (const key of ["shadow", "showEmptyCells", "inheritProfileDesign"])
+      if (p[key] !== undefined && typeof p[key] !== "boolean")
+        throw Error("페이지 표시 설정을 확인하세요.");
     if (
       (p.background && !color(p.background)) ||
       (p.gradient && !color(p.gradient))
@@ -258,13 +314,72 @@ export function validateConfig(input) {
       )
         throw Error("위젯 배치가 겹치거나 페이지를 벗어납니다.");
       boxes.push(w);
+      if (w.provider && !["jimin-os", "vorssaint"].includes(w.provider))
+        throw Error("지원하지 않는 연결입니다.");
       if (w.color && !color(w.color)) throw Error("색상은 #RRGGBB 형식입니다.");
+      if (
+        w.pinScope !== undefined &&
+        !["none", "profile", "global"].includes(w.pinScope)
+      )
+        throw Error("고정 범위를 확인하세요.");
+      if (w.stateVariable && typeof c.variables[w.stateVariable] !== "boolean")
+        throw Error("상태에는 Boolean 변수를 선택하세요.");
+      for (const key of ["activeLabel", "activeIcon"])
+        if (
+          w[key] !== undefined &&
+          (typeof w[key] !== "string" || w[key].length > 120)
+        )
+          throw Error("상태 표시 값을 확인하세요.");
+      if (w.activeStyle !== undefined) {
+        if (!plain(w.activeStyle)) throw Error("상태 스타일을 확인하세요.");
+        const allowed = [
+          "background",
+          "textColor",
+          "borderColor",
+          "borderWidth",
+          "opacity",
+          "textSize",
+          "valueSize",
+          "iconSize",
+          "labelPosition",
+          "align",
+          "font",
+        ];
+        if (Object.keys(w.activeStyle).some((k) => !allowed.includes(k)))
+          throw Error("상태 스타일 필드를 확인하세요.");
+        for (const key of ["background", "textColor", "borderColor"])
+          if (w.activeStyle[key] && !color(w.activeStyle[key]))
+            throw Error("상태 스타일 색상을 확인하세요.");
+        for (const [key, min, max] of [
+          ["textSize", 9, 36],
+          ["valueSize", 20, 60],
+          ["iconSize", 10, 65],
+          ["borderWidth", 0, 5],
+          ["opacity", 20, 100],
+        ])
+          if (
+            w.activeStyle[key] !== undefined &&
+            !integer(w.activeStyle[key], min, max)
+          )
+            throw Error("상태 스타일 크기를 확인하세요.");
+        for (const [key, values] of [
+          ["labelPosition", ["top", "center", "bottom", "hidden"]],
+          ["align", ["left", "center", "right"]],
+          ["font", ["sans", "mono", "serif"]],
+        ])
+          if (
+            w.activeStyle[key] !== undefined &&
+            !values.includes(w.activeStyle[key])
+          )
+            throw Error("상태 글자 스타일을 확인하세요.");
+      }
       if (!plain(w.style)) throw Error("잘못된 스타일입니다.");
       for (const k of ["background", "textColor", "borderColor"])
         if (w.style[k] && !color(w.style[k]))
           throw Error("스타일 색상을 확인하세요.");
       for (const [k, min, max] of [
         ["textSize", 9, 36],
+        ["valueSize", 20, 60],
         ["iconSize", 10, 65],
         ["borderWidth", 0, 5],
         ["opacity", 20, 100],
@@ -281,6 +396,22 @@ export function validateConfig(input) {
         (w.style.font && !["sans", "mono", "serif"].includes(w.style.font))
       )
         throw Error("글자 스타일을 확인하세요.");
+      if (
+        w.utilityGroup !== undefined &&
+        (w.type !== "button" ||
+          w.provider !== "vorssaint" ||
+          !vorssaintCatalog.groups.some((g) => g.id === w.utilityGroup))
+      )
+        throw Error("Invalid Vorssaint group");
+      if (
+        w.utilityControl !== undefined &&
+        (w.type !== "button" ||
+          w.provider !== "vorssaint" ||
+          !["fan", "display", "audio", "awake", "preferences"].includes(
+            w.utilityControl,
+          ))
+      )
+        throw Error("Invalid Mac control");
       if (w.image && !/^[a-f0-9]{64}$/.test(w.image))
         throw Error("이미지를 확인하세요.");
       if (
@@ -290,6 +421,82 @@ export function validateConfig(input) {
         throw Error("타이머는 1~1440분입니다.");
       if (w.type === "page" && !pageIds.has(w.targetPage))
         throw Error("이동할 페이지를 선택하세요.");
+      if (
+        w.type === "system" &&
+        ![
+          "overview",
+          "cpu",
+          "memory",
+          "disk",
+          "network",
+          "processes",
+          "power",
+        ].includes(w.metric || "overview")
+      )
+        throw Error("시스템 지표를 선택하세요.");
+      if (["grafana", "system"].includes(w.type)) validateMonitorSettings(w);
+      if (w.type === "grafana") {
+        if (
+          (w.metric !== undefined &&
+            !["system", "database"].includes(w.metric)) ||
+          (w.projectGroup !== undefined &&
+            (typeof w.projectGroup !== "string" ||
+              !/^[A-Za-z0-9_-]{1,128}$/.test(w.projectGroup)))
+        )
+          throw Error("Grafana 카드와 프로젝트 그룹을 확인하세요.");
+        if (
+          (w.auth !== undefined && typeof w.auth !== "boolean") ||
+          (w.cpuPanelId !== undefined && !integer(w.cpuPanelId, 1, 100000)) ||
+          (w.tpsPanelId !== undefined && !integer(w.tpsPanelId, 1, 100000)) ||
+          ["latencyPanelId", "errorRatePanelId", "rpsPanelId"].some(
+            (key) => w[key] !== undefined && !integer(w[key], 0, 100000),
+          )
+        )
+          throw Error("Grafana 조회 설정을 확인하세요.");
+        if (w.url !== undefined && typeof w.url !== "string")
+          throw Error("Grafana 주소를 확인하세요.");
+        if (w.url) {
+          let u;
+          try {
+            u = new URL(w.url);
+          } catch {
+            throw Error("Grafana 주소를 확인하세요.");
+          }
+          if (
+            u.protocol !== "https:" ||
+            u.username ||
+            u.password ||
+            w.url.length > 2048
+          )
+            throw Error("Grafana는 인증 정보 없는 HTTPS 주소를 사용하세요.");
+        }
+        if (
+          !Array.isArray(w.projects) ||
+          w.projects.length < 1 ||
+          w.projects.length > 20 ||
+          w.projects.some(
+            (p) =>
+              !p ||
+              typeof p.label !== "string" ||
+              !p.label.trim() ||
+              p.label.length > 40 ||
+              typeof p.value !== "string" ||
+              !/^[a-zA-Z0-9_-]{1,80}$/.test(p.value),
+          ) ||
+          new Set(w.projects.map((p) => p.value)).size !== w.projects.length
+        )
+          throw Error("Grafana 프로젝트 이름과 값을 확인하세요.");
+        if (
+          w.defaultProject &&
+          !w.projects.some((p) => p.value === w.defaultProject)
+        )
+          throw Error("기본 프로젝트를 선택하세요.");
+        if (
+          w.projectVariable &&
+          !/^[a-zA-Z_][a-zA-Z0-9_]{0,40}$/.test(w.projectVariable)
+        )
+          throw Error("프로젝트 필터 이름을 확인하세요.");
+      }
       if (
         w.binding &&
         !Object.hasOwn(c.variables, w.binding) &&
@@ -313,6 +520,29 @@ export function validateConfig(input) {
       validateActions(w.doubleActions || []);
     }
   }
+  for (const p of c.profiles) {
+    if (p.defaults !== undefined) {
+      const d = p.defaults;
+      if (
+        !plain(d) ||
+        Object.keys(d).some((k) => !profileDesignKeys.includes(k))
+      )
+        throw Error("프로필 기본 디자인을 확인하세요.");
+      for (const key of ["background", "gradient"])
+        if (d[key] !== undefined && !color(d[key]))
+          throw Error("프로필 배경색을 확인하세요.");
+      if (
+        (d.gap !== undefined && !integer(d.gap, 0, 32)) ||
+        (d.radius !== undefined && !integer(d.radius, 0, 40)) ||
+        (d.theme !== undefined && !themes[d.theme])
+      )
+        throw Error("프로필 기본 디자인 범위를 확인하세요.");
+      for (const key of ["shadow", "showEmptyCells"])
+        if (d[key] !== undefined && typeof d[key] !== "boolean")
+          throw Error("프로필 표시 설정을 확인하세요.");
+    }
+  }
+  effectivePages(c); // Reject impossible pinned layouts before replacing a working configuration.
   if (count > 1024) throw Error("위젯은 최대 1024개입니다.");
   if (
     c.automations &&
@@ -372,6 +602,18 @@ export function loadConfig(dir = dataDir) {
   const config = validateConfig(raw);
   if (raw.version === 1) {
     const backup = path.join(dir, "deck-before-v2.json");
+    if (!fs.existsSync(backup)) writeJson(backup, raw);
+    writeJson(file, config);
+  }
+  const previousUtility = raw.pages?.find((p) => p.id === "vorssaint-page");
+  if (
+    previousUtility &&
+    !previousUtility.widgets?.some((w) => w.utilityControl) &&
+    config.pages
+      .find((p) => p.id === "vorssaint-page")
+      ?.widgets.some((w) => w.utilityControl)
+  ) {
+    const backup = path.join(dir, "deck-before-mac-controls.json");
     if (!fs.existsSync(backup)) writeJson(backup, raw);
     writeJson(file, config);
   }

@@ -1,0 +1,23 @@
+{
+  "physicalDevice": true,
+  "groupsVerified": [
+    "energyDisplay",
+    "windowsDock",
+    "mouseKeyboard",
+    "sound",
+    "clipboardFiles",
+    "dynamicIsland",
+    "monitor",
+    "tools",
+    "general"
+  ],
+  "groupCount": 9,
+  "quickAwakeStartedRealMacSleepAssertion": true,
+  "quickStopReleasedRealMacSleepAssertion": true,
+  "verifiedDurationMinutes": 30,
+  "all151SettingsRestoredAfterTests": true,
+  "officialVorssaintRunning": true,
+  "testUsedSeparateVerificationApp": true,
+  "macOperatingSystemRebooted": false,
+  "otherMacroActionsInvoked": false
+}

@@ -1,0 +1,200 @@
+{
+  "fault": "SIGKILL only the owned unprivileged MacControlClient after native-tablet maximum cooling",
+  "lastDataRetained": true,
+  "staleObserved": true,
+  "automaticReconnectSeconds": 2.755,
+  "fanRestoredToSystem": true,
+  "manualPresetRetainedWithoutReplaying": true,
+  "records": [
+    {
+      "elapsedSeconds": 0.013,
+      "available": false,
+      "stale": true,
+      "mode": "manual",
+      "retainedFanCount": 2,
+      "active": true,
+      "stopReason": null
+    },
+    {
+      "elapsedSeconds": 0.168,
+      "available": false,
+      "stale": true,
+      "mode": "manual",
+      "retainedFanCount": 2,
+      "active": true,
+      "stopReason": null
+    },
+    {
+      "elapsedSeconds": 0.33,
+      "available": false,
+      "stale": true,
+      "mode": "manual",
+      "retainedFanCount": 2,
+      "active": true,
+      "stopReason": null
+    },
+    {
+      "elapsedSeconds": 0.485,
+      "available": false,
+      "stale": true,
+      "mode": "manual",
+      "retainedFanCount": 2,
+      "active": true,
+      "stopReason": null
+    },
+    {
+      "elapsedSeconds": 0.643,
+      "available": false,
+      "stale": true,
+      "mode": "manual",
+      "retainedFanCount": 2,
+      "active": true,
+      "stopReason": null
+    },
+    {
+      "elapsedSeconds": 0.8,
+      "available": false,
+      "stale": true,
+      "mode": "manual",
+      "retainedFanCount": 2,
+      "active": true,
+      "stopReason": null
+    },
+    {
+      "elapsedSeconds": 0.96,
+      "available": false,
+      "stale": true,
+      "mode": "manual",
+      "retainedFanCount": 2,
+      "active": true,
+      "stopReason": null
+    },
+    {
+      "elapsedSeconds": 1.117,
+      "available": false,
+      "stale": true,
+      "mode": "manual",
+      "retainedFanCount": 2,
+      "active": true,
+      "stopReason": null
+    },
+    {
+      "elapsedSeconds": 1.279,
+      "available": false,
+      "stale": true,
+      "mode": "manual",
+      "retainedFanCount": 2,
+      "active": true,
+      "stopReason": null
+    },
+    {
+      "elapsedSeconds": 1.433,
+      "available": false,
+      "stale": true,
+      "mode": "manual",
+      "retainedFanCount": 2,
+      "active": true,
+      "stopReason": null
+    },
+    {
+      "elapsedSeconds": 1.59,
+      "available": false,
+      "stale": true,
+      "mode": "manual",
+      "retainedFanCount": 2,
+      "active": true,
+      "stopReason": null
+    },
+    {
+      "elapsedSeconds": 1.748,
+      "available": false,
+      "stale": true,
+      "mode": "manual",
+      "retainedFanCount": 2,
+      "active": true,
+      "stopReason": null
+    },
+    {
+      "elapsedSeconds": 1.909,
+      "available": false,
+      "stale": true,
+      "mode": "manual",
+      "retainedFanCount": 2,
+      "active": true,
+      "stopReason": null
+    },
+    {
+      "elapsedSeconds": 2.755,
+      "available": true,
+      "stale": false,
+      "mode": "system",
+      "retainedFanCount": 2,
+      "active": false,
+      "stopReason": null
+    }
+  ],
+  "postRecoveryFan": {
+    "access": "enabled",
+    "active": false,
+    "controllable": true,
+    "fans": [
+      {
+        "actualRPM": 2323.705078125,
+        "index": 0,
+        "manual": false,
+        "maximumRPM": 7826,
+        "minimumRPM": 2317,
+        "targetRPM": 2317
+      },
+      {
+        "actualRPM": 2484.47216796875,
+        "index": 1,
+        "manual": false,
+        "maximumRPM": 7826,
+        "minimumRPM": 2317,
+        "targetRPM": 2502
+      }
+    ],
+    "mode": "system",
+    "temperatures": [
+      {
+        "celsius": 69.14006304740906,
+        "source": "averageSoC"
+      },
+      {
+        "celsius": 89.34375,
+        "source": "hottestSoC"
+      },
+      {
+        "celsius": 76.25677719116212,
+        "source": "averageCPU"
+      },
+      {
+        "celsius": 89.34375,
+        "source": "hottestCPU"
+      },
+      {
+        "celsius": 70.46160888671875,
+        "source": "hottestGPU"
+      }
+    ],
+    "presetLevel": 100,
+    "presetCurves": [
+      {
+        "sensor": "hottestSoC",
+        "points": [
+          {
+            "temperature": 20,
+            "coolingLevel": 100
+          },
+          {
+            "temperature": 110,
+            "coolingLevel": 100
+          }
+        ]
+      }
+    ],
+    "presetSaveError": false
+  },
+  "verified": true
+}

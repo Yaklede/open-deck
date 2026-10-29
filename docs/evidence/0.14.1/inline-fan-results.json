@@ -1,0 +1,137 @@
+{
+  "actions": "native main-page left-half Max then Auto buttons",
+  "noModalOpened": true,
+  "maximumFan": {
+    "access": "enabled",
+    "active": true,
+    "configuration": {
+      "curves": [],
+      "manualLevel": 100,
+      "mode": "manual"
+    },
+    "controllable": true,
+    "fans": [
+      {
+        "actualRPM": 5483.8759765625,
+        "index": 0,
+        "manual": true,
+        "maximumRPM": 7826,
+        "minimumRPM": 2317,
+        "targetRPM": 7826
+      },
+      {
+        "actualRPM": 5533.94921875,
+        "index": 1,
+        "manual": true,
+        "maximumRPM": 7826,
+        "minimumRPM": 2317,
+        "targetRPM": 7826
+      }
+    ],
+    "level": 100,
+    "mode": "manual",
+    "temperatures": [
+      {
+        "celsius": 75.03379962318822,
+        "source": "averageSoC"
+      },
+      {
+        "celsius": 101.34375,
+        "source": "hottestSoC"
+      },
+      {
+        "celsius": 84.75329637527466,
+        "source": "averageCPU"
+      },
+      {
+        "celsius": 101.34375,
+        "source": "hottestCPU"
+      },
+      {
+        "celsius": 73.22454071044922,
+        "source": "hottestGPU"
+      }
+    ],
+    "presetLevel": 100,
+    "presetCurves": [
+      {
+        "sensor": "hottestSoC",
+        "points": [
+          {
+            "temperature": 50,
+            "coolingLevel": 0
+          },
+          {
+            "temperature": 70,
+            "coolingLevel": 100
+          }
+        ]
+      }
+    ],
+    "presetSaveError": false
+  },
+  "automaticFan": {
+    "access": "enabled",
+    "active": false,
+    "controllable": true,
+    "fans": [
+      {
+        "actualRPM": 7790.85888671875,
+        "index": 0,
+        "manual": false,
+        "maximumRPM": 7826,
+        "minimumRPM": 2317,
+        "targetRPM": 7826
+      },
+      {
+        "actualRPM": 7807.58642578125,
+        "index": 1,
+        "manual": false,
+        "maximumRPM": 7826,
+        "minimumRPM": 2317,
+        "targetRPM": 7826
+      }
+    ],
+    "mode": "system",
+    "temperatures": [
+      {
+        "celsius": 70.62113601283023,
+        "source": "averageSoC"
+      },
+      {
+        "celsius": 92.328125,
+        "source": "hottestSoC"
+      },
+      {
+        "celsius": 77.90079736709595,
+        "source": "averageCPU"
+      },
+      {
+        "celsius": 92.328125,
+        "source": "hottestCPU"
+      },
+      {
+        "celsius": 69.75833892822266,
+        "source": "hottestGPU"
+      }
+    ],
+    "presetLevel": 100,
+    "presetCurves": [
+      {
+        "sensor": "hottestSoC",
+        "points": [
+          {
+            "temperature": 50,
+            "coolingLevel": 0
+          },
+          {
+            "temperature": 70,
+            "coolingLevel": 100
+          }
+        ]
+      }
+    ],
+    "presetSaveError": false
+  },
+  "verified": true
+}

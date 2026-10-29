@@ -1,0 +1,9 @@
+Open Deck includes common user-interface translations adapted from Macro Deck.
+Upstream: https://github.com/Macro-Deck-App/Macro-Deck
+Revision: 7089154cde506c0884bb39c4712863e0fef83d84 (v3.0.0-beta.18)
+Copyright: the Macro Deck contributors. Licensed under the Apache License, Version 2.0.
+See Macro-Deck-Apache-2.0.txt for the full license.
+Source files: host/src/MacroDeckHost.Localization/Localization/Strings*.resx
+and sdk/src/MacroDeck.Localization/Resources/Strings*.resx.
+Modifications: source keys mapped to Open Deck product strings; additional Open Deck
+translations added. No upstream endorsement is implied.

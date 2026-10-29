@@ -1,0 +1,20 @@
+{
+  "version": "0.13.0",
+  "build": 24,
+  "sourceCommit": "4fb746edf8597b91e19605e9e3cf90481e0194ba",
+  "physicalDeviceModel": "Samsung Galaxy Tab S7 (SM-T870)",
+  "installedToExistingApps": true,
+  "oldPagesPreserved": 3,
+  "newMacToolsPage": true,
+  "profilesPreservedWithNewDefaultPageMembership": true,
+  "hostPreferencesPreserved": true,
+  "pairedDevicesPreserved": 4,
+  "deviceSettingValuesAndTokensPreserved": true,
+  "productionNativeSettingsOpenedOverPinnedWifi": true,
+  "providerStatus": "connected",
+  "upstreamVersion": "3.4.2",
+  "bothOpenDeckAppsRestarted": true,
+  "pageAndConnectionRestoredAfterRestart": true,
+  "macOperatingSystemRebooted": false,
+  "utilityPreferenceValuesRestoredAfterTests": 151
+}

@@ -1,0 +1,6 @@
+{
+  "physicalTablet": true,
+  "native30MinuteButtonStartedRealAssertion": true,
+  "stoppedAndReleasedAssertion": true,
+  "officialVorssaintNotRestarted": true
+}

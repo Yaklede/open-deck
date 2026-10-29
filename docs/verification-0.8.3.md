@@ -1,0 +1,8 @@
+# 0.8.3 validation
+
+- The existing Grafana dashboard was read through its authorized connector. Its CPU gauge, node CPU time-series, TPS stat, memory gauge, connections stat and QPS time-series roles informed the native overview. Grafana image rendering is unavailable; no renderer or extra service was installed.
+- The physical Samsung tablet displays all three observed DB nodes as CPU gauges, with node-matched memory percentage/GiB/bars, matching neutral series colors, a common time/percentage CPU chart, total TPS/QPS sparklines and total DB connections. System CPU remains the largest readout. Warning/critical gauge markers use the existing configured limits.
+- Node memory bars now classify each node value independently rather than inheriting the most severe node's aggregate color. Normal node-identification colors exclude warning amber and critical red. CPU chart timestamps share one hour window and missing intervals break lines.
+- 60 Node tests, 18 Java gesture checks, signed Android release build/lint and optimized Mac app/helper build pass. The installed Mac bundle passes deep/strict signature verification and reports 0.8.3 through health. Android reports versionCode 12 / 0.8.3.
+- The entire saved configuration remains identical to the private pre-change snapshot: Workspace, OS, monitor geometry, personal labels/font sizes, projects, tokens, thresholds and notifications are preserved. Physical pairing reconnects over the existing encrypted Wi-Fi transport.
+- Native Grafana detail views remain accessible. No production data mutations, new Grafana permissions or Mac reboot are required. Private screenshots and signed application archives stay outside the repository.

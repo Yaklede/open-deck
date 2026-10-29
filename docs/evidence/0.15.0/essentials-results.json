@@ -1,0 +1,27 @@
+{
+  "features": [
+    {
+      "feature": "창 배치",
+      "draftToggleWorked": true,
+      "cancelKeptMacDisabled": true
+    },
+    {
+      "feature": "클립보드 기록",
+      "draftToggleWorked": true,
+      "cancelKeptMacDisabled": true
+    },
+    {
+      "feature": "서식 없이 붙여넣기",
+      "draftToggleWorked": true,
+      "cancelKeptMacDisabled": true
+    },
+    {
+      "feature": "창 닫기·종료 보호",
+      "draftToggleWorked": true,
+      "cancelKeptMacDisabled": true
+    }
+  ],
+  "explicitSaveOfDisabledValuesReturnedToHub": true,
+  "productionFeaturesNeverActivated": true,
+  "verified": true
+}

@@ -1,0 +1,738 @@
+{
+  "version": "0.11.0",
+  "build": 19,
+  "artifactStage": "released",
+  "finalArtifactVerification": "pass",
+  "deviceModel": "SM-T870",
+  "result": "pass",
+  "checksPassed": 33,
+  "checksTotal": 33,
+  "scope": {
+    "android": "physical native Android app",
+    "mac": "actual native Mac app; UI action/confirmation attribution comes from the execution runner",
+    "applicationTransport": "UI-reported encrypted Wi-Fi",
+    "controlTransport": "ADB over an attached USB cable",
+    "incidentData": "synthetic test incident",
+    "rawArtifactsPublished": false
+  },
+  "checks": [
+    {
+      "check": "cpu-primary-layout",
+      "description": "CPU를 가장 큰 숫자로 표시하고 서비스 지표는 작은 보조 행으로 분리",
+      "result": "pass",
+      "verificationMethod": "independent-visual-review",
+      "evidence": [
+        "01-tablet-monitor.png",
+        "08-service-details.png"
+      ],
+      "note": "DB 노드별 배치와 CPU 그래프가 함께 보이며 보조 지표가 CPU보다 작음. 검토한 화면에서 글자 겹침 없음.",
+      "phase": "initial-candidate"
+    },
+    {
+      "check": "latency-aggregation",
+      "description": "평균 응답시간 표기 및 ms 단위",
+      "result": "pass",
+      "verificationMethod": "json-and-native-ui",
+      "evidence": [
+        "first-live.json",
+        "08-service-details.xml"
+      ],
+      "note": "실제 수집 집계는 mean이며 P95로 표시하지 않음.",
+      "phase": "initial-candidate"
+    },
+    {
+      "check": "service-labels-units",
+      "description": "5xx 오류율과 RPS의 이름·단위 구분",
+      "result": "pass",
+      "verificationMethod": "json-and-native-ui",
+      "evidence": [
+        "first-live.json",
+        "08-service-details.xml"
+      ],
+      "phase": "initial-candidate"
+    },
+    {
+      "check": "grafana-exact-latency",
+      "description": "평균 응답시간의 Grafana 직접 조회 결과 일치",
+      "result": "pass",
+      "verificationMethod": "independent-numeric-comparison",
+      "evidence": [
+        "first-live.json",
+        "direct-grafana-comparison.json"
+      ],
+      "note": "동일 서비스 데이터 평가 시각을 사용한 두 수치가 정확히 일치함. 실측 값과 평가 시각은 비공개.",
+      "phase": "initial-candidate"
+    },
+    {
+      "check": "grafana-exact-errorRate",
+      "description": "5xx 오류율의 Grafana 직접 조회 결과 일치",
+      "result": "pass",
+      "verificationMethod": "independent-numeric-comparison",
+      "evidence": [
+        "first-live.json",
+        "direct-grafana-comparison.json"
+      ],
+      "note": "동일 서비스 데이터 평가 시각을 사용한 두 수치가 정확히 일치함. 실측 값과 평가 시각은 비공개.",
+      "phase": "initial-candidate"
+    },
+    {
+      "check": "grafana-exact-rps",
+      "description": "RPS의 Grafana 직접 조회 결과 일치",
+      "result": "pass",
+      "verificationMethod": "independent-numeric-comparison",
+      "evidence": [
+        "first-live.json",
+        "direct-grafana-comparison.json"
+      ],
+      "note": "동일 서비스 데이터 평가 시각을 사용한 두 수치가 정확히 일치함. 실측 값과 평가 시각은 비공개.",
+      "phase": "initial-candidate"
+    },
+    {
+      "check": "detail-graph-controls",
+      "description": "상세 화면의 CPU·응답 시간·5xx 오류율·RPS 그래프 선택 컨트롤",
+      "result": "pass",
+      "verificationMethod": "native-ui-and-visual-review",
+      "evidence": [
+        "08-service-details.xml",
+        "08-service-details.png"
+      ],
+      "note": "컨트롤과 기본 CPU 그래프 표시를 확인함. 이 증거만으로 모든 그래프 탭의 실제 터치 동작을 검증했다고 주장하지 않음.",
+      "phase": "initial-candidate"
+    },
+    {
+      "check": "android-ack-to-mac",
+      "description": "태블릿에서 알림 확인 후 호스트와 Mac UI 반영",
+      "result": "pass",
+      "verificationMethod": "host-state-and-runner-observation",
+      "evidence": [
+        "ack-snooze.json",
+        "02-tablet-ack-snooze.xml"
+      ],
+      "note": "태블릿 클릭 및 Mac 실제 UI 확인은 실행 담당자의 직접 관찰 기록. 보존된 JSON/XML은 확인 상태와 처리 이력을 독립적으로 입증함.",
+      "phase": "initial-candidate"
+    },
+    {
+      "check": "mac-snooze-to-android",
+      "description": "Mac에서 30분 알림 중지 후 태블릿에 재개 버튼 표시",
+      "result": "pass",
+      "verificationMethod": "host-state-native-ui-and-runner-observation",
+      "evidence": [
+        "ack-snooze.json",
+        "02-tablet-ack-snooze.xml"
+      ],
+      "note": "Mac UI 조작은 실행 담당자 관찰 기록이며 태블릿 상태는 XML에서 확인함.",
+      "phase": "initial-candidate"
+    },
+    {
+      "check": "offline-history-retained",
+      "description": "연결 중단 중 발생·확인·중지 이력 유지",
+      "result": "pass",
+      "verificationMethod": "native-ui-comparison",
+      "evidence": [
+        "02-tablet-ack-snooze.xml",
+        "03-tablet-offline-inbox.xml"
+      ],
+      "phase": "initial-candidate"
+    },
+    {
+      "check": "offline-actions-disabled",
+      "description": "연결 중단 안내와 확인·재개 버튼 비활성화",
+      "result": "pass",
+      "verificationMethod": "native-control-state",
+      "evidence": [
+        "03-tablet-offline-inbox.xml"
+      ],
+      "phase": "initial-candidate"
+    },
+    {
+      "check": "host-restart-persistence",
+      "description": "Mac 호스트 재시작 후 같은 알림의 확인·중지 상태와 이력 유지",
+      "result": "pass",
+      "verificationMethod": "host-state-native-ui-and-runner-observation",
+      "evidence": [
+        "ack-snooze.json",
+        "after-host-restart.json",
+        "04-tablet-after-host-restart.xml"
+      ],
+      "note": "재시작 조작은 실행 담당자 기록. 사건 식별자의 동일성은 비공개 원본끼리 비교했으며 문서에는 내보내지 않음.",
+      "phase": "initial-candidate"
+    },
+    {
+      "check": "both-apps-restart-persistence",
+      "description": "호스트 재시작에 이어 태블릿 앱을 재시작해도 확인·중지 이력 복원",
+      "result": "pass",
+      "verificationMethod": "native-ui-comparison-and-runner-observation",
+      "evidence": [
+        "04-tablet-after-host-restart.xml",
+        "05-tablet-app-restarted.xml",
+        "06-tablet-restored-inbox.xml"
+      ],
+      "note": "앱 종료·실행은 실행 담당자 기록. 재실행 후 열린 알림 상세의 버튼 상태와 이력을 독립 비교함.",
+      "phase": "initial-candidate"
+    },
+    {
+      "check": "resume-state-and-timeline",
+      "description": "알림 재개 후 중지 해제와 재개 이력 보존",
+      "result": "pass",
+      "verificationMethod": "host-state-and-native-ui",
+      "evidence": [
+        "after-resume.json",
+        "07-tablet-recovered.xml"
+      ],
+      "phase": "initial-candidate"
+    },
+    {
+      "check": "recovery-history",
+      "description": "정상 복구 후 이전 처리 이력 유지 및 처리 버튼 비활성화",
+      "result": "pass",
+      "verificationMethod": "native-control-state-and-timeline",
+      "evidence": [
+        "07-tablet-recovered.xml"
+      ],
+      "note": "합성 알림의 복구 경로 시험이며 실제 서비스 장애를 만들지 않음.",
+      "phase": "initial-candidate"
+    },
+    {
+      "check": "application-wifi-indicator",
+      "description": "태블릿 앱의 암호화 Wi-Fi 연결 표시",
+      "result": "pass",
+      "verificationMethod": "independent-visual-review",
+      "evidence": [
+        "01-tablet-monitor.png",
+        "08-service-details.png"
+      ],
+      "note": "USB 케이블은 ADB 조작·증거 수집용으로 연결됨. 앱 화면은 암호화 Wi-Fi 연결을 표시함. 케이블을 분리한 시험 또는 패킷 캡처 시험으로 표현하지 않음.",
+      "phase": "initial-candidate"
+    },
+    {
+      "check": "hardened-cpu-primary-layout",
+      "description": "보완 후보에서도 CPU 우선 배치와 작은 서비스 보조 지표 유지",
+      "result": "pass",
+      "verificationMethod": "execution-runner-visual-review",
+      "evidence": [
+        "10-final-monitor.png"
+      ],
+      "note": "실기기 화면 관찰 기록. 실제 지표와 프로젝트명은 공개하지 않음.",
+      "phase": "post-hardening",
+      "sourceCommit": "dba6382aba8631cd9bc8703a2519b7ea12a65f61"
+    },
+    {
+      "check": "hardened-response-graph",
+      "description": "평균 응답시간 그래프 탭의 실제 표시",
+      "result": "pass",
+      "verificationMethod": "independent-visual-review-and-runner-action",
+      "evidence": [
+        "11-final-details.png",
+        "12-final-response-chart.png"
+      ],
+      "note": "탭 선택 조작은 실행 담당자 기록, 선택된 그래프 표시 판정은 독립 시각 검토.",
+      "phase": "post-hardening",
+      "sourceCommit": "dba6382aba8631cd9bc8703a2519b7ea12a65f61"
+    },
+    {
+      "check": "hardened-error-graph",
+      "description": "5xx 오류율 그래프 탭의 실제 표시",
+      "result": "pass",
+      "verificationMethod": "independent-visual-review-and-runner-action",
+      "evidence": [
+        "13-final-error-chart.png"
+      ],
+      "note": "탭 선택 조작은 실행 담당자 기록. 초기 후보의 컨트롤 존재 확인보다 범위를 확장한 검증.",
+      "phase": "post-hardening",
+      "sourceCommit": "dba6382aba8631cd9bc8703a2519b7ea12a65f61"
+    },
+    {
+      "check": "hardened-rps-graph",
+      "description": "RPS 그래프 탭의 실제 표시",
+      "result": "pass",
+      "verificationMethod": "independent-visual-review-and-runner-action",
+      "evidence": [
+        "14-final-rps-chart.png"
+      ],
+      "note": "실제 선택된 그래프 표시를 확인. 후속 실제 시각 축 변경의 최종 설치 검증과는 구분함.",
+      "phase": "post-hardening",
+      "sourceCommit": "dba6382aba8631cd9bc8703a2519b7ea12a65f61"
+    },
+    {
+      "check": "hardened-android-ack-mac",
+      "description": "태블릿 확인 조작 후 Mac 미확인 건수 감소",
+      "result": "pass",
+      "verificationMethod": "host-state-native-ui-and-runner-observation",
+      "evidence": [
+        "final-ack-snooze.json",
+        "15-final-ack-snooze.xml"
+      ],
+      "note": "Mac 네이티브 UI 미확인 1→0 변화는 실행 담당자의 Cua 직접 관찰. JSON/XML은 확인 상태와 버튼 비활성화를 입증.",
+      "phase": "post-hardening",
+      "sourceCommit": "dba6382aba8631cd9bc8703a2519b7ea12a65f61"
+    },
+    {
+      "check": "hardened-mac-snooze-android",
+      "description": "Mac 30분 중지 조작을 태블릿에 반영",
+      "result": "pass",
+      "verificationMethod": "host-state-native-ui-and-runner-observation",
+      "evidence": [
+        "final-ack-snooze.json",
+        "15-final-ack-snooze.xml"
+      ],
+      "note": "Mac 조작은 실행 담당자 기록. 태블릿 상세에서 재개 버튼 활성 및 확인 버튼 비활성 확인.",
+      "phase": "post-hardening",
+      "sourceCommit": "dba6382aba8631cd9bc8703a2519b7ea12a65f61"
+    },
+    {
+      "check": "hardened-both-apps-restart",
+      "description": "Mac과 태블릿 앱 종료·재실행 후 동일 사건의 확인·중지 이력 유지",
+      "result": "pass",
+      "verificationMethod": "independent-json-comparison-and-runner-observation",
+      "evidence": [
+        "final-ack-snooze.json",
+        "final-apps-restarted.json",
+        "16-final-apps-restarted.xml"
+      ],
+      "note": "같은 사건 식별 해시와 상태·기존 이력의 동일성을 비공개 원본끼리 비교. Mac OS 재부팅 시험이 아님.",
+      "phase": "post-hardening",
+      "sourceCommit": "dba6382aba8631cd9bc8703a2519b7ea12a65f61"
+    },
+    {
+      "check": "hardened-native-inbox-restoration",
+      "description": "재실행 후 알림 상세 버튼과 처리 이력 복원",
+      "result": "pass",
+      "verificationMethod": "independent-native-ui-comparison",
+      "evidence": [
+        "15-final-ack-snooze.xml",
+        "17-final-restored-inbox.xml"
+      ],
+      "note": "두 상세 XML 해시가 같고 확인 비활성·재개 활성 상태가 일치.",
+      "phase": "post-hardening",
+      "sourceCommit": "dba6382aba8631cd9bc8703a2519b7ea12a65f61"
+    },
+    {
+      "check": "hardened-synthetic-not-stale",
+      "description": "재시작한 합성 알림에 잘못된 수집 지연 표시 없음",
+      "result": "pass",
+      "verificationMethod": "independent-native-ui-check-and-runner-observation",
+      "evidence": [
+        "17-final-restored-inbox.xml",
+        "final-apps-restarted.json"
+      ],
+      "note": "XML에 수집 지연·마지막 상태 유지 문구가 없음. stale=false 상태 자체는 실행 담당자의 확인 기록이며 축약 JSON에 없는 필드를 추정하지 않음.",
+      "phase": "post-hardening",
+      "sourceCommit": "dba6382aba8631cd9bc8703a2519b7ea12a65f61"
+    },
+    {
+      "check": "hardened-resume-recovery",
+      "description": "재개와 합성 복구 후 기존 이력 유지 및 처리 버튼 비활성화",
+      "result": "pass",
+      "verificationMethod": "independent-json-and-native-ui-comparison",
+      "evidence": [
+        "final-ack-snooze.json",
+        "final-recovered.json",
+        "18-final-recovered.xml"
+      ],
+      "note": "기존 이력에 resume/recovery만 추가, resolved·snoozed=false, 두 처리 버튼 비활성. 실제 서비스 장애는 만들지 않음.",
+      "phase": "post-hardening",
+      "sourceCommit": "dba6382aba8631cd9bc8703a2519b7ea12a65f61"
+    },
+    {
+      "check": "hardened-deck-preserved",
+      "description": "운영 덱 설정 유지",
+      "result": "pass",
+      "verificationMethod": "recorded-preservation-assertion",
+      "evidence": [
+        "final-configuration-preserved.json"
+      ],
+      "note": "비공개 보존 검사 deckUnchanged=true 확인. 식별 목록이나 설정값 자체는 공개하지 않음.",
+      "phase": "post-hardening",
+      "sourceCommit": "dba6382aba8631cd9bc8703a2519b7ea12a65f61"
+    },
+    {
+      "check": "hardened-pairings-preserved",
+      "description": "페어링된 기기 식별 목록 유지",
+      "result": "pass",
+      "verificationMethod": "recorded-preservation-assertion",
+      "evidence": [
+        "final-configuration-preserved.json"
+      ],
+      "note": "비공개 보존 검사 pairedDeviceIdsUnchanged=true 확인. 식별 목록이나 설정값 자체는 공개하지 않음.",
+      "phase": "post-hardening",
+      "sourceCommit": "dba6382aba8631cd9bc8703a2519b7ea12a65f61"
+    },
+    {
+      "check": "hardened-device-settings-preserved",
+      "description": "태블릿별 설정 유지",
+      "result": "pass",
+      "verificationMethod": "recorded-preservation-assertion",
+      "evidence": [
+        "final-configuration-preserved.json"
+      ],
+      "note": "비공개 보존 검사 deviceSettingsUnchanged=true 확인. 식별 목록이나 설정값 자체는 공개하지 않음.",
+      "phase": "post-hardening",
+      "sourceCommit": "dba6382aba8631cd9bc8703a2519b7ea12a65f61"
+    },
+    {
+      "check": "actual-time-axis-CPU",
+      "description": "실제 시작·중간·끝 시각과 최고점 시각·위치 표시: CPU",
+      "result": "pass",
+      "phase": "actual-time-axis",
+      "verificationMethod": "runner-tap-and-independent-visual-review",
+      "evidence": [
+        "20-time-cpu.png"
+      ],
+      "note": "Raw business metrics and displayed times remain private."
+    },
+    {
+      "check": "actual-time-axis-response",
+      "description": "실제 시작·중간·끝 시각과 최고점 시각·위치 표시: response",
+      "result": "pass",
+      "phase": "actual-time-axis",
+      "verificationMethod": "runner-tap-and-independent-visual-review",
+      "evidence": [
+        "21-time-response.png"
+      ],
+      "note": "Raw business metrics and displayed times remain private."
+    },
+    {
+      "check": "actual-time-axis-5xx-error",
+      "description": "실제 시작·중간·끝 시각과 최고점 시각·위치 표시: 5xx-error",
+      "result": "pass",
+      "phase": "actual-time-axis",
+      "verificationMethod": "runner-tap-and-independent-visual-review",
+      "evidence": [
+        "22-time-error.png"
+      ],
+      "note": "Raw business metrics and displayed times remain private."
+    },
+    {
+      "check": "actual-time-axis-RPS",
+      "description": "실제 시작·중간·끝 시각과 최고점 시각·위치 표시: RPS",
+      "result": "pass",
+      "phase": "actual-time-axis",
+      "verificationMethod": "runner-tap-and-independent-visual-review",
+      "evidence": [
+        "23-time-rps.png"
+      ],
+      "note": "Raw business metrics and displayed times remain private."
+    }
+  ],
+  "originalEvidence": [
+    {
+      "filename": "01-tablet-monitor.png",
+      "sha256": "de53dac845f29a3a2c20584e3e626eaae7bc7e4bbdf7d41b250b1adbdf2bc53b",
+      "published": false
+    },
+    {
+      "filename": "02-tablet-ack-snooze.xml",
+      "sha256": "57c272cc1ce8aee42e5f6b226c67518561c0ede9e80e07db3a0b29a97b4ac3b8",
+      "published": false
+    },
+    {
+      "filename": "03-tablet-offline-inbox.xml",
+      "sha256": "bb394634019b10c35db50b3904da4a361ce1a341b5d8cee0052d3af9b435a727",
+      "published": false
+    },
+    {
+      "filename": "04-tablet-after-host-restart.xml",
+      "sha256": "ea7adf4aaccb4b132424c55c2e01308df13fc9e2b0c0cc476f45a302e32952ec",
+      "published": false
+    },
+    {
+      "filename": "05-tablet-app-restarted.xml",
+      "sha256": "39944eb2b322bcf4b584c761c356cf278761933c8bd89f7d832fbffa9cba38e8",
+      "published": false
+    },
+    {
+      "filename": "06-tablet-restored-inbox.xml",
+      "sha256": "ea7adf4aaccb4b132424c55c2e01308df13fc9e2b0c0cc476f45a302e32952ec",
+      "published": false
+    },
+    {
+      "filename": "07-tablet-recovered.xml",
+      "sha256": "bbb1d90aa73c1a59940eb4d374d40fdb7436a2eb66f4ca158c4e0964fcec234b",
+      "published": false
+    },
+    {
+      "filename": "08-service-details.png",
+      "sha256": "04d9ebd3ef326fb7ec3cd0a035b32636086597cd2895a93f558ed39dd15b8115",
+      "published": false
+    },
+    {
+      "filename": "08-service-details.xml",
+      "sha256": "84afed9a986a757993108530bd4caec3bf4df35670e02e1fd84cf099149e976d",
+      "published": false
+    },
+    {
+      "filename": "ack-snooze.json",
+      "sha256": "e6dec83bb8e65029369a7ae118ac6d98eae010a606e9355b0af271f94e06dc36",
+      "published": false
+    },
+    {
+      "filename": "after-host-restart.json",
+      "sha256": "042eaf1852537dbaeb0404cbf5cfac47f1c1b3deb556dd0970819f811f11d0c3",
+      "published": false
+    },
+    {
+      "filename": "after-resume.json",
+      "sha256": "1c9d4ec68f10feef31946afc291f65bf7106280bd9755735a4ed27cbbc82307c",
+      "published": false
+    },
+    {
+      "filename": "direct-grafana-comparison.json",
+      "sha256": "8fba2d5e9b5fd900e17f336dd45a7cb6ab70521d45760d1b8d967c4f7a338114",
+      "published": false
+    },
+    {
+      "filename": "first-live.json",
+      "sha256": "49a5cd51a486a73230b6434630257398a5fb05d3e602a22f6297d507ffa2e975",
+      "published": false
+    },
+    {
+      "filename": "10-final-monitor.png",
+      "sha256": "578ba14663d252fee3cb90dfcd9ed487c8e02b3e3d8a84f6612bb0147360e780",
+      "published": false,
+      "phase": "post-hardening"
+    },
+    {
+      "filename": "11-final-details.png",
+      "sha256": "1042f31ddf07b998ed04f34598cb042029c2f0a2052657c3642abcf0d0bb448c",
+      "published": false,
+      "phase": "post-hardening"
+    },
+    {
+      "filename": "12-final-response-chart.png",
+      "sha256": "fe0e3b24c73a7ac3c5349b55f741b28be804f9e8dfaee46d99bb8399fed4338f",
+      "published": false,
+      "phase": "post-hardening"
+    },
+    {
+      "filename": "13-final-error-chart.png",
+      "sha256": "0caaffbbd015e7dcced7161e197df87c24fd30bbe8487795c712a43929cce9fb",
+      "published": false,
+      "phase": "post-hardening"
+    },
+    {
+      "filename": "14-final-rps-chart.png",
+      "sha256": "215bd001f2699071fbab8f1099182bc8380269885e3958789aca4db87c70650c",
+      "published": false,
+      "phase": "post-hardening"
+    },
+    {
+      "filename": "15-final-ack-snooze.xml",
+      "sha256": "32220b88df4f24f5abb78ab5806f8b355a28d3e2f1832fc79bf3e3e89e02fec8",
+      "published": false,
+      "phase": "post-hardening"
+    },
+    {
+      "filename": "16-final-apps-restarted.xml",
+      "sha256": "b8c66fbfa19f66b4c97117d69806879e52f0b6b15e2278c37deecf0c7087667e",
+      "published": false,
+      "phase": "post-hardening"
+    },
+    {
+      "filename": "17-final-restored-inbox.xml",
+      "sha256": "32220b88df4f24f5abb78ab5806f8b355a28d3e2f1832fc79bf3e3e89e02fec8",
+      "published": false,
+      "phase": "post-hardening"
+    },
+    {
+      "filename": "18-final-recovered.xml",
+      "sha256": "577a987e73d0c7df39dd83271b4907651783d053c7c4f33b96991f59d66d4b70",
+      "published": false,
+      "phase": "post-hardening"
+    },
+    {
+      "filename": "final-ack-snooze.json",
+      "sha256": "b59968b23808d0d3af86cc70ef277adca917e04b393e28800235fa352fee7b25",
+      "published": false,
+      "phase": "post-hardening"
+    },
+    {
+      "filename": "final-apps-restarted.json",
+      "sha256": "7189a7dfa31bb5d9a88252f96c6bc214deefacdcb4025424d8164c72d34f68ed",
+      "published": false,
+      "phase": "post-hardening"
+    },
+    {
+      "filename": "final-recovered.json",
+      "sha256": "3b2d61cd17727a05f5d55bd54bb25bc96f524e7ebf992bd7d34eacf98ab8986b",
+      "published": false,
+      "phase": "post-hardening"
+    },
+    {
+      "filename": "final-configuration-preserved.json",
+      "sha256": "5935bb6156088641ed991a74bb5b4771375284af103136435122f815ff605669",
+      "published": false,
+      "phase": "post-hardening"
+    },
+    {
+      "filename": "20-time-cpu.png",
+      "sha256": "e8a831ece8bf3845a3633ff0d56916502da93fb54fb84e329b96ddd84c7114c6",
+      "published": false
+    },
+    {
+      "filename": "21-time-response.png",
+      "sha256": "8b738377dfefa9540bb49f0938fa1967f3fb7717bcbdbf21e3f204b7a0c0174b",
+      "published": false
+    },
+    {
+      "filename": "22-time-error.png",
+      "sha256": "0ccc48444a8183ae9f1ac272570d681b627241211e4c310252d609a4613f258c",
+      "published": false
+    },
+    {
+      "filename": "23-time-rps.png",
+      "sha256": "7508049bf79ace5f466e0ee92a8fddfb4eb23d4c55f2d6d294340b65bbe1fdc9",
+      "published": false
+    },
+    {
+      "filename": "24-release-final.png",
+      "sha256": "6d609f9ba2e9078f1b1f50efbc2f3455b9dc0497fdc6813b751eb6df6da04fd1",
+      "published": false
+    },
+    {
+      "filename": "25-release-time-cpu.png",
+      "sha256": "f798832ab100cabaf50fae1926a0edc24a99c4e585b989d40745aea7bb637760",
+      "published": false
+    },
+    {
+      "filename": "release-installed-verification.json",
+      "sha256": "a67b240ae73ee5de874c411555095e9ed7684701395706976bfe793c0543d0d9",
+      "published": false
+    }
+  ],
+  "privacy": {
+    "realMetricValuesPublished": false,
+    "projectNamesPublished": false,
+    "hostsPublished": false,
+    "userConfigurationPublished": false,
+    "deviceSerialsPublished": false,
+    "credentialsPublished": false,
+    "incidentIdentifiersPublished": false,
+    "personalApplicationListsPublished": false
+  },
+  "limitations": [
+    "Mac UI action attribution and application restart operations are recorded observations of the execution runner, distinguished from independent JSON/XML state checks.",
+    "Actual service metrics were compared with Grafana at identical evaluation timestamps; real values, timestamps and business identifiers are intentionally omitted.",
+    "The alert lifecycle used a synthetic incident, not a real production outage.",
+    "Raw screenshots, UI trees and captured snapshots remain private. Hashes identify the originals without publishing their contents.",
+    "Initial candidate graph evidence proves controls and the default CPU view only; post-hardening evidence separately records displayed response-time, 5xx-error and RPS charts after runner-selected tabs.",
+    "App restart checks do not constitute a Mac operating-system reboot test."
+  ],
+  "tests": {
+    "host": {
+      "passed": 247,
+      "failed": 0
+    },
+    "androidPresentation": {
+      "passed": 38,
+      "failed": 0
+    },
+    "localization": {
+      "languages": 19,
+      "keys": 1556,
+      "missing": 0,
+      "invalidPlaceholders": 0
+    },
+    "androidChartTime": {
+      "passed": 14,
+      "failed": 0
+    },
+    "releaseBuild": {
+      "macOS": "pass",
+      "android": "pass",
+      "androidLint": {
+        "errors": 0,
+        "warnings": 22
+      }
+    }
+  },
+  "releaseChecks": {
+    "status": "pass",
+    "tag": "v0.11.0",
+    "url": "https://github.com/Yaklede/open-deck/releases/tag/v0.11.0",
+    "latestRelease": true,
+    "sourceCommit": "0afaa36a8df99d3aafedf97757147a91427148bb",
+    "version": "0.11.0",
+    "build": 19,
+    "macInstalledBuildMatches": true,
+    "androidInstalledApkMatches": true,
+    "existingAndroidSignerPreserved": true,
+    "androidSignerSha256": "15cfc6762d9b063abd2ce5b8cd665757f1e30b03707b921abb4619ff38aeba4a",
+    "assets": [
+      {
+        "name": "Open-Deck-Android.apk",
+        "sha256": "d947a23ea2f70cd2a99dcd40a244b71a66b7843c11be1be2500684d44eac6945",
+        "remoteDigestMatches": true,
+        "downloadedDigestMatches": true
+      },
+      {
+        "name": "Open-Deck-macOS-arm64.zip",
+        "sha256": "fe81cd4330b07e8a7d674713d3fdb15d4231a162b0c61063bf0d7e066fdfdb21",
+        "remoteDigestMatches": true,
+        "downloadedDigestMatches": true
+      },
+      {
+        "name": "SHA256SUMS.txt",
+        "sha256": "e38830f595d67b062accb68db12c53a255a3d3ec80ad838fbc724c060c90344e",
+        "remoteDigestMatches": true,
+        "downloadedDigestMatches": true
+      }
+    ],
+    "configurationPreserved": true,
+    "evidence": [
+      "24-release-final.png",
+      "25-release-time-cpu.png",
+      "release-installed-verification.json"
+    ]
+  },
+  "verificationPhases": [
+    {
+      "id": "initial-candidate",
+      "checksPassed": 16,
+      "checksTotal": 16,
+      "sourceCommit": "not-recorded-in-initial-evidence",
+      "attribution": "Original candidate checks retained without upgrading their scope."
+    },
+    {
+      "id": "post-hardening",
+      "sourceCommit": "dba6382aba8631cd9bc8703a2519b7ea12a65f61",
+      "version": "0.11.0",
+      "build": 19,
+      "checksPassed": 13,
+      "checksTotal": 13,
+      "attribution": "Independent JSON/XML comparisons plus explicitly attributed visual and execution-runner observations.",
+      "restartScope": "Mac host app and Android app stop/start; no Mac operating-system reboot."
+    },
+    {
+      "id": "actual-time-axis",
+      "sourceCommit": "a4e8f20ae42e0f9fce82dbf4bd0bea38c86d908c",
+      "checksPassed": 4,
+      "checksTotal": 4,
+      "attribution": "Four native graph tabs tapped and visually inspected; independent reviewer confirmed time labels and marker alignment. Final build only reuses the marker resource; final CPU graph and installed package identity were checked again."
+    }
+  ],
+  "postHardeningBuildReport": {
+    "sourceCommit": "dba6382aba8631cd9bc8703a2519b7ea12a65f61",
+    "version": "0.11.0",
+    "build": 19,
+    "macBuild": "pass",
+    "androidReleaseBuild": "pass",
+    "androidLint": {
+      "errors": 0,
+      "warnings": 22
+    },
+    "verificationMethod": "execution-runner-build-and-install-report",
+    "finalReleaseArtifactIdentity": "not-yet-verified; subsequent chart-time-axis change requires a new final build"
+  },
+  "postHardeningDiagnostics": {
+    "verificationMethod": "execution-runner-read-only-log-audit",
+    "window": "after latest observed host start",
+    "warnings": 0,
+    "errors": 0,
+    "eventCounts": {
+      "host.started": 1,
+      "device.settings.saved": 1,
+      "monitor.incident.action": 1
+    },
+    "rawLogPublished": false
+  }
+}

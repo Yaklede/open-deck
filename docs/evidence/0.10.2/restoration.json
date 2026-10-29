@@ -1,0 +1,66 @@
+{
+  "schemaVersion": 1,
+  "createdAt": "2026-10-22T16:17:27.122899+00:00",
+  "operation": "restore-only-recorded-test-emulator",
+  "productionConfigFilesWritten": false,
+  "otherDeviceUpdatesSent": 0,
+  "restoreRequestsSent": 1,
+  "passed": true,
+  "phase": "complete",
+  "target": {
+    "baselineDeviceIndex": 3,
+    "restoredSettingsCount": 30,
+    "originalOverrideFields": [
+      "awake",
+      "textScale",
+      "theme",
+      "timeFormat"
+    ]
+  },
+  "readbacks": [
+    {
+      "nameMatches": true,
+      "settingsMatch": true
+    },
+    {
+      "nameMatches": true,
+      "settingsMatch": true
+    },
+    {
+      "nameMatches": true,
+      "settingsMatch": true
+    }
+  ],
+  "differences": {
+    "baselineToCurrentConfig": {
+      "deck.json": [],
+      "preferences.json": []
+    },
+    "baselineToBeforeRestoreConfig": {
+      "deck.json": [],
+      "preferences.json": []
+    },
+    "configChangedDuringRestoration": {
+      "deck.json": [],
+      "preferences.json": []
+    },
+    "otherPairedDevices": [],
+    "ignoredOtherDeviceMetadata": [],
+    "target": [],
+    "targetPairing": []
+  },
+  "checks": {
+    "originalTargetNameRestored": true,
+    "all30EffectiveSettingsRestored": true,
+    "targetPairingPreserved": true,
+    "allThreeReadbacksStable": true,
+    "productionDeckUnchangedFromBaseline": true,
+    "productionPreferencesUnchangedFromBaseline": true,
+    "productionFilesUnchangedDuringRestoration": true,
+    "allOtherPairedDevicesUnchanged": true
+  },
+  "ignoredMetadataFields": [
+    "appVersion",
+    "lastSeenAt"
+  ]
+}

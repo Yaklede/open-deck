@@ -1,3 +1,5 @@
+import { t, tf, locale as uiLocale, translateError } from "./i18n.mjs";
+import { normalizeProfiles } from "./profiles.mjs";
 export const themes = {
   midnight: {
     background: "#0c1320",
@@ -58,7 +60,7 @@ export function place(widgets, columns, minRows = 1, preserve = true) {
             break;
           }
         }
-      if (!found) throw Error("페이지에 위젯을 더 배치할 수 없습니다.");
+      if (!found) throw Error(t("페이지에 위젯을 더 배치할 수 없습니다."));
     }
     Object.assign(widget, box);
     placed.push(box);
@@ -68,7 +70,7 @@ export function place(widgets, columns, minRows = 1, preserve = true) {
 export function migrate(input) {
   const c = structuredClone(input);
   if (c.version !== 1 && c.version !== 2)
-    throw Error("지원하지 않는 설정 버전입니다.");
+    throw Error(t("지원하지 않는 설정 버전입니다."));
   const legacy = c.version === 1;
   c.version = 2;
   c.variables ??= {};
@@ -86,5 +88,5 @@ export function migrate(input) {
       w.style ??= {};
     }
   }
-  return c;
+  return normalizeProfiles(c);
 }

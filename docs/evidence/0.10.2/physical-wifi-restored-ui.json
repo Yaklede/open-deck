@@ -1,0 +1,288 @@
+{
+  "schemaVersion": 1,
+  "sourceCommit": "452b0cfbaa0f22dc93fd23306c08f501f326ae9c",
+  "appVersion": "0.10.2",
+  "androidVersionCode": 18,
+  "verifiedAt": "2026-10-23T09:15:46.154344+00:00",
+  "scenario": "Final restored production Mac and physical Android control values compared with exact private pre-test baseline.",
+  "scope": {
+    "sharedSettings": 30,
+    "deviceName": 1,
+    "nativeSurfaces": 2,
+    "comparisons": 62,
+    "passed": 62,
+    "mismatches": 0
+  },
+  "result": "pass",
+  "checks": [
+    {
+      "setting": "showHeader",
+      "expectedSource": "private pre-test baseline; values withheld",
+      "nativeMac": "pass",
+      "physicalAndroid": "pass",
+      "androidObservations": 3
+    },
+    {
+      "setting": "showNavigation",
+      "expectedSource": "private pre-test baseline; values withheld",
+      "nativeMac": "pass",
+      "physicalAndroid": "pass",
+      "androidObservations": 2
+    },
+    {
+      "setting": "settingsButtonHidden",
+      "expectedSource": "private pre-test baseline; values withheld",
+      "nativeMac": "pass",
+      "physicalAndroid": "pass",
+      "androidObservations": 2
+    },
+    {
+      "setting": "textScale",
+      "expectedSource": "private pre-test baseline; values withheld",
+      "nativeMac": "pass",
+      "physicalAndroid": "pass",
+      "androidObservations": 3
+    },
+    {
+      "setting": "screenSaverMode",
+      "expectedSource": "private pre-test baseline; values withheld",
+      "nativeMac": "pass",
+      "physicalAndroid": "pass",
+      "androidObservations": 1
+    },
+    {
+      "setting": "haptics",
+      "expectedSource": "private pre-test baseline; values withheld",
+      "nativeMac": "pass",
+      "physicalAndroid": "pass",
+      "androidObservations": 1
+    },
+    {
+      "setting": "awake",
+      "expectedSource": "private pre-test baseline; values withheld",
+      "nativeMac": "pass",
+      "physicalAndroid": "pass",
+      "androidObservations": 3
+    },
+    {
+      "setting": "fullscreen",
+      "expectedSource": "private pre-test baseline; values withheld",
+      "nativeMac": "pass",
+      "physicalAndroid": "pass",
+      "androidObservations": 3
+    },
+    {
+      "setting": "rememberPage",
+      "expectedSource": "private pre-test baseline; values withheld",
+      "nativeMac": "pass",
+      "physicalAndroid": "pass",
+      "androidObservations": 1
+    },
+    {
+      "setting": "sound",
+      "expectedSource": "private pre-test baseline; values withheld",
+      "nativeMac": "pass",
+      "physicalAndroid": "pass",
+      "androidObservations": 3
+    },
+    {
+      "setting": "swipeEnabled",
+      "expectedSource": "private pre-test baseline; values withheld",
+      "nativeMac": "pass",
+      "physicalAndroid": "pass",
+      "androidObservations": 3
+    },
+    {
+      "setting": "reducedMotion",
+      "expectedSource": "private pre-test baseline; values withheld",
+      "nativeMac": "pass",
+      "physicalAndroid": "pass",
+      "androidObservations": 3
+    },
+    {
+      "setting": "fixedVibration",
+      "expectedSource": "private pre-test baseline; values withheld",
+      "nativeMac": "pass",
+      "physicalAndroid": "pass",
+      "androidObservations": 1
+    },
+    {
+      "setting": "firstTouchWakes",
+      "expectedSource": "private pre-test baseline; values withheld",
+      "nativeMac": "pass",
+      "physicalAndroid": "pass",
+      "androidObservations": 1
+    },
+    {
+      "setting": "osNotifications",
+      "expectedSource": "private pre-test baseline; values withheld",
+      "nativeMac": "pass",
+      "physicalAndroid": "pass",
+      "androidObservations": 1
+    },
+    {
+      "setting": "monitorNotifications",
+      "expectedSource": "private pre-test baseline; values withheld",
+      "nativeMac": "pass",
+      "physicalAndroid": "pass",
+      "androidObservations": 1
+    },
+    {
+      "setting": "notificationBanner",
+      "expectedSource": "private pre-test baseline; values withheld",
+      "nativeMac": "pass",
+      "physicalAndroid": "pass",
+      "androidObservations": 1
+    },
+    {
+      "setting": "brightness",
+      "expectedSource": "private pre-test baseline; values withheld",
+      "nativeMac": "pass",
+      "physicalAndroid": "pass",
+      "androidObservations": 3
+    },
+    {
+      "setting": "vibrationMs",
+      "expectedSource": "private pre-test baseline; values withheld",
+      "nativeMac": "pass",
+      "physicalAndroid": "pass",
+      "androidObservations": 3
+    },
+    {
+      "setting": "dimPercent",
+      "expectedSource": "private pre-test baseline; values withheld",
+      "nativeMac": "pass",
+      "physicalAndroid": "pass",
+      "androidObservations": 1
+    },
+    {
+      "setting": "screenSaverMinutes",
+      "expectedSource": "private pre-test baseline; values withheld",
+      "nativeMac": "pass",
+      "physicalAndroid": "pass",
+      "androidObservations": 1
+    },
+    {
+      "setting": "theme",
+      "expectedSource": "private pre-test baseline; values withheld",
+      "nativeMac": "pass",
+      "physicalAndroid": "pass",
+      "androidObservations": 1
+    },
+    {
+      "setting": "renderMode",
+      "expectedSource": "private pre-test baseline; values withheld",
+      "nativeMac": "pass",
+      "physicalAndroid": "pass",
+      "androidObservations": 2
+    },
+    {
+      "setting": "iconResolution",
+      "expectedSource": "private pre-test baseline; values withheld",
+      "nativeMac": "pass",
+      "physicalAndroid": "pass",
+      "androidObservations": 2
+    },
+    {
+      "setting": "timeFormat",
+      "expectedSource": "private pre-test baseline; values withheld",
+      "nativeMac": "pass",
+      "physicalAndroid": "pass",
+      "androidObservations": 2
+    },
+    {
+      "setting": "language",
+      "expectedSource": "private pre-test baseline; values withheld",
+      "nativeMac": "pass",
+      "physicalAndroid": "pass",
+      "androidObservations": 1
+    },
+    {
+      "setting": "profileId",
+      "expectedSource": "private pre-test baseline; values withheld",
+      "nativeMac": "pass",
+      "physicalAndroid": "pass",
+      "androidObservations": 1
+    },
+    {
+      "setting": "startPageId",
+      "expectedSource": "private pre-test baseline; values withheld",
+      "nativeMac": "pass",
+      "physicalAndroid": "pass",
+      "androidObservations": 1
+    },
+    {
+      "setting": "orientation",
+      "expectedSource": "private pre-test baseline; values withheld",
+      "nativeMac": "pass",
+      "physicalAndroid": "pass",
+      "androidObservations": 1
+    },
+    {
+      "setting": "allowInsecureWifi",
+      "expectedSource": "private pre-test baseline; values withheld",
+      "nativeMac": "pass",
+      "physicalAndroid": "pass",
+      "androidObservations": 1
+    },
+    {
+      "setting": "name",
+      "expectedSource": "private pre-test baseline; values withheld",
+      "nativeMac": "pass",
+      "physicalAndroid": "pass",
+      "androidObservations": 1
+    }
+  ],
+  "mismatches": [],
+  "localeResolution": {
+    "macControls": "ko",
+    "androidControls": "ko",
+    "androidSystemModeResolvedFromCapturedLabels": true
+  },
+  "method": {
+    "expectation": "Exact 30 setting values and original name from the private Wi-Fi baseline; no live host request.",
+    "android": "All six restored native categories parsed; repeated observed controls must all agree.",
+    "mac": "31 captured native accessibility controls compared using source-defined presentation labels.",
+    "parserReuse": "Only three pure function definitions selected from the frozen B audit AST; no B top-level code executed or output rewritten."
+  },
+  "limitations": [
+    "This audit does not operate apps, ADB, networking, or host APIs.",
+    "UI values do not independently prove file persistence, transport, cleanup, or hardware effects; separate evidence covers those scopes.",
+    "Original names, UUIDs, profile/page labels and all baseline setting values are withheld from public output."
+  ],
+  "sourceFiles": [
+    {
+      "filename": "private-baseline.json",
+      "sha256": "b488ac731ef719623e050fe90d669da68b428903860e04b1513a626a22450d69"
+    },
+    {
+      "filename": "restore-final-native.json",
+      "sha256": "04c883c88414438adce87e7a1fd36b59bcdc3435bf0b24123aef31782dcf3db0"
+    },
+    {
+      "filename": "restore-final-display.json",
+      "sha256": "9a5ae06ae3dfae53c8ef010fa234bb3ec08723f4464b593747c34f178850ec97"
+    },
+    {
+      "filename": "restore-final-input.json",
+      "sha256": "10e48be77035e4055577e3632fc4d9ece9a25d60643795c1703d112db60cf4da"
+    },
+    {
+      "filename": "restore-final-idle.json",
+      "sha256": "b3ef4b729ff8d64d0e98f8f3be2dbee8e60633621d7816e475cdfb143d2f5979"
+    },
+    {
+      "filename": "restore-final-startup.json",
+      "sha256": "d9b16ce54a4eeeb3cfa3ec74a1f7b3f431f2183c3cf081c312b7669b8e34f605"
+    },
+    {
+      "filename": "restore-final-connection.json",
+      "sha256": "e8ba9038ab6b20f98c83a4d93c8591507c59ad17ec6313a46eb698442b87e8cf"
+    },
+    {
+      "filename": "restore-final-notifications.json",
+      "sha256": "bb7da2a1320b2217fe3e704f51fe06fef06ce887c96f44da2d3eb98e51a2ce48"
+    }
+  ],
+  "reusedParserSha256": "427d5a9a92f43efad3608a37b2630fa0532f5828dbc4f187cf7e1dc153aaf08d"
+}

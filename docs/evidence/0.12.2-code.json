@@ -1,0 +1,338 @@
+{
+  "version": "0.12.2",
+  "build": 23,
+  "status": "pass",
+  "sourceCommit": "10436bd15660b6d7e6fbef8364069983a688ffd5",
+  "scope": {
+    "methods": [
+      "source analysis",
+      "pure Java policy and SSE parser tests",
+      "isolated real Node HTTP host and TCP clients",
+      "Android compile and lint"
+    ],
+    "physicalDeviceTested": false,
+    "emulatorTested": false,
+    "productionHostOperated": false,
+    "productionConfigurationChanged": false,
+    "syntheticMetricsOnly": true,
+    "validationStage": "before physical installation and the later physical follow-up"
+  },
+  "reportedIncident": {
+    "description": "연결이 심할 때 약 5초마다 끊겼다가 복구된다는 사용자 보고",
+    "originalCauseConfirmed": false,
+    "limitation": "실제 장애 당시의 단말·호스트 스트림 기록을 수집한 검증이 아니다. 확인한 코드 결함과 조건부 반복 시나리오를 실제 사건의 단일 확정 원인으로 단정하지 않는다."
+  },
+  "sourceAnalysis": {
+    "baselineCommit": "a991731a915d6beb82ec056674e5dae747cc0e6f",
+    "periodicFiveSecondHealthyStreamTerminationFound": false,
+    "conditionalFiveSecondPattern": {
+      "method": "source-derived virtual monotonic clock scenario",
+      "input": "각 요청이 HTTP 200 및 정상 snapshot 1개를 받은 뒤 연결 시작 4초에 EOF를 받는다고 가정",
+      "oldBehavior": "200 헤더가 retry를 1초로 초기화하므로 4초 연결 + 1초 재시도가 반복될 수 있음",
+      "measuredOnDevice": false,
+      "actualHostFourSecondEofObserved": false
+    },
+    "oldReadTimeoutSeconds": 6,
+    "oldSnapshotFreshnessSeconds": 8,
+    "oldHeadersResetRetryAndDiscoveryFailureHistory": true,
+    "oldHeartbeatDidNotAdvanceSnapshotWatchdog": true,
+    "hostFailure": "응답 writableLength가 256000바이트를 초과하면 다음 broadcast에서 즉시 destroy. write(false) 반환을 처리하지 않아 큰 정상 snapshot에도 반복 연결 종료 가능."
+  },
+  "hostReproduction": {
+    "status": "pass",
+    "realCreateHost": true,
+    "loopbackOnly": true,
+    "synthetic": true,
+    "nodesInLargeCase": 64,
+    "projectsInLargeCase": 3,
+    "samplesPerSeries": 60,
+    "largeSnapshotJsonBytes": 491950,
+    "sameInputsBeforeAndAfter": true,
+    "cases": [
+      {
+        "nodes": 2,
+        "projects": 1,
+        "paused": false,
+        "burst": true,
+        "snapshotBytes": 14445,
+        "beforeDestroyCount": 0,
+        "afterDestroyCount": 0
+      },
+      {
+        "nodes": 64,
+        "projects": 3,
+        "paused": false,
+        "burst": true,
+        "snapshotBytes": 491950,
+        "beforeDestroyCount": 1,
+        "afterDestroyCount": 0
+      },
+      {
+        "nodes": 64,
+        "projects": 3,
+        "paused": true,
+        "burst": false,
+        "snapshotBytes": 491950,
+        "beforeDestroyCount": 1,
+        "afterDestroyCount": 0
+      }
+    ],
+    "beforeSha256": "9d620c4be3740d408d76b3c2cc986cc2336c7b1a1ea5b48e942332ac254e389f",
+    "afterSha256": "db404deac50c7a0f0c583b6aa892c72a3b6b8c8e2b597d66c2184cdf76723685",
+    "pausedReaderScope": "수신을 일시 중단하고 최대 8회의 1초 간격 갱신을 실행한 조건. 지속 정체 종료는 별도의 실제 TCP 15초 테스트로 확인.",
+    "normalReaderResult": "동일 대형 snapshot의 연속 broadcast에서 서버 destroy 1회에서 0회로 감소하고 연결 유지",
+    "limitation": "운영 Grafana payload 크기나 실제 사용자의 네트워크 장애 원인을 측정한 결과가 아니다."
+  },
+  "implementedContract": {
+    "host": {
+      "heartbeatIntervalSeconds": 2,
+      "heartbeatFrame": ": heartbeat\n\n",
+      "maximumPendingSnapshots": 1,
+      "backpressurePolicy": "write(false) 뒤 최신 미전송 snapshot 하나만 교체 보관하고 drain 시 준비·전송",
+      "persistentStallTimeoutSeconds": 15,
+      "revisionCommit": "accepted write 후 config/device 및 admin device-list revision 갱신",
+      "authorization": "enqueue 및 drain 직전 재확인, 철회 시 대기 snapshot 폐기",
+      "closePolicy": "정상 writable 연결은 graceful end, blocked 연결은 destroy",
+      "diagnosticEvent": "stream.closed",
+      "diagnosticFields": [
+        "reason",
+        "durationMs",
+        "transport"
+      ],
+      "timerAndListenerCleanupVerified": true
+    },
+    "android": {
+      "readTimeoutSeconds": 20,
+      "trafficWatchdogSeconds": 20,
+      "snapshotFreshnessSeconds": 8,
+      "heartbeatAdvancesMetricTimestamps": false,
+      "stableMinimumValidSnapshots": 2,
+      "stableDurationFromFirstSnapshotSeconds": 10,
+      "headersAloneResetRetry": false,
+      "retryDelaySeconds": [
+        1,
+        2,
+        4,
+        8,
+        15
+      ],
+      "wifiPromotionCooldownSeconds": 30,
+      "promotionRequiresPinnedCandidateAndValidSnapshot": true,
+      "oldAttemptCallbacksGuarded": true,
+      "boundedSseLineParser": true
+    },
+    "limitation": "독립 heartbeat는 지표 수집 성공이나 최신 데이터의 증명이 아니다. 데이터 freshness 판정은 유지한다."
+  },
+  "automatedChecks": {
+    "hostFullSuite": {
+      "status": "pass",
+      "command": "node --test --test-concurrency=1 test/*.test.mjs",
+      "tests": 261,
+      "passed": 261,
+      "failed": 0,
+      "evidence": [
+        "host-0122-tests-final.log"
+      ]
+    },
+    "hostFocusedSuite": {
+      "status": "pass",
+      "tests": 39,
+      "passed": 39,
+      "failed": 0,
+      "newSseTests": 14,
+      "evidence": [
+        "host-focused-complete-tests.log"
+      ],
+      "coverage": [
+        "idle heartbeat independent of snapshot production",
+        "normal reader receiving consecutive large frames",
+        "actual TCP pause/drain",
+        "latest config and device revisions after drain",
+        "admin device metadata after drain",
+        "blocked device revocation without closing other devices",
+        "15-second persistent stall and secret-free reason log",
+        "authorization recheck before queued writes",
+        "cleanup of pending frames, timers and listeners"
+      ]
+    },
+    "java": {
+      "status": "pass",
+      "checks": 196,
+      "passed": 196,
+      "failed": 0,
+      "suites": {
+        "HostRecoveryPolicy": 46,
+        "StreamConnectionPolicy": 86,
+        "SseLineReader": 49,
+        "DataFreshness": 15
+      },
+      "evidence": [
+        "connection-0122-tests.log"
+      ],
+      "scope": "순수 Java 정책·파서 및 가상 clock 검증. 실제 Android 소켓·앱 UI·NSD 실행 검증은 아님."
+    },
+    "localization": {
+      "status": "pass",
+      "keys": 1558,
+      "languages": 19,
+      "tests": 22,
+      "passed": 22,
+      "missing": 0,
+      "placeholderErrors": 0,
+      "evidence": [
+        "i18n-0122-tests.log"
+      ]
+    },
+    "formatCheck": {
+      "status": "pass",
+      "method": "release coordinator dry run"
+    },
+    "independentHostReview": {
+      "status": "pass",
+      "blockingFindings": 0,
+      "scope": "stream lifecycle, backpressure, revisions, authorization, heartbeat and integration-test relevance; read-only review"
+    }
+  },
+  "buildChecks": {
+    "androidCompile": "pass",
+    "androidLint": {
+      "status": "pass",
+      "errors": 0,
+      "fatal": 0,
+      "warnings": 22
+    },
+    "macReleaseBuild": "pass",
+    "signedAndroidReleaseBuild": "pass",
+    "evidence": [
+      "android-0122-check.log",
+      "macos-0122-build.log",
+      "android-0122-build.log"
+    ]
+  },
+  "releaseChecks": {
+    "status": "pass",
+    "tag": "v0.12.2",
+    "version": "0.12.2",
+    "build": 23,
+    "sourceCommit": "10436bd15660b6d7e6fbef8364069983a688ffd5",
+    "published": true,
+    "latest": true,
+    "releaseUrl": "https://github.com/Yaklede/open-deck/releases/tag/v0.12.2",
+    "tagMatchesSource": true,
+    "publicDownloadsMatchBuilds": true,
+    "macEmbeddedBuildInfoMatchesSource": true,
+    "androidSignerPreserved": true,
+    "assets": [
+      {
+        "name": "Open-Deck-macOS-arm64.zip",
+        "size": 39657812,
+        "sha256": "fae21c54f0ae8435522fb39670113800ed632f3c180e50b32af43944ab94f631",
+        "downloadMatches": true
+      },
+      {
+        "name": "Open-Deck-Android.apk",
+        "size": 6189065,
+        "sha256": "a127d3d29772d6235c935ba37aae6ff8b4d55f45dabf87014de740a962693bb5",
+        "downloadMatches": true
+      },
+      {
+        "name": "SHA256SUMS.txt",
+        "size": 180,
+        "sha256": "905be9a5f0695554f363610ccdb7c09b2205e56d1122ad9bd8e866d1bd654a47",
+        "downloadMatches": true
+      }
+    ]
+  },
+  "originalEvidence": [
+    {
+      "filename": "reconnect-0122-analysis.md",
+      "sha256": "d2fca7428a91495e280ccc8a4b993a40151dd289be3ac6529e539f7aa45bc4a4",
+      "published": false
+    },
+    {
+      "filename": "connection-0122-tests.log",
+      "sha256": "441b85bbfca493d8bc5547323823b44a4cd3ad69c412323e286bd8656d08d896",
+      "published": false
+    },
+    {
+      "filename": "android-0122-check.log",
+      "sha256": "aaa28d445d1e0fdd8263950e0dd80d979deba9c1f36ef16247491172f762e6b6",
+      "published": false
+    },
+    {
+      "filename": "i18n-0122-tests.log",
+      "sha256": "393ad21aa128b8f914c15cea10972562c1ccce00f8ac5eec566fdc08e15a62f8",
+      "published": false
+    },
+    {
+      "filename": "host-0122-tests-final.log",
+      "sha256": "4524ce876a0259057c7eeadae3acae542c8eef7ac18e948df57250ce1c3f5c3c",
+      "published": false
+    },
+    {
+      "filename": "host-focused-complete-tests.log",
+      "sha256": "208dc7126e350bb7c4cc06fa9dd25e977b648b6d4d14f6a439e7a33907761eb1",
+      "published": false
+    },
+    {
+      "filename": "before.json",
+      "sha256": "9d620c4be3740d408d76b3c2cc986cc2336c7b1a1ea5b48e942332ac254e389f",
+      "published": false
+    },
+    {
+      "filename": "after.json",
+      "sha256": "db404deac50c7a0f0c583b6aa892c72a3b6b8c8e2b597d66c2184cdf76723685",
+      "published": false
+    },
+    {
+      "filename": "comparison.json",
+      "sha256": "cf5a5c60aea9266736f0dbb3b49030edc27ede52144f8971593ea462e4ff729d",
+      "published": false
+    },
+    {
+      "filename": "reproduce.mjs",
+      "sha256": "4e595087a32d43cbe1f0adcb88722d14d06a1d86ea05c61b04cc8382c99b1fe0",
+      "published": false
+    },
+    {
+      "filename": "reproduce-after.mjs",
+      "sha256": "bbc92189dea6d45453600c9b062aa289b3918285e3c3427c7589a01eceb6c065",
+      "published": false
+    },
+    {
+      "filename": "macos-0122-build.log",
+      "sha256": "ce59fac154b1fe84dfceae32766dab0d4a6c1bf1c024e2644bf3af0fc7cac38d",
+      "published": false
+    },
+    {
+      "filename": "android-0122-build.log",
+      "sha256": "b85cfa89aa2ea77ef1614697d456e76967f05a19bbf6304505272db1cbb5c6dd",
+      "published": false
+    },
+    {
+      "filename": "release-0122-artifacts.json",
+      "sha256": "ff8e513725f9ca14146d5711243208d42d9daf4186ee11a853da75f6e45d03f0",
+      "published": false
+    },
+    {
+      "filename": "release-0122-published-verification.json",
+      "sha256": "e708990d8baecdfb567ffd7003f28b362fa16273cde4e70d2042a8968881ac3d",
+      "published": false
+    }
+  ],
+  "privacy": {
+    "pinOrTokensPublished": false,
+    "privateAddressesPublished": false,
+    "deviceIdentifiersPublished": false,
+    "privateConfigurationPublished": false,
+    "rawLogsPublished": false,
+    "productionMetricsPublished": false
+  },
+  "limitations": [
+    "실기기와 에뮬레이터는 조작하거나 검증하지 않았다.",
+    "운영 호스트·설정·네트워크·VPN을 변경하지 않았다.",
+    "약 5초 반복은 특정 EOF 입력에 대한 소스 시나리오이며 실제 사용자 장애 원인을 확정하지 않는다.",
+    "합성 loopback TCP 시험은 실제 Wi-Fi 품질·잠금 해제·백그라운드 복구 검증을 대신하지 않는다."
+  ],
+  "followupPhysicalEvidence": "0.12.2-physical.json"
+}
