@@ -1,7 +1,7 @@
 {
   "version": "0.14.0",
   "build": 25,
-  "status": "hardware-verified",
+  "status": "released-and-verified",
   "hostTests": {
     "passed": 284,
     "failed": 0
@@ -26,5 +26,7 @@
   "existingPagesPairingsAndSettingsPreserved": true,
   "administratorInstalledModuleVerified": true,
   "hardwareSettingsRestoredAfterTests": true,
-  "macRebootPerformed": false
+  "macRebootPerformed": false,
+  "publishedReleaseUpdated": true,
+  "publicDownloadsAndChecksumsVerified": true
 }

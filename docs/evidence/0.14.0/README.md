@@ -34,3 +34,5 @@ The administrator-approved helper is root-owned and limited to the bounded fan p
 [Check summary](checks.json), [control scope and setup](../../vorssaint.md), [release and installers](https://github.com/Yaklede/open-deck/releases/tag/v0.14.0).
 
 ![Mac tools on the physical tablet](production-mac-controls-page.png)
+
+The normal latest GitHub release is published at **v0.14.0**, source commit `0371b78f6eb2b4f675c9e5c821834fe1be604119`. All three assets were downloaded from their public HTTPS URLs and matched local SHA-256 hashes and GitHub asset digests. The downloaded Mac bundle signature, embedded version/source metadata, Android build 25 and original APK signing certificate were verified. The installed production APK bytes match the published APK. [Release validation](release-verification.json), [final installed apps](final-installed-result.json).

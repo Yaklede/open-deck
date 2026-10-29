@@ -1,0 +1,15 @@
+{
+  "MacBuild": {
+    "version": "0.14.0",
+    "build": 25,
+    "commit": "0371b78f6eb2b4f675c9e5c821834fe1be604119"
+  },
+  "AndroidVersion": "0.14.0",
+  "tabletOnline": true,
+  "nativeControlsFresh": true,
+  "fanAuthorizationPersisted": true,
+  "fansInSystemAutomatic": true,
+  "presetDefaultsRestored": true,
+  "installedAndroidMatchesReleaseBytes": true,
+  "MacBundleSignatureValid": true
+}
