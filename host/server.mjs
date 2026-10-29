@@ -27,6 +27,7 @@ import {
 } from "./system-tools.mjs";
 import { MacMetrics } from "./mac-metrics.mjs";
 import { GrafanaMonitor, grafanaSource, grafanaSecretId } from "./grafana.mjs";
+import { vorssaintPage } from "./extensions/vorssaint/index.mjs";
 import { Extensions, osPage } from "./extensions.mjs";
 import { Plugins } from "./plugins.mjs";
 import { saveAsset, readAsset } from "./assets.mjs";
@@ -98,6 +99,7 @@ export function createHost({
   wifiPort = 8841,
   extensionOptions = {},
   grafanaOptions = {},
+  vorssaintOptions = {},
 } = {}) {
   const existedBeforeStart = fs.existsSync(path.join(dir, "deck.json"));
   let config = loadConfig(dir);
@@ -220,8 +222,11 @@ export function createHost({
   const streams = new Set(),
     attempts = new Map();
   let closing = false;
-  const closeStream = (stream, reason, destroy = stream.openDeckChannel.blocked) =>
-    stream.openDeckChannel.close(reason, destroy);
+  const closeStream = (
+    stream,
+    reason,
+    destroy = stream.openDeckChannel.blocked,
+  ) => stream.openDeckChannel.close(reason, destroy);
   const streamAuthorized = (s) => {
     if (
       !s.openDeckDeviceId &&
@@ -231,7 +236,10 @@ export function createHost({
       closeStream(s, "admin_session_ended", s.openDeckChannel.blocked);
       return false;
     }
-    if (s.openDeckDeviceId && !devices.some((d) => d.id === s.openDeckDeviceId)) {
+    if (
+      s.openDeckDeviceId &&
+      !devices.some((d) => d.id === s.openDeckDeviceId)
+    ) {
       closeStream(s, "device_revoked", s.openDeckChannel.blocked);
       return false;
     }
@@ -260,7 +268,8 @@ export function createHost({
           deviceStamp = JSON.stringify(deviceList);
           if (s.openDeckDevices !== deviceStamp) data.devices = deviceList;
         }
-        if (s.openDeckRevision !== revision) data.config = deviceConfig(config, d);
+        if (s.openDeckRevision !== revision)
+          data.config = deviceConfig(config, d);
         return {
           data,
           onWritten: () => {
@@ -308,6 +317,7 @@ export function createHost({
   const extensions = new Extensions({
     dir,
     providerOptions: extensionOptions,
+    vorssaintOptions,
     getConfig: () => config,
     onChange: broadcast,
   });
@@ -564,6 +574,7 @@ export function createHost({
             "/api/action",
             "/api/device/settings",
             "/api/device/update",
+            "/api/extensions/vorssaint/settings",
           ].includes(u.pathname) &&
           !/^\/api\/assets\/[a-f0-9]{64}$/.test(u.pathname) &&
           !/^\/api\/monitor\/incidents\/incident-[a-f0-9]{32}$/.test(
@@ -732,7 +743,11 @@ export function createHost({
           if (editorLock.status().locked)
             for (const stream of streams)
               if (!stream.openDeckDeviceId)
-                closeStream(stream, "editor_locked", stream.openDeckChannel.blocked);
+                closeStream(
+                  stream,
+                  "editor_locked",
+                  stream.openDeckChannel.blocked,
+                );
           diagnostics.log(
             input.operation === "activity" ? "debug" : "info",
             "editor.lock." + input.operation,
@@ -1115,6 +1130,37 @@ export function createHost({
           return send(res, 200, { extensions: extensions.state() });
         if (req.method === "POST" && u.pathname === "/api/admin/extensions") {
           const b = await body(req);
+          if (b.id === "vorssaint") {
+            if (
+              Object.keys(b).some(
+                (k) => !["id", "enabled", "autoStart", "addPage"].includes(k),
+              ) ||
+              ["enabled", "autoStart", "addPage"].some(
+                (k) => b[k] !== undefined && typeof b[k] !== "boolean",
+              )
+            )
+              return send(res, 400, { error: "INVALID_SETTING" });
+            const candidate = structuredClone(config);
+            candidate.extensions ??= {};
+            candidate.extensions.vorssaint = {
+              enabled: b.enabled !== false,
+              autoStart: b.autoStart !== false,
+            };
+            if (
+              b.addPage &&
+              !candidate.pages.some((p) => p.id === "vorssaint-page")
+            ) {
+              candidate.pages.push(vorssaintPage());
+              const profile = candidate.profiles?.find(
+                (p) => p.id === candidate.defaultProfileId,
+              );
+              if (profile && !profile.pageIds.includes("vorssaint-page"))
+                profile.pageIds.push("vorssaint-page");
+            }
+            applyConfig(candidate);
+            await extensions.providers.get("vorssaint").poll();
+            return send(res, 200, { config, extensions: extensions.state() });
+          }
           if (b.id !== "jimin-os") throw Error("지원하지 않는 연결입니다.");
           const candidate = structuredClone(config);
           candidate.extensions ??= {};
@@ -1258,6 +1304,55 @@ export function createHost({
           broadcast();
           return send(res, 200, result);
         }
+        if (u.pathname === "/api/extensions/vorssaint/settings") {
+          if (!["GET", "POST"].includes(req.method))
+            return send(res, 405, { error: "METHOD_NOT_ALLOWED" });
+          const input = req.method === "POST" ? await body(req) : null;
+          const paired = admin ? null : device(req);
+          if (!admin && !paired)
+            return send(res, 401, { error: "UNAUTHORIZED" });
+          if (
+            admin &&
+            !account.authenticate(sessionToken(req), { touch: false })
+          )
+            return send(res, 401, {
+              error: "관리자 로그인이 필요합니다.",
+              code: "ACCOUNT_LOGIN_REQUIRED",
+            });
+          if (admin && editorLock.status().locked)
+            return send(res, 423, {
+              error: "편집기가 잠겨 있습니다. 비밀번호로 잠금을 해제하세요.",
+            });
+          const id = input?.widgetId || u.searchParams.get("widgetId");
+          const widget = config.pages
+            .flatMap((p) => p.widgets)
+            .find((w) => w.id === id);
+          if (
+            !widget ||
+            widget.provider !== "vorssaint" ||
+            !widget.utilityGroup ||
+            !allowedWidget(paired, id)
+          )
+            return send(res, 403, { error: "FORBIDDEN" });
+          const provider = extensions.providers.get("vorssaint");
+          if (req.method === "GET")
+            return send(res, 200, await provider.settings(widget.utilityGroup));
+          if (
+            Object.keys(input).some(
+              (k) => !["widgetId", "revision", "patch"].includes(k),
+            )
+          )
+            return send(res, 400, { error: "INVALID_PATCH" });
+          return send(
+            res,
+            200,
+            await provider.update(
+              widget.utilityGroup,
+              input.revision,
+              input.patch,
+            ),
+          );
+        }
         if (req.method === "GET" && u.pathname === "/api/snapshot")
           return send(res, 200, snapshot(device(req), admin));
         if (req.method === "GET" && u.pathname === "/api/events") {
@@ -1276,7 +1371,11 @@ export function createHost({
             onClose: ({ reason, durationMs }) => {
               const removed = streams.delete(res);
               diagnostics.log(
-                ["backpressure_timeout", "write_error", "snapshot_error"].includes(reason)
+                [
+                  "backpressure_timeout",
+                  "write_error",
+                  "snapshot_error",
+                ].includes(reason)
                   ? "warn"
                   : "info",
                 "stream.closed",
@@ -1326,12 +1425,14 @@ export function createHost({
               a.operation === "navigate",
           )?.parameters?.view;
           const calendar = ["calendar", "agenda"].includes(w.type);
-          if (!(
-            (input.operation === "create-schedule" &&
-              (calendar || view === "new-schedule")) ||
-            (input.operation === "complete-task" &&
-              (calendar || view === "tasks"))
-          ))
+          if (
+            !(
+              (input.operation === "create-schedule" &&
+                (calendar || view === "new-schedule")) ||
+              (input.operation === "complete-task" &&
+                (calendar || view === "tasks"))
+            )
+          )
             throw Error("이 위젯에서 사용할 수 없는 동작이에요.");
           return send(
             res,
@@ -1396,6 +1497,7 @@ export function createHost({
             "/app.css",
             "/layout.mjs",
             "/monitor-layout.mjs",
+            "/vorssaint-ui.mjs",
             "/monitor-rules.mjs",
             "/monitor-inbox.mjs",
             "/monitor-inbox.css",

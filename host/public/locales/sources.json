@@ -2541,6 +2541,7 @@
       "host/public/app.js",
       "host/public/monitor-inbox.mjs",
       "host/public/settings-ui.mjs",
+      "host/public/vorssaint-ui.mjs",
       "android/app/src/main/java/app/opendeck/client/ClientSettingsPanel.java",
       "android/app/src/main/java/app/opendeck/client/MainActivity.java"
     ],
@@ -9563,6 +9564,7 @@
       "host/public/monitor-inbox.mjs",
       "host/public/settings-ui.mjs",
       "android/app/src/main/java/app/opendeck/client/MainActivity.java",
+      "android/app/src/main/java/app/opendeck/client/UtilitySettings.java",
       "macos/OpenDeck.swift"
     ],
     "english": "Acknowledge"

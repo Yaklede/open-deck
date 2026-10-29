@@ -6,7 +6,7 @@ A local macro deck with a **macOS host and a native Android app**. Build your co
 
 ![Native monitor page on Android](assets/screenshots/monitor.png)
 
-> Version 0.12.2 supports USB + encrypted Wi-Fi on Apple Silicon Macs (macOS 13+) and Android 8+. It implements the core desk-control workflow; it does not claim full feature or plugin compatibility with Macro Deck or Touch Portal.
+> Version 0.13.0 supports USB + encrypted Wi-Fi on Apple Silicon Macs (macOS 13+) and Android 8+. It implements the core desk-control workflow; it does not claim full feature or plugin compatibility with Macro Deck or Touch Portal.
 
 ## Download
 
@@ -31,6 +31,7 @@ The macOS download is an ad-hoc signed developer build, not Apple notarized. You
 | Grafana                              | Native system CPU, collection and DB status cards, CPU/MEM/TPS/QPS, actual GiB, configurable risk colors/tablet alerts and shared project selection |
 | Service health                       | Response time, 5xx error percentage and RPS below the primary CPU readout, with native history charts |
 | Monitoring inbox                     | Project-grouped incidents, acknowledge, 30-minute snooze/resume and persistent recovery history on Mac and Android |
+| Mac utilities                        | Vorssaint integration, a native tablet settings page and timed keep-awake controls |
 | Pairing                              | Expiring single-use PIN, per-device scoped tokens, device revocation                              |
 | Backup                               | Deck JSON with image assets; theme presets                                                        |
 | HTTP connectors                      | GET polling, manual webhooks, scalar JSON binding, Keychain Bearer tokens                         |
@@ -49,6 +50,12 @@ The **모니터** template prioritizes native Grafana system CPU and DB status c
 - 두 맥 앱과 태블릿 연결이 유지되는 동안 전달됩니다. 강제 종료한 태블릿 앱이나 오프라인 기기에 전달하는 클라우드 푸시는 제공하지 않습니다.
 
 Jimin OS 서버 로그인 정보는 Open Deck과 태블릿에 전달하지 않습니다. 이 연결은 Jimin OS 전용 확장으로, Macro Deck 플러그인 호환 어댑터와 별개입니다. [연동 프로토콜](docs/jimin-os.md)을 참고하세요.
+
+## Vorssaint · Mac 도구
+
+[Vorssaint](https://github.com/vorssaint/vorssaint-utils/releases/tag/v3.4.2) 3.4.2를 맥의 `/Applications/Vorssaint.app`에 설치한 뒤, 맥 편집기 **변수 · 연동 → Vorssaint → ＋ Vorssaint**을 선택하세요. Vorssaint은 macOS 14 이상이 필요하며 Open Deck 설치 파일에는 포함되지 않습니다.
+
+태블릿의 **Mac 도구** 페이지에서 9개 분류의 기능 표시와 주요 옵션을 설정하고, 30분 잠자기 방지를 시작하거나 중지할 수 있습니다. 선택한 값은 **저장하고 적용**을 눌렀을 때 함께 반영되며 Vorssaint만 다시 시작합니다. 앱별 음량, 대상 앱·장치 목록 등 상세 기능은 **Mac에서 상세 설정**으로 엽니다. [지원 범위와 설정 방법](docs/vorssaint.md)을 참고하세요.
 
 ## 빠른 시작
 

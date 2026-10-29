@@ -3505,7 +3505,7 @@ public class MainActivity extends Activity {
     HttpURLConnection c =
         PinnedConnection.open(base + route, wifiPin, settingBool("allowInsecureWifi"));
     c.setConnectTimeout(2200);
-    c.setReadTimeout(12000);
+    c.setReadTimeout(route.startsWith("/api/extensions/vorssaint/settings") ? 45000 : 12000);
     c.setRequestMethod(method);
     if (pairedToken != null) c.setRequestProperty("Authorization", "Bearer " + pairedToken);
     if (body != null) {
@@ -4602,11 +4602,44 @@ public class MainActivity extends Activity {
         .show();
   }
 
+  private boolean utilityButton(JSONObject widget) {
+    if (!widget.optString("provider").equals("vorssaint")
+        || widget.optString("utilityGroup").isEmpty()) return false;
+    long generation = pairingGeneration;
+    String pairedToken = token;
+    new UtilitySettings(
+            this,
+            ui,
+            commands,
+            new UtilitySettings.Host() {
+              public JSONObject request(String route, String method, JSONObject body)
+                  throws Exception {
+                if (!current()) throw new IOException("CONNECTION_CHANGED");
+                return requestWithToken(route, method, body, pairedToken);
+              }
+
+              public boolean current() {
+                return generation == pairingGeneration
+                    && pairedToken != null
+                    && pairedToken.equals(token)
+                    && streamFresh();
+              }
+            },
+            settingString("theme"),
+            settingString("language").equals("system")
+                ? java.util.Locale.getDefault().getLanguage()
+                : settingString("language"),
+            widget.optString("id"))
+        .open();
+    return true;
+  }
+
   private String lastButtonId = "";
   private long lastButtonAt = 0;
   private Runnable singleTap;
 
   private void dispatchButton(JSONObject w, String gesture) throws JSONException {
+    if (gesture.equals("tap") && utilityButton(w)) return;
     if (gesture.equals("tap") && osNativeButton(w)) return;
     JSONObject gestures = w.optJSONObject("gestures");
     boolean hasDouble = gestures != null && gestures.optBoolean("double"),
@@ -6081,6 +6114,9 @@ public class MainActivity extends Activity {
       }
       String osSignature =
           String.valueOf(osProvider()) + String.valueOf(state.optJSONArray("notifications"));
+      JSONObject providers = state.optJSONObject("extensions");
+      String utilitySignature =
+          String.valueOf(providers == null ? null : providers.optJSONObject("vorssaint"));
       String systemSignature = String.valueOf(state.optJSONObject("system"));
       String grafanaSignature =
           String.valueOf(state.optJSONObject("grafana"))
@@ -6104,6 +6140,7 @@ public class MainActivity extends Activity {
         else if (tile.type.equals("graph")) next = String.valueOf(state.optJSONObject("history"));
         else if (tile.type.equals("todo")) next = String.valueOf(state.optJSONObject("todos"));
         else if (tile.widget.optString("provider").equals("jimin-os")) next = osSignature;
+        else if (tile.widget.optString("provider").equals("vorssaint")) next = utilitySignature;
         else next = "static";
         if (tile.widget.has("stateVariable")) next += ":active=" + widgetActive(tile.widget);
         if (tile.widget.has("binding")
@@ -7465,6 +7502,80 @@ public class MainActivity extends Activity {
       paint.setColor(color(style.optString("background", themeValue("surface"))));
       paint.setStyle(Paint.Style.FILL);
       c.drawRoundRect(r, radius, radius, paint);
+      if (style.optString("presentation").equals("utility-header")) {
+        JSONObject providers = state.optJSONObject("extensions"),
+            provider = providers == null ? null : providers.optJSONObject("vorssaint");
+        label(
+            c,
+            w.optString("label"),
+            r.left + dp(10),
+            r.centerY() + dp(8),
+            24,
+            color("#d8e4ef"),
+            Paint.Align.LEFT);
+        String status =
+            provider == null
+                ? "Vorssaint"
+                : provider.optString("appVersion")
+                    + " · "
+                    + (provider.optString("status").equals("connected")
+                        ? L10n.text("연결됨")
+                        : provider.optString("status"));
+        label(
+            c,
+            status,
+            r.right - dp(12),
+            r.centerY() + dp(5),
+            12,
+            color("#8daac8"),
+            Paint.Align.RIGHT);
+        return;
+      }
+      if (type.equals("button") && style.optString("presentation").equals("utility")) {
+        JSONObject providers = state.optJSONObject("extensions"),
+            provider = providers == null ? null : providers.optJSONObject("vorssaint"),
+            group = null;
+        JSONArray groups = provider == null ? null : provider.optJSONArray("groups");
+        for (int i = 0; groups != null && i < groups.length(); i++)
+          if (groups.optJSONObject(i).optString("id").equals(w.optString("utilityGroup")))
+            group = groups.optJSONObject(i);
+        drawIcon(
+            c, w.optString("icon", "monitor"), r.left + dp(29), r.top + dp(31), dp(22), accent);
+        label(
+            c,
+            w.optString("label"),
+            r.left + dp(51),
+            r.top + dp(37),
+            17,
+            color("#d8e4ef"),
+            Paint.Align.LEFT);
+        label(c, "›", r.right - dp(18), r.top + dp(38), 24, color("#70869a"), Paint.Align.RIGHT);
+        String value =
+            w.optString("utilityGroup").equals("general")
+                ? provider == null ? "—" : provider.optString("appVersion", "—")
+                : group == null ? "—" : group.optInt("available") + " / " + group.optInt("total");
+        label(c, value, r.left + dp(20), r.bottom - dp(27), 25, color("#a6c3de"), Paint.Align.LEFT);
+        label(
+            c,
+            w.optString("utilityGroup").equals("general")
+                ? "version"
+                : provider == null || provider.optJSONObject("summaryText") == null
+                    ? ""
+                    : provider
+                        .optJSONObject("summaryText")
+                        .optString(
+                            settingString("language").equals("ko")
+                                    || settingString("language").equals("system")
+                                        && Locale.getDefault().getLanguage().equals("ko")
+                                ? "ko"
+                                : "en"),
+            r.right - dp(18),
+            r.bottom - dp(25),
+            10,
+            color("#879aab"),
+            Paint.Align.RIGHT);
+        return;
+      }
       if (type.equals("button") && style.optString("presentation").equals("os-action")) {
         drawOSAction(c, w, r, style);
         return;
@@ -8027,6 +8138,49 @@ public class MainActivity extends Activity {
       Path p = iconPath;
       p.rewind();
       switch (type) {
+        case "settings":
+          c.drawCircle(12, 12, 5, paint);
+          for (int i = 0; i < 8; i++) {
+            double a = i * Math.PI / 4;
+            c.drawLine(
+                (float) (12 + 8 * Math.cos(a)),
+                (float) (12 + 8 * Math.sin(a)),
+                (float) (12 + 11 * Math.cos(a)),
+                (float) (12 + 11 * Math.sin(a)),
+                paint);
+          }
+          break;
+        case "window":
+          c.drawRoundRect(new RectF(3, 4, 21, 20), 2, 2, paint);
+          c.drawLine(3, 8, 21, 8, paint);
+          c.drawLine(9, 8, 9, 20, paint);
+          break;
+        case "keyboard":
+          c.drawRoundRect(new RectF(2, 6, 22, 18), 2, 2, paint);
+          for (int row = 0; row < 2; row++)
+            for (int x = 5; x < 20; x += 4) c.drawPoint(x, 9 + row * 3, paint);
+          c.drawLine(6, 15, 18, 15, paint);
+          break;
+        case "clipboard":
+          c.drawRect(5, 4, 19, 21, paint);
+          c.drawRoundRect(new RectF(8, 2, 16, 7), 1, 1, paint);
+          c.drawLine(8, 11, 16, 11, paint);
+          c.drawLine(8, 15, 14, 15, paint);
+          break;
+        case "moon":
+          c.drawArc(new RectF(3, 3, 21, 21), 35, 285, false, paint);
+          c.drawArc(new RectF(8, -1, 26, 17), 120, 120, false, paint);
+          break;
+        case "gauges":
+          c.drawArc(new RectF(2, 3, 22, 23), 150, 240, false, paint);
+          c.drawLine(12, 13, 18, 7, paint);
+          break;
+        case "tools":
+          c.drawLine(4, 4, 20, 20, paint);
+          c.drawLine(3, 6, 6, 3, paint);
+          c.drawLine(4, 20, 17, 7, paint);
+          c.drawArc(new RectF(13, 2, 22, 11), 40, 280, false, paint);
+          break;
         case "mic":
           c.drawRoundRect(new RectF(9, 2, 15, 15), 3, 3, paint);
           c.drawArc(new RectF(5, 5, 19, 19), 0, 180, false, paint);

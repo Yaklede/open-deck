@@ -1,0 +1,36 @@
+{
+  "ko": {
+    "description": "기능과 옵션을 선택하고 저장하세요. 적용할 때 Vorssaint만 다시 시작하며, Mac과 다른 앱은 계속 사용할 수 있습니다.",
+    "available": "기능 표시",
+    "apply": "저장하고 적용",
+    "saved": "Vorssaint 설정을 적용했어요.",
+    "savedNotStarted": "설정은 저장했지만 Vorssaint를 실행하지 못했어요. Mac에서 앱을 확인해 주세요.",
+    "loading": "Vorssaint 설정을 불러오는 중…",
+    "unavailable": "Mac의 Vorssaint 앱과 Open Deck 연결을 확인해 주세요.",
+    "conflict": "다른 곳에서 설정이 바뀌었어요. 이 창을 다시 열어 주세요.",
+    "permission": "일부 기능은 Mac에서 손쉬운 사용·화면 기록 등의 권한을 허용한 뒤 동작합니다.",
+    "count": "표시 중",
+    "macSettings": "Mac에서 상세 설정",
+    "connect": "Vorssaint 연결 · 페이지 추가",
+    "applying": "Vorssaint 설정을 적용하는 중…",
+    "availableOn": "Vorssaint에 표시됨",
+    "availableOff": "Vorssaint에서 숨김"
+  },
+  "en": {
+    "description": "Choose features and options, then save. Applying restarts Vorssaint only; your Mac and other apps keep running.",
+    "available": "Show feature",
+    "apply": "Save and apply",
+    "saved": "Vorssaint settings applied.",
+    "savedNotStarted": "Settings saved, but Vorssaint could not start. Check the app on your Mac.",
+    "loading": "Loading Vorssaint settings…",
+    "unavailable": "Check Vorssaint and the Open Deck host on your Mac.",
+    "conflict": "Settings changed elsewhere. Reopen this panel.",
+    "permission": "Some features need Accessibility, Screen Recording or other permissions on your Mac.",
+    "count": "shown",
+    "macSettings": "Advanced settings on Mac",
+    "connect": "Connect Vorssaint and add its page",
+    "applying": "Applying Vorssaint settings…",
+    "availableOn": "Shown in Vorssaint",
+    "availableOff": "Hidden in Vorssaint"
+  }
+}

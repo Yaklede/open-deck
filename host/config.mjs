@@ -1,3 +1,4 @@
+import { catalog as vorssaintCatalog } from "./extensions/vorssaint/index.mjs";
 import { effectivePages, profileDesignKeys } from "./public/profiles.mjs";
 import fs from "node:fs";
 import { validateMonitorSettings } from "./public/monitor-rules.mjs";
@@ -113,9 +114,21 @@ export function validateConfig(input) {
   c.extensions ??= {};
   if (
     !plain(c.extensions) ||
-    Object.keys(c.extensions).some((k) => k !== "jimin-os")
+    Object.keys(c.extensions).some(
+      (k) => !["jimin-os", "vorssaint"].includes(k),
+    )
   )
     throw Error("지원하지 않는 연결입니다.");
+  const utilities = c.extensions.vorssaint;
+  if (
+    utilities &&
+    (!plain(utilities) ||
+      Object.keys(utilities).some(
+        (k) => !["enabled", "autoStart"].includes(k),
+      ) ||
+      Object.values(utilities).some((v) => typeof v !== "boolean"))
+  )
+    throw Error("Invalid Vorssaint settings");
   const os = c.extensions["jimin-os"];
   if (
     os &&
@@ -148,8 +161,14 @@ export function validateConfig(input) {
         throw Error("플러그인 동작 정보를 확인하세요.");
       if (
         a.type === "extension" &&
-        (a.extensionId !== "jimin-os" ||
-          !["navigate", "refresh"].includes(a.operation) ||
+        (!(
+          (a.extensionId === "jimin-os" &&
+            ["navigate", "refresh"].includes(a.operation)) ||
+          (a.extensionId === "vorssaint" &&
+            ["start", "open-settings", "awake-30", "awake-off"].includes(
+              a.operation,
+            ))
+        ) ||
           !plain(a.parameters || {}))
       )
         throw Error("Jimin OS 동작을 확인하세요.");
@@ -292,7 +311,7 @@ export function validateConfig(input) {
       )
         throw Error("위젯 배치가 겹치거나 페이지를 벗어납니다.");
       boxes.push(w);
-      if (w.provider && w.provider !== "jimin-os")
+      if (w.provider && !["jimin-os", "vorssaint"].includes(w.provider))
         throw Error("지원하지 않는 연결입니다.");
       if (w.color && !color(w.color)) throw Error("색상은 #RRGGBB 형식입니다.");
       if (
@@ -374,6 +393,13 @@ export function validateConfig(input) {
         (w.style.font && !["sans", "mono", "serif"].includes(w.style.font))
       )
         throw Error("글자 스타일을 확인하세요.");
+      if (
+        w.utilityGroup !== undefined &&
+        (w.type !== "button" ||
+          w.provider !== "vorssaint" ||
+          !vorssaintCatalog.groups.some((g) => g.id === w.utilityGroup))
+      )
+        throw Error("Invalid Vorssaint group");
       if (w.image && !/^[a-f0-9]{64}$/.test(w.image))
         throw Error("이미지를 확인하세요.");
       if (

@@ -2,7 +2,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { writeJson } from "./config.mjs";
 
-export const APP_VERSION = "0.12.2";
+export const APP_VERSION = "0.13.0";
 export const defaultSettings = () => ({
   appearance: {
     themeMode: "dark",
@@ -361,7 +361,7 @@ export function buildInfo() {
     );
     return { version: APP_VERSION, build: value.build, commit: value.commit };
   } catch {
-    return { version: APP_VERSION, build: 23, commit: "development" };
+    return { version: APP_VERSION, build: 24, commit: "development" };
   }
 }
 export const licenseNotices = () => ({

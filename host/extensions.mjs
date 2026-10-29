@@ -1,10 +1,17 @@
 import fs from "node:fs";
 import path from "node:path";
 import crypto from "node:crypto";
+import { Vorssaint } from "./extensions/vorssaint/index.mjs";
 import { JiminOS } from "./extensions/jimin-os/index.mjs";
 import { writeJson } from "./config.mjs";
 export class Extensions {
-  constructor({ dir, getConfig, onChange, providerOptions = {} }) {
+  constructor({
+    dir,
+    getConfig,
+    onChange,
+    providerOptions = {},
+    vorssaintOptions = {},
+  }) {
     this.dir = dir;
     this.onChange = onChange;
     this.notifications = [];
@@ -29,6 +36,15 @@ export class Extensions {
           onChange,
           onNotification: (n) => this.notify(n),
           ...providerOptions,
+        }),
+      ],
+      [
+        "vorssaint",
+        new Vorssaint({
+          dir,
+          getOptions: () => getConfig().extensions?.vorssaint || {},
+          onChange,
+          ...vorssaintOptions,
         }),
       ],
     ]);

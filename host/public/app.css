@@ -1472,3 +1472,64 @@ html[data-ui-direction="rtl"]
   :is(input[type="url"], input[type="email"], input[type="password"], code) {
   direction: ltr;
 }
+
+.utility-dialog {
+  color: var(--text, #e7edf5);
+  background: var(--surface, #172332);
+  border: 1px solid #546a80;
+  border-radius: 18px;
+  width: min(760px, 90vw);
+  max-height: 85vh;
+  padding: 24px;
+}
+.utility-dialog::backdrop {
+  background: #0009;
+}
+.utility-dialog p {
+  line-height: 1.6;
+}
+.utility-muted {
+  opacity: 0.65;
+  font-size: 13px;
+}
+.utility-feature {
+  background: #8fa9c310;
+  border: 1px solid #8fa9c326;
+  border-radius: 10px;
+  padding: 14px;
+  margin: 10px 0;
+}
+.utility-feature summary {
+  cursor: pointer;
+  font-weight: 600;
+}
+.utility-field {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  margin: 15px 0;
+}
+.utility-field input[type="number"],
+.utility-field select {
+  width: 140px;
+}
+.utility-field input[type="checkbox"] {
+  width: 20px;
+  height: 20px;
+}
+.utility-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  position: sticky;
+  bottom: 0;
+  padding: 16px 0;
+  background: var(--surface, #172332);
+}
+.utility-footer button {
+  padding: 10px 20px;
+}
+.utility-status {
+  min-height: 24px;
+}

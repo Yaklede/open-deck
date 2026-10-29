@@ -24,6 +24,7 @@ import {
   importProfile,
 } from "./profile-tools.mjs";
 import { migrate, place, overlaps, themes } from "./layout.mjs";
+import { showVorssaintSettings } from "./vorssaint-ui.mjs";
 import { monitorPage } from "./monitor-layout.mjs";
 import { monitorSettings, monitorRuleNames } from "./monitor-rules.mjs";
 import { createMonitorInbox } from "./monitor-inbox.mjs";
@@ -48,6 +49,16 @@ const undo = [],
   redo = [];
 let lastEdit = 0;
 const paths = {
+  settings:
+    "M12 3v3 M12 18v3 M3 12h3 M18 12h3 M5.6 5.6l2.1 2.1 M16.3 16.3l2.1 2.1 M5.6 18.4l2.1-2.1 M16.3 7.7l2.1-2.1 M12 7a5 5 0 1 0 0 10a5 5 0 0 0 0-10",
+  tools: "M5 4l5 5 M4 6l2-2 M9 9l11 11 M17 3l-4 4l4 4l4-4 M14 10L3 21",
+  window: "M3 4h18v16H3z M3 8h18 M9 8v12",
+  keyboard:
+    "M2 6h20v12H2z M5 9h1 M9 9h1 M13 9h1 M17 9h1 M5 12h1 M9 12h1 M13 12h1 M17 12h1 M6 15h12",
+  clipboard: "M8 4H5v17h14V4h-3 M8 3h8v4H8z M8 11h8 M8 15h6",
+  moon: "M20 15A9 9 0 0 1 9 3a9 9 0 1 0 11 12",
+  gauges: "M4 19a10 10 0 1 1 16 0 M12 13l5-5 M12 16h0",
+
   mic: "M9 5a3 3 0 0 1 6 0v7a3 3 0 0 1-6 0z M5 10v2a7 7 0 0 0 14 0v-2 M12 19v4 M8 23h8",
   refresh: "M20 8a9 9 0 1 0 1 7 M20 2v6h-6",
   calendar: "M3 5h18v16H3z M3 10h18 M8 2v6 M16 2v6",
@@ -769,6 +780,22 @@ function updateLive() {
       c.querySelector(".toggle-reading").textContent = value
         ? t("● 켜짐")
         : t("○ 꺼짐");
+    if (w.provider === "vorssaint" && w.utilityGroup) {
+      const provider = state.extensions?.vorssaint,
+        group = provider?.groups?.find((g) => g.id === w.utilityGroup);
+      const value =
+        w.utilityGroup === "general"
+          ? provider?.appVersion || "—"
+          : group
+            ? group.available + " / " + group.total
+            : "—";
+      const current = c.querySelector(".utility-summary");
+      if (current) current.textContent = value;
+      else
+        c.querySelector(".tile-content")?.append(
+          n("div", value, "utility-summary"),
+        );
+    }
     if (w.type === "calendar" && !w.provider)
       c.querySelector(".calendar-reading").textContent =
         new Date().toLocaleDateString(editorLocale(), {
@@ -1078,6 +1105,10 @@ function inspect() {
       min: 1,
       max,
     });
+  if (w.provider === "vorssaint" && w.utilityGroup)
+    button(box, "Vorssaint", () =>
+      showVorssaintSettings(api, w.id).catch((e) => notice(e.message, true)),
+    );
   if (["button", "page"].includes(w.type))
     field(
       box,
@@ -2012,6 +2043,34 @@ async function refreshPlugins() {
 function renderPlugins() {
   const box = $("#pluginList");
   box.replaceChildren();
+  const utilities = n("details"),
+    utilitiesTitle = n("summary", "Vorssaint");
+  utilities.append(utilitiesTitle);
+  button(utilities, "＋ Vorssaint", async () => {
+    try {
+      if (dirty) await save();
+      const result = await api("/api/admin/extensions", "POST", {
+        id: "vorssaint",
+        enabled: true,
+        autoStart: true,
+        addPage: true,
+      });
+      config = result.config;
+      profileId = config.defaultProfileId;
+      pageId = "vorssaint-page";
+      render();
+    } catch (e) {
+      notice(e.message, true);
+    }
+  });
+  for (const w of (config?.pages || [])
+    .flatMap((p) => p.widgets)
+    .filter((w) => w.provider === "vorssaint" && w.utilityGroup))
+    button(utilities, w.label, () =>
+      showVorssaintSettings(api, w.id).catch((e) => notice(e.message, true)),
+    );
+  box.append(utilities);
+
   const form = n("div", undefined, "variable-row");
   let folder = "";
   field(form, t("플러그인 폴더"), folder, (v) => (folder = v), {
